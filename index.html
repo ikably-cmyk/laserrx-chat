@@ -25,6 +25,8 @@
     }
     html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: var(--sans); color: var(--txt); -webkit-font-smoothing: antialiased; }
     .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; }
+
+    /* Header */
     .hdr { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; background: var(--bg); border-bottom: 0.5px solid var(--brd); flex-shrink: 0; }
     .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--teal); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .logo svg { width: 15px; height: 15px; }
@@ -36,13 +38,19 @@
     .btn-icon { width: 30px; height: 30px; border-radius: 8px; border: 0.5px solid var(--brd2); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--txt2); transition: all 0.12s; flex-shrink: 0; }
     .btn-icon:hover { border-color: var(--teal-m); color: var(--teal); background: var(--teal-l); }
     .btn-icon svg { width: 13px; height: 13px; }
+
+    /* Tabs */
     .tabs { display: flex; border-bottom: 0.5px solid var(--brd); background: var(--bg); flex-shrink: 0; }
     .tab { flex: 1; padding: 9px 6px; font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--txt2); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; font-family: var(--mono); transition: all 0.15s; }
     .tab:hover { color: var(--txt); }
     .tab.on { color: var(--teal); border-bottom-color: var(--teal); }
+
+    /* Credits bar */
     .credits-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: var(--bg2); border-bottom: 0.5px solid var(--brd); flex-shrink: 0; }
     .credits-label { font-size: 10px; font-family: var(--mono); color: var(--txt2); }
     .credits-value { font-size: 10px; font-family: var(--mono); font-weight: 500; color: var(--teal); }
+
+    /* Messages */
     .msgs { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
     .msg { display: flex; gap: 7px; animation: msgIn 0.18s ease; }
     @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -57,14 +65,20 @@
     .bbl th, .bbl td { text-align: left; padding: 5px 8px; border: 0.5px solid var(--brd2); }
     .bbl th { background: var(--bg3); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--txt2); }
     .sys { text-align: center; font-size: 10px; font-family: var(--mono); color: var(--txt2); padding: 4px 0; letter-spacing: 0.04em; opacity: 0.7; }
+
+    /* Typing */
     .typing { display: flex; gap: 4px; padding: 11px 12px; background: var(--bg2); border: 0.5px solid var(--brd); border-radius: var(--r); align-items: center; }
     .typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--teal-m); animation: blink 1.1s infinite; }
     .typing span:nth-child(2) { animation-delay: 0.15s; }
     .typing span:nth-child(3) { animation-delay: 0.3s; }
     @keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+
+    /* Chips */
     .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; flex-shrink: 0; }
     .chip { font-size: 11px; padding: 5px 12px; border-radius: 100px; border: 0.5px solid var(--brd2); background: var(--bg2); color: var(--txt2); cursor: pointer; font-family: var(--mono); transition: all 0.12s; white-space: nowrap; }
     .chip:hover { border-color: var(--teal-m); color: var(--teal-d); background: var(--teal-l); }
+
+    /* Input */
     .bar { border-top: 0.5px solid var(--brd); padding: 8px 10px; display: flex; gap: 7px; align-items: flex-end; flex-shrink: 0; background: var(--bg); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
     .inp { flex: 1; padding: 8px 11px; font-size: 14px; font-family: var(--sans); border: 0.5px solid var(--brd2); border-radius: 10px; background: var(--bg2); color: var(--txt); resize: none; outline: none; line-height: 1.45; min-height: 36px; max-height: 100px; -webkit-appearance: none; }
     .inp:focus { border-color: var(--teal-m); }
@@ -74,10 +88,48 @@
     .btn-send:active { transform: scale(0.93); }
     .btn-send:disabled { background: var(--bg3); cursor: not-allowed; }
     .btn-send svg { width: 14px; height: 14px; }
+
+    /* Upgrade card */
+    .upgrade-card {
+      margin: 0 12px 10px;
+      border-radius: var(--r);
+      border: 0.5px solid var(--brd2);
+      overflow: hidden;
+      flex-shrink: 0;
+      display: none;
+    }
+    .upgrade-card.visible { display: block; }
+    .upgrade-top {
+      background: var(--teal);
+      padding: 12px 14px 10px;
+      color: white;
+    }
+    .upgrade-top-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .upgrade-top-sub { font-size: 11px; opacity: 0.85; font-family: var(--mono); }
+    .upgrade-plans { display: flex; gap: 8px; padding: 10px 12px; background: var(--bg2); }
+    .plan-btn {
+      flex: 1;
+      padding: 9px 8px;
+      border-radius: 9px;
+      border: 0.5px solid var(--brd2);
+      background: var(--bg);
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+      transition: all 0.12s;
+    }
+    .plan-btn:hover { border-color: var(--teal-m); background: var(--teal-l); }
+    .plan-btn.featured { border-color: var(--teal); background: var(--teal-l); }
+    .plan-name { font-size: 12px; font-weight: 600; color: var(--txt); display: block; margin-bottom: 2px; }
+    .plan-price { font-size: 11px; color: var(--teal); font-family: var(--mono); display: block; margin-bottom: 2px; }
+    .plan-desc { font-size: 10px; color: var(--txt2); font-family: var(--mono); display: block; }
   </style>
 </head>
 <body>
 <div class="app">
+
+  <!-- Header -->
   <div class="hdr">
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
@@ -95,20 +147,46 @@
     </button>
   </div>
 
+  <!-- Tabs -->
   <div class="tabs">
     <button class="tab on" id="tab-protocols" onclick="switchMod('protocols')">Protocols</button>
     <button class="tab" id="tab-calculator" onclick="switchMod('calculator')">Calculator</button>
     <button class="tab" id="tab-devices" onclick="switchMod('devices')">Devices</button>
   </div>
 
+  <!-- Credits bar -->
   <div class="credits-bar">
-    <span class="credits-label">Plan: <span id="plan-txt">—</span></span>
-    <span class="credits-value" id="credits-txt">— consultations</span>
+    <span class="credits-label">Plan: <span id="plan-txt">Free</span></span>
+    <span class="credits-value" id="credits-txt">1 free consultation</span>
   </div>
 
+  <!-- Messages -->
   <div class="msgs" id="msgs"></div>
+
+  <!-- Upgrade card (hidden by default) -->
+  <div class="upgrade-card" id="upgrade-card">
+    <div class="upgrade-top">
+      <div class="upgrade-top-title">Unlock full access</div>
+      <div class="upgrade-top-sub">Choose a plan to continue your consultations</div>
+    </div>
+    <div class="upgrade-plans">
+      <a class="plan-btn" href="https://buy.stripe.com/14A4grgZN2QGfaqevtdIA0v" target="_blank">
+        <span class="plan-name">Pro</span>
+        <span class="plan-price">$9.99 / mo</span>
+        <span class="plan-desc">60 consultations</span>
+      </a>
+      <a class="plan-btn featured" href="https://buy.stripe.com/bJe6oz24TfDs9Q6bjhdIA0w" target="_blank">
+        <span class="plan-name">Elite</span>
+        <span class="plan-price">$29.99 / mo</span>
+        <span class="plan-desc">Unlimited</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Chips -->
   <div class="chips" id="chips"></div>
 
+  <!-- Input -->
   <div class="bar">
     <textarea class="inp" id="inp" placeholder="Write your question..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
@@ -148,6 +226,7 @@ const USER_EMAIL = params.get('email') || '';
 let mod = params.get('module') || 'protocols';
 let history = [];
 let busy = false;
+let upgradeShown = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!MODULES[mod]) mod = 'protocols';
@@ -155,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tab-' + mod).classList.add('on');
   if (USER_EMAIL) {
     document.getElementById('status-txt').textContent = USER_EMAIL.split('@')[0];
-    document.getElementById('plan-txt').textContent = 'loading...';
   }
   startChat();
 });
@@ -229,6 +307,7 @@ function hideTyping() {
 function setChips(list) {
   const c = document.getElementById('chips');
   c.innerHTML = '';
+  if (upgradeShown) return;
   list.forEach(text => {
     const btn = document.createElement('button');
     btn.className = 'chip';
@@ -238,16 +317,35 @@ function setChips(list) {
   });
 }
 
+function showUpgrade() {
+  upgradeShown = true;
+  document.getElementById('upgrade-card').classList.add('visible');
+  document.getElementById('inp').disabled = true;
+  document.getElementById('sbtn').disabled = true;
+  document.getElementById('inp').placeholder = 'Upgrade to continue...';
+  setChips([]);
+  document.getElementById('credits-txt').textContent = '0 left';
+  document.getElementById('credits-txt').style.color = '#E24B4A';
+}
+
 function updateCredits(plan, credits) {
-  document.getElementById('plan-txt').textContent = plan || '—';
-  document.getElementById('credits-txt').textContent =
-    (plan === 'Elite' || plan === 'Institutional') ? 'Unlimited' :
-    (credits !== undefined ? credits + ' left' : '— consultations');
+  document.getElementById('plan-txt').textContent = plan || 'Free';
+  if (plan === 'Elite' || plan === 'Institutional') {
+    document.getElementById('credits-txt').textContent = 'Unlimited';
+  } else if (credits !== undefined) {
+    document.getElementById('credits-txt').textContent = credits + ' left';
+  }
 }
 
 function startChat() {
   history = [];
+  upgradeShown = false;
   document.getElementById('msgs').innerHTML = '';
+  document.getElementById('upgrade-card').classList.remove('visible');
+  document.getElementById('inp').disabled = false;
+  document.getElementById('sbtn').disabled = false;
+  document.getElementById('inp').placeholder = 'Write your question...';
+  document.getElementById('credits-txt').style.color = '';
   setChips(MODULES[mod].chips);
   const welcome = MODULES[mod].welcome;
   addMsg('ai', welcome);
@@ -266,6 +364,11 @@ function switchMod(newMod) {
   document.getElementById('tab-' + mod).classList.add('on');
   document.getElementById('msgs').innerHTML = '';
   history = [];
+  upgradeShown = false;
+  document.getElementById('upgrade-card').classList.remove('visible');
+  document.getElementById('inp').disabled = false;
+  document.getElementById('sbtn').disabled = false;
+  document.getElementById('inp').placeholder = 'Write your question...';
   addSys(newMod.charAt(0).toUpperCase() + newMod.slice(1) + ' module');
   setChips(MODULES[mod].chips);
   const welcome = MODULES[mod].welcome;
@@ -279,7 +382,7 @@ function quickSend(text) {
 }
 
 async function send() {
-  if (busy) return;
+  if (busy || upgradeShown) return;
   const inp = document.getElementById('inp');
   const text = inp.value.trim();
   if (!text) return;
@@ -308,13 +411,17 @@ async function send() {
     const data = await res.json();
     hideTyping();
 
-    if (data.error) {
-      if (res.status === 403) {
-        addMsg('ai', '⚠️ You have no consultations left.\n\nPlease upgrade your plan to continue.');
+    if (data.error || res.status === 403) {
+      // Show the first response if available, then show upgrade
+      if (data.response) {
+        const reply = data.response;
+        history.push({ role: 'assistant', content: reply });
+        addMsg('ai', reply);
       } else {
-        addMsg('ai', 'Something went wrong. Please try again.');
+        addMsg('ai', "You've used your free consultation. Upgrade to continue exploring protocols, calculations, and device identification.");
       }
-      document.getElementById('status-txt').textContent = 'error';
+      showUpgrade();
+      document.getElementById('status-txt').textContent = 'upgrade required';
     } else {
       const reply = data.response || 'I could not process that. Please try again.';
       history.push({ role: 'assistant', content: reply });
@@ -331,7 +438,7 @@ async function send() {
   }
 
   busy = false;
-  document.getElementById('sbtn').disabled = false;
+  if (!upgradeShown) document.getElementById('sbtn').disabled = false;
 }
 
 function getSuggestions(m, reply) {
