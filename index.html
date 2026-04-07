@@ -9,127 +9,118 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --teal: #1D9E75; --teal-l: #E1F5EE; --teal-m: #5DCAA5; --teal-d: #085041;
-      --bg: #ffffff; --bg2: #f7f7f5; --bg3: #f0f0ec;
-      --txt: #1a1a18; --txt2: #6b6b67;
-      --brd: rgba(0,0,0,0.1); --brd2: rgba(0,0,0,0.18);
-      --r: 12px; --sans: 'Plus Jakarta Sans', system-ui, sans-serif; --mono: 'DM Mono', monospace;
+      --navy:     #1B263B;
+      --navy-m:   #243044;
+      --navy-l:   #2E3D55;
+      --steel:    #778DA9;
+      --steel-l:  #9EB3C9;
+      --steel-d:  #4F6A84;
+      --light:    #E0E1DD;
+      --light-m:  #EAEBEA;
+      --light-d:  #B0B3AF;
+      --bg:       #F4F5F2;
+      --white:    #FFFFFF;
+      --txt:      #1B263B;
+      --txt2:     #778DA9;
+      --brd:      rgba(27,38,59,0.12);
+      --brd2:     rgba(27,38,59,0.2);
+      --r:        12px;
+      --sans:     'Plus Jakarta Sans', system-ui, sans-serif;
+      --mono:     'DM Mono', monospace;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #141412; --bg2: #1e1e1a; --bg3: #252520;
-        --txt: #f0f0ec; --txt2: #9a9a94;
-        --brd: rgba(255,255,255,0.1); --brd2: rgba(255,255,255,0.18);
-        --teal-l: #0a2e22; --teal-m: #1D9E75; --teal-d: #9FE1CB;
-      }
-    }
+
     html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: var(--sans); color: var(--txt); -webkit-font-smoothing: antialiased; }
+
     .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; }
 
     /* Header */
-    .hdr { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; background: var(--bg); border-bottom: 0.5px solid var(--brd); flex-shrink: 0; }
-    .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--teal); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .logo svg { width: 15px; height: 15px; }
+    .hdr { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; background: var(--light); border-bottom: 0.5px solid var(--brd2); flex-shrink: 0; }
+    .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--navy); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo svg { width: 14px; height: 14px; }
     .hdr-info { flex: 1; min-width: 0; }
-    .hdr-title { font-size: 13px; font-weight: 600; color: var(--txt); line-height: 1; margin-bottom: 3px; }
-    .hdr-sub { font-size: 10px; color: var(--teal); font-family: var(--mono); display: flex; align-items: center; gap: 5px; }
-    .dot-live { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .btn-icon { width: 30px; height: 30px; border-radius: 8px; border: 0.5px solid var(--brd2); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--txt2); transition: all 0.12s; flex-shrink: 0; }
-    .btn-icon:hover { border-color: var(--teal-m); color: var(--teal); background: var(--teal-l); }
+    .hdr-title { font-size: 13px; font-weight: 600; color: var(--navy); line-height: 1; margin-bottom: 3px; }
+    .hdr-sub { font-size: 10px; color: var(--steel); font-family: var(--mono); display: flex; align-items: center; gap: 5px; }
+    .dot-live { width: 5px; height: 5px; border-radius: 50%; background: var(--steel); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .btn-icon { width: 30px; height: 30px; border-radius: 8px; border: 0.5px solid var(--brd2); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--steel); transition: all 0.13s; flex-shrink: 0; }
+    .btn-icon:hover { border-color: var(--steel); color: var(--navy); background: var(--light-m); }
     .btn-icon svg { width: 13px; height: 13px; }
 
     /* Tabs */
-    .tabs { display: flex; border-bottom: 0.5px solid var(--brd); background: var(--bg); flex-shrink: 0; }
-    .tab { flex: 1; padding: 9px 6px; font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--txt2); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; font-family: var(--mono); transition: all 0.15s; }
-    .tab:hover { color: var(--txt); }
-    .tab.on { color: var(--teal); border-bottom-color: var(--teal); }
+    .tabs { display: flex; background: var(--light); border-bottom: 0.5px solid var(--brd2); flex-shrink: 0; }
+    .tab { flex: 1; padding: 9px 6px; font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--steel); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; font-family: var(--mono); transition: all 0.15s; }
+    .tab:hover { color: var(--navy); }
+    .tab.on { color: var(--navy); border-bottom-color: var(--navy); }
 
     /* Credits bar */
-    .credits-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: var(--bg2); border-bottom: 0.5px solid var(--brd); flex-shrink: 0; }
-    .credits-label { font-size: 10px; font-family: var(--mono); color: var(--txt2); }
-    .credits-value { font-size: 10px; font-family: var(--mono); font-weight: 500; color: var(--teal); }
+    .credits-bar { display: flex; align-items: center; justify-content: space-between; padding: 5px 14px; background: var(--light-m); border-bottom: 0.5px solid var(--brd); flex-shrink: 0; }
+    .credits-label { font-size: 10px; font-family: var(--mono); color: var(--steel); }
+    .credits-value { font-size: 10px; font-family: var(--mono); font-weight: 500; color: var(--navy); }
 
     /* Messages */
-    .msgs { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
+    .msgs { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; background: var(--bg); scrollbar-width: thin; scrollbar-color: var(--light-d) transparent; }
+    .msgs::-webkit-scrollbar { width: 3px; }
+    .msgs::-webkit-scrollbar-thumb { background: var(--light-d); border-radius: 3px; }
+
     .msg { display: flex; gap: 7px; animation: msgIn 0.18s ease; }
     @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
     .msg.u { flex-direction: row-reverse; }
-    .av { width: 24px; height: 24px; border-radius: 50%; background: var(--bg2); border: 0.5px solid var(--brd); font-size: 9px; font-weight: 500; color: var(--txt2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; font-family: var(--mono); }
-    .av.ai { background: var(--teal-l); border-color: var(--teal-m); color: var(--teal-d); }
-    .bbl { max-width: calc(100% - 36px); padding: 9px 12px; border-radius: var(--r); font-size: 13.5px; line-height: 1.6; color: var(--txt); background: var(--bg2); border: 0.5px solid var(--brd); word-break: break-word; white-space: pre-wrap; }
-    .msg.u .bbl { background: var(--teal-l); border-color: var(--teal-m); color: var(--teal-d); }
-    .bbl strong { font-weight: 600; }
-    .bbl code { font-family: var(--mono); font-size: 12px; background: var(--bg3); padding: 1px 5px; border-radius: 4px; }
+
+    .av { width: 24px; height: 24px; border-radius: 50%; background: var(--light-m); border: 0.5px solid var(--brd2); font-size: 9px; font-weight: 500; color: var(--steel); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; font-family: var(--mono); }
+    .av.ai { background: var(--navy); border-color: var(--navy); color: var(--light); }
+
+    .bbl { max-width: calc(100% - 36px); padding: 9px 12px; border-radius: var(--r); font-size: 13.5px; line-height: 1.6; color: var(--txt); background: var(--white); border: 0.5px solid var(--brd); word-break: break-word; white-space: pre-wrap; }
+    .msg.u .bbl { background: var(--navy); border-color: var(--navy-m); color: var(--light); }
+    .bbl strong { font-weight: 600; color: var(--navy); }
+    .msg.u .bbl strong { color: var(--steel-l); }
+    .bbl em { font-style: italic; color: var(--steel-d); }
+    .bbl code { font-family: var(--mono); font-size: 12px; background: var(--light-m); padding: 1px 5px; border-radius: 4px; color: var(--navy); }
     .bbl table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
     .bbl th, .bbl td { text-align: left; padding: 5px 8px; border: 0.5px solid var(--brd2); }
-    .bbl th { background: var(--bg3); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--txt2); }
-    .sys { text-align: center; font-size: 10px; font-family: var(--mono); color: var(--txt2); padding: 4px 0; letter-spacing: 0.04em; opacity: 0.7; }
+    .bbl th { background: var(--light-m); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--steel-d); }
+    .sys { text-align: center; font-size: 10px; font-family: var(--mono); color: var(--light-d); padding: 4px 0; letter-spacing: 0.05em; }
 
     /* Typing */
-    .typing { display: flex; gap: 4px; padding: 11px 12px; background: var(--bg2); border: 0.5px solid var(--brd); border-radius: var(--r); align-items: center; }
-    .typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--teal-m); animation: blink 1.1s infinite; }
+    .typing { display: flex; gap: 4px; padding: 11px 12px; background: var(--white); border: 0.5px solid var(--brd); border-radius: var(--r); align-items: center; }
+    .typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--steel); animation: blink 1.1s infinite; }
     .typing span:nth-child(2) { animation-delay: 0.15s; }
     .typing span:nth-child(3) { animation-delay: 0.3s; }
     @keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
 
     /* Chips */
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; flex-shrink: 0; }
-    .chip { font-size: 11px; padding: 5px 12px; border-radius: 100px; border: 0.5px solid var(--brd2); background: var(--bg2); color: var(--txt2); cursor: pointer; font-family: var(--mono); transition: all 0.12s; white-space: nowrap; }
-    .chip:hover { border-color: var(--teal-m); color: var(--teal-d); background: var(--teal-l); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; background: var(--bg); flex-shrink: 0; }
+    .chip { font-size: 11px; padding: 5px 12px; border-radius: 100px; border: 0.5px solid var(--brd2); background: var(--white); color: var(--navy); cursor: pointer; font-family: var(--mono); transition: all 0.12s; white-space: nowrap; }
+    .chip:hover { border-color: var(--navy); background: var(--light-m); }
 
-    /* Input */
-    .bar { border-top: 0.5px solid var(--brd); padding: 8px 10px; display: flex; gap: 7px; align-items: flex-end; flex-shrink: 0; background: var(--bg); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
-    .inp { flex: 1; padding: 8px 11px; font-size: 14px; font-family: var(--sans); border: 0.5px solid var(--brd2); border-radius: 10px; background: var(--bg2); color: var(--txt); resize: none; outline: none; line-height: 1.45; min-height: 36px; max-height: 100px; -webkit-appearance: none; }
-    .inp:focus { border-color: var(--teal-m); }
-    .inp::placeholder { color: var(--txt2); }
-    .btn-send { width: 36px; height: 36px; border-radius: 10px; background: var(--teal); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.12s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
-    .btn-send:hover { background: #0F6E56; }
+    /* Input bar */
+    .bar { border-top: 0.5px solid var(--brd2); padding: 8px 10px; display: flex; gap: 7px; align-items: flex-end; flex-shrink: 0; background: var(--light); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    .inp { flex: 1; padding: 8px 11px; font-size: 14px; font-family: var(--sans); border: 0.5px solid var(--brd2); border-radius: 10px; background: var(--white); color: var(--txt); resize: none; outline: none; line-height: 1.45; min-height: 36px; max-height: 100px; -webkit-appearance: none; transition: border-color 0.13s; }
+    .inp:focus { border-color: var(--steel); }
+    .inp::placeholder { color: var(--light-d); }
+    .btn-send { width: 36px; height: 36px; border-radius: 10px; background: var(--navy); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.12s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
+    .btn-send:hover { background: var(--navy-l); }
     .btn-send:active { transform: scale(0.93); }
-    .btn-send:disabled { background: var(--bg3); cursor: not-allowed; }
+    .btn-send:disabled { background: var(--light-d); cursor: not-allowed; }
     .btn-send svg { width: 14px; height: 14px; }
 
     /* Upgrade card */
-    .upgrade-card {
-      margin: 0 12px 10px;
-      border-radius: var(--r);
-      border: 0.5px solid var(--brd2);
-      overflow: hidden;
-      flex-shrink: 0;
-      display: none;
-    }
-    .upgrade-card.visible { display: block; }
-    .upgrade-top {
-      background: var(--teal);
-      padding: 12px 14px 10px;
-      color: white;
-    }
-    .upgrade-top-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-    .upgrade-top-sub { font-size: 11px; opacity: 0.85; font-family: var(--mono); }
-    .upgrade-plans { display: flex; gap: 8px; padding: 10px 12px; background: var(--bg2); }
-    .plan-btn {
-      flex: 1;
-      padding: 9px 8px;
-      border-radius: 9px;
-      border: 0.5px solid var(--brd2);
-      background: var(--bg);
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      display: block;
-      transition: all 0.12s;
-    }
-    .plan-btn:hover { border-color: var(--teal-m); background: var(--teal-l); }
-    .plan-btn.featured { border-color: var(--teal); background: var(--teal-l); }
-    .plan-name { font-size: 12px; font-weight: 600; color: var(--txt); display: block; margin-bottom: 2px; }
-    .plan-price { font-size: 11px; color: var(--teal); font-family: var(--mono); display: block; margin-bottom: 2px; }
-    .plan-desc { font-size: 10px; color: var(--txt2); font-family: var(--mono); display: block; }
+    .upgrade-card { margin: 0 12px 10px; border-radius: var(--r); border: 0.5px solid var(--brd2); overflow: hidden; flex-shrink: 0; display: none; }
+    .upgrade-card.visible { display: block; animation: msgIn 0.2s ease; }
+    .upgrade-top { background: var(--navy); padding: 12px 14px 10px; }
+    .upgrade-top-title { font-size: 13px; font-weight: 600; color: var(--light); margin-bottom: 2px; }
+    .upgrade-top-sub { font-size: 11px; color: var(--steel-l); font-family: var(--mono); }
+    .upgrade-plans { display: flex; gap: 8px; padding: 10px 12px; background: var(--light-m); }
+    .plan-btn { flex: 1; padding: 9px 8px; border-radius: 9px; border: 0.5px solid var(--brd2); background: var(--white); cursor: pointer; text-align: center; text-decoration: none; display: block; transition: all 0.12s; }
+    .plan-btn:hover { border-color: var(--navy); background: var(--light-m); }
+    .plan-btn.featured { border-color: var(--navy); background: var(--light-m); }
+    .plan-name { font-size: 12px; font-weight: 600; color: var(--navy); display: block; margin-bottom: 2px; }
+    .plan-price { font-size: 11px; color: var(--steel-d); font-family: var(--mono); display: block; margin-bottom: 2px; }
+    .plan-desc { font-size: 10px; color: var(--steel); font-family: var(--mono); display: block; }
   </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- Header -->
   <div class="hdr">
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
@@ -147,23 +138,19 @@
     </button>
   </div>
 
-  <!-- Tabs -->
   <div class="tabs">
     <button class="tab on" id="tab-protocols" onclick="switchMod('protocols')">Protocols</button>
     <button class="tab" id="tab-calculator" onclick="switchMod('calculator')">Calculator</button>
     <button class="tab" id="tab-devices" onclick="switchMod('devices')">Devices</button>
   </div>
 
-  <!-- Credits bar -->
   <div class="credits-bar">
     <span class="credits-label">Plan: <span id="plan-txt">Free</span></span>
     <span class="credits-value" id="credits-txt">1 free consultation</span>
   </div>
 
-  <!-- Messages -->
   <div class="msgs" id="msgs"></div>
 
-  <!-- Upgrade card (hidden by default) -->
   <div class="upgrade-card" id="upgrade-card">
     <div class="upgrade-top">
       <div class="upgrade-top-title">Unlock full access</div>
@@ -183,10 +170,8 @@
     </div>
   </div>
 
-  <!-- Chips -->
   <div class="chips" id="chips"></div>
 
-  <!-- Input -->
   <div class="bar">
     <textarea class="inp" id="inp" placeholder="Write your question..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
@@ -205,7 +190,6 @@ const WEBHOOKS = {
   calculator: 'https://laserai.app.n8n.cloud/webhook/laserrx-chat-calculator',
   devices:    'https://laserai.app.n8n.cloud/webhook/laserrx-chat-devices'
 };
-
 const MODULES = {
   protocols: {
     welcome: "Hello! I'll help you find the right laser protocol.\n\nWhat **laser type** are you using?",
@@ -224,99 +208,44 @@ const MODULES = {
 const params = new URLSearchParams(window.location.search);
 const USER_EMAIL = params.get('email') || '';
 let mod = params.get('module') || 'protocols';
-let history = [];
-let busy = false;
-let upgradeShown = false;
+let history = [], busy = false, upgradeShown = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!MODULES[mod]) mod = 'protocols';
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
   document.getElementById('tab-' + mod).classList.add('on');
-  if (USER_EMAIL) {
-    document.getElementById('status-txt').textContent = USER_EMAIL.split('@')[0];
-  }
+  if (USER_EMAIL) document.getElementById('status-txt').textContent = USER_EMAIL.split('@')[0];
   startChat();
 });
 
-function autosize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+function autosize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
+function scrollBottom() { const m = document.getElementById('msgs'); requestAnimationFrame(() => m.scrollTop = m.scrollHeight); }
+function md(t) {
+  return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\n/g,'<br>');
 }
-
-function scrollBottom() {
-  const m = document.getElementById('msgs');
-  requestAnimationFrame(() => m.scrollTop = m.scrollHeight);
-}
-
-function md(text) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
-}
-
 function addMsg(role, text) {
-  const m = document.getElementById('msgs');
-  const isUser = role === 'user';
-  const div = document.createElement('div');
-  div.className = 'msg' + (isUser ? ' u' : '');
-  const av = document.createElement('div');
-  av.className = 'av' + (isUser ? '' : ' ai');
-  av.textContent = isUser ? 'me' : 'AI';
-  const bbl = document.createElement('div');
-  bbl.className = 'bbl';
-  bbl.innerHTML = md(text);
-  div.appendChild(av);
-  div.appendChild(bbl);
-  m.appendChild(div);
-  scrollBottom();
+  const m = document.getElementById('msgs'), isUser = role==='user';
+  const div = document.createElement('div'); div.className = 'msg'+(isUser?' u':'');
+  const av = document.createElement('div'); av.className = 'av'+(isUser?'':' ai'); av.textContent = isUser?'me':'AI';
+  const bbl = document.createElement('div'); bbl.className = 'bbl'; bbl.innerHTML = md(text);
+  div.appendChild(av); div.appendChild(bbl); document.getElementById('msgs').appendChild(div); scrollBottom();
 }
-
 function addSys(text) {
-  const m = document.getElementById('msgs');
-  const div = document.createElement('div');
-  div.className = 'sys';
-  div.textContent = '— ' + text + ' —';
-  m.appendChild(div);
-  scrollBottom();
+  const div = document.createElement('div'); div.className = 'sys'; div.textContent = '— '+text+' —';
+  document.getElementById('msgs').appendChild(div); scrollBottom();
 }
-
 function showTyping() {
-  const m = document.getElementById('msgs');
-  const wrap = document.createElement('div');
-  wrap.className = 'msg';
-  wrap.id = 'typing';
-  const av = document.createElement('div');
-  av.className = 'av ai';
-  av.textContent = 'AI';
-  const t = document.createElement('div');
-  t.className = 'typing';
-  t.innerHTML = '<span></span><span></span><span></span>';
-  wrap.appendChild(av);
-  wrap.appendChild(t);
-  m.appendChild(wrap);
-  scrollBottom();
+  const m = document.getElementById('msgs'), wrap = document.createElement('div'); wrap.className='msg'; wrap.id='typing';
+  const av = document.createElement('div'); av.className='av ai'; av.textContent='AI';
+  const t = document.createElement('div'); t.className='typing'; t.innerHTML='<span></span><span></span><span></span>';
+  wrap.appendChild(av); wrap.appendChild(t); m.appendChild(wrap); scrollBottom();
 }
-
-function hideTyping() {
-  const t = document.getElementById('typing');
-  if (t) t.remove();
-}
-
+function hideTyping() { const t=document.getElementById('typing'); if(t) t.remove(); }
 function setChips(list) {
-  const c = document.getElementById('chips');
-  c.innerHTML = '';
+  const c = document.getElementById('chips'); c.innerHTML = '';
   if (upgradeShown) return;
-  list.forEach(text => {
-    const btn = document.createElement('button');
-    btn.className = 'chip';
-    btn.textContent = text;
-    btn.onclick = () => quickSend(text);
-    c.appendChild(btn);
-  });
+  list.forEach(text => { const btn=document.createElement('button'); btn.className='chip'; btn.textContent=text; btn.onclick=()=>quickSend(text); c.appendChild(btn); });
 }
-
 function showUpgrade() {
   upgradeShown = true;
   document.getElementById('upgrade-card').classList.add('visible');
@@ -325,139 +254,77 @@ function showUpgrade() {
   document.getElementById('inp').placeholder = 'Upgrade to continue...';
   setChips([]);
   document.getElementById('credits-txt').textContent = '0 left';
-  document.getElementById('credits-txt').style.color = '#E24B4A';
+  document.getElementById('credits-txt').style.color = '#C0392B';
 }
-
 function updateCredits(plan, credits) {
   document.getElementById('plan-txt').textContent = plan || 'Free';
-  if (plan === 'Elite' || plan === 'Institutional') {
-    document.getElementById('credits-txt').textContent = 'Unlimited';
-  } else if (credits !== undefined) {
-    document.getElementById('credits-txt').textContent = credits + ' left';
-  }
+  if (plan==='Elite'||plan==='Institutional') document.getElementById('credits-txt').textContent = 'Unlimited';
+  else if (credits!==undefined) document.getElementById('credits-txt').textContent = credits+' left';
 }
-
 function startChat() {
-  history = [];
-  upgradeShown = false;
-  document.getElementById('msgs').innerHTML = '';
+  history=[]; upgradeShown=false;
+  document.getElementById('msgs').innerHTML='';
   document.getElementById('upgrade-card').classList.remove('visible');
-  document.getElementById('inp').disabled = false;
-  document.getElementById('sbtn').disabled = false;
-  document.getElementById('inp').placeholder = 'Write your question...';
-  document.getElementById('credits-txt').style.color = '';
+  document.getElementById('inp').disabled=false; document.getElementById('sbtn').disabled=false;
+  document.getElementById('inp').placeholder='Write your question...';
+  document.getElementById('credits-txt').style.color='';
   setChips(MODULES[mod].chips);
-  const welcome = MODULES[mod].welcome;
-  addMsg('ai', welcome);
-  history.push({ role: 'assistant', content: welcome });
+  const w=MODULES[mod].welcome; addMsg('ai',w); history.push({role:'assistant',content:w});
 }
-
-function resetChat() {
-  startChat();
-  addSys('New consultation');
-}
-
+function resetChat() { startChat(); addSys('New consultation'); }
 function switchMod(newMod) {
-  if (newMod === mod && history.length > 1) return;
-  mod = newMod;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  document.getElementById('tab-' + mod).classList.add('on');
-  document.getElementById('msgs').innerHTML = '';
-  history = [];
-  upgradeShown = false;
+  if (newMod===mod&&history.length>1) return;
+  mod=newMod;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tab-'+mod).classList.add('on');
+  document.getElementById('msgs').innerHTML=''; history=[]; upgradeShown=false;
   document.getElementById('upgrade-card').classList.remove('visible');
-  document.getElementById('inp').disabled = false;
-  document.getElementById('sbtn').disabled = false;
-  document.getElementById('inp').placeholder = 'Write your question...';
-  addSys(newMod.charAt(0).toUpperCase() + newMod.slice(1) + ' module');
+  document.getElementById('inp').disabled=false; document.getElementById('sbtn').disabled=false;
+  document.getElementById('inp').placeholder='Write your question...';
+  addSys(newMod.charAt(0).toUpperCase()+newMod.slice(1)+' module');
   setChips(MODULES[mod].chips);
-  const welcome = MODULES[mod].welcome;
-  addMsg('ai', welcome);
-  history.push({ role: 'assistant', content: welcome });
+  const w=MODULES[mod].welcome; addMsg('ai',w); history.push({role:'assistant',content:w});
 }
-
-function quickSend(text) {
-  document.getElementById('inp').value = text;
-  send();
-}
-
+function quickSend(text) { document.getElementById('inp').value=text; send(); }
 async function send() {
-  if (busy || upgradeShown) return;
-  const inp = document.getElementById('inp');
-  const text = inp.value.trim();
-  if (!text) return;
-  inp.value = '';
-  inp.style.height = 'auto';
-  busy = true;
-  document.getElementById('sbtn').disabled = true;
-  setChips([]);
-  document.getElementById('status-txt').textContent = 'thinking...';
-  addMsg('user', text);
-  history.push({ role: 'user', content: text });
-  showTyping();
-
+  if (busy||upgradeShown) return;
+  const inp=document.getElementById('inp'), text=inp.value.trim(); if(!text) return;
+  inp.value=''; inp.style.height='auto'; busy=true;
+  document.getElementById('sbtn').disabled=true; setChips([]);
+  document.getElementById('status-txt').textContent='thinking...';
+  addMsg('user',text); history.push({role:'user',content:text}); showTyping();
   try {
-    const res = await fetch(WEBHOOKS[mod], {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_email: USER_EMAIL,
-        last_message: text,
-        history: history.slice(0, -1),
-        module: mod
-      })
-    });
-
-    const data = await res.json();
-    hideTyping();
-
-    if (data.error || res.status === 403) {
-      // Show the first response if available, then show upgrade
-      if (data.response) {
-        const reply = data.response;
-        history.push({ role: 'assistant', content: reply });
-        addMsg('ai', reply);
-      } else {
-        addMsg('ai', "You've used your free consultation. Upgrade to continue exploring protocols, calculations, and device identification.");
-      }
-      showUpgrade();
-      document.getElementById('status-txt').textContent = 'upgrade required';
+    const res = await fetch(WEBHOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:USER_EMAIL,last_message:text,history:history.slice(0,-1),module:mod})});
+    const data = await res.json(); hideTyping();
+    if (data.error||res.status===403) {
+      if (data.response) { history.push({role:'assistant',content:data.response}); addMsg('ai',data.response); }
+      else addMsg('ai',"You've used your free consultation. Upgrade to continue.");
+      showUpgrade(); document.getElementById('status-txt').textContent='upgrade required';
     } else {
-      const reply = data.response || 'I could not process that. Please try again.';
-      history.push({ role: 'assistant', content: reply });
-      addMsg('ai', reply);
-      if (data.plan) updateCredits(data.plan, data.credits);
-      setChips(getSuggestions(mod, reply));
-      document.getElementById('status-txt').textContent =
-        USER_EMAIL ? USER_EMAIL.split('@')[0] : 'ready';
+      const reply=data.response||'I could not process that. Please try again.';
+      history.push({role:'assistant',content:reply}); addMsg('ai',reply);
+      if (data.plan) updateCredits(data.plan,data.credits);
+      setChips(getSuggestions(mod,reply));
+      document.getElementById('status-txt').textContent=USER_EMAIL?USER_EMAIL.split('@')[0]:'ready';
     }
-  } catch(e) {
-    hideTyping();
-    addMsg('ai', 'Connection error. Please check your connection and try again.');
-    document.getElementById('status-txt').textContent = 'offline';
-  }
-
-  busy = false;
-  if (!upgradeShown) document.getElementById('sbtn').disabled = false;
+  } catch(e) { hideTyping(); addMsg('ai','Connection error. Please try again.'); document.getElementById('status-txt').textContent='offline'; }
+  busy=false; if(!upgradeShown) document.getElementById('sbtn').disabled=false;
 }
-
 function getSuggestions(m, reply) {
-  const r = reply.toLowerCase();
-  if (m === 'protocols') {
-    if (r.includes('laser type') || r.includes('tipo de láser')) return ['Diode', 'Er:YAG', 'Er,Cr:YSGG', 'Nd:YAG', 'CO₂', 'Other'];
-    if (r.includes('tissue') || r.includes('tejido')) return ['Soft tissue', 'Hard tissue', 'Endodontics', 'Periodontics', 'Other'];
-    if (r.includes('indication') || r.includes('procedure')) return ['Gingivectomy', 'Frenectomy', 'Wound healing', 'Peri-implantitis', 'Other'];
-    return ['What are the contraindications?', 'Explain the technique', 'Safety tips', 'Other procedure'];
+  const r=reply.toLowerCase();
+  if (m==='protocols') {
+    if (r.includes('laser type')||r.includes('tipo de láser')) return ['Diode','Er:YAG','Er,Cr:YSGG','Nd:YAG','CO₂','Other'];
+    if (r.includes('tissue')||r.includes('tejido')) return ['Soft tissue','Hard tissue','Endodontics','Periodontics','Other'];
+    if (r.includes('indication')||r.includes('procedure')) return ['Gingivectomy','Frenectomy','Wound healing','Peri-implantitis','Other'];
+    return ['What are the contraindications?','Explain the technique','Safety tips','Other procedure'];
   }
-  if (m === 'calculator') {
-    if (r.includes('power') || r.includes('potencia')) return ['0.5 W', '1.0 W', '1.5 W', '2.0 W', 'Other'];
-    if (r.includes('frequency') || r.includes('hz')) return ['10 Hz', '15 Hz', '20 Hz', '25 Hz', 'CW mode'];
-    if (r.includes('tip') || r.includes('diameter')) return ['300 µm', '400 µm', '600 µm', '800 µm', 'Other'];
-    return ['What does this irradiance mean clinically?', 'Is this safe?', 'Calculate another setup'];
+  if (m==='calculator') {
+    if (r.includes('power')||r.includes('potencia')) return ['0.5 W','1.0 W','1.5 W','2.0 W','Other'];
+    if (r.includes('frequency')||r.includes('hz')) return ['10 Hz','15 Hz','20 Hz','25 Hz','CW mode'];
+    if (r.includes('tip')||r.includes('diameter')) return ['300 µm','400 µm','600 µm','800 µm','Other'];
+    return ['What does this irradiance mean clinically?','Is this safe?','Calculate another setup'];
   }
-  if (m === 'devices') {
-    return ['What protocols can I use?', 'What tips does it use?', 'How do I initiate the fiber?', 'Maintenance tips'];
-  }
+  if (m==='devices') return ['What protocols can I use?','What tips does it use?','How do I initiate the fiber?','Maintenance tips'];
   return [];
 }
 </script>
