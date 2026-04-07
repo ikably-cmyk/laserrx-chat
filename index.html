@@ -391,11 +391,18 @@
     .msg-ai li { margin: 3px 0; font-size: 13.5px; }
 
     /* Tables */
+    .msg-ai .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 10px 0;
+      border-radius: 6px;
+    }
     .msg-ai table {
       width: 100%;
+      min-width: 420px;
       border-collapse: collapse;
-      margin: 10px 0;
-      font-size: 12px;
+      font-size: 11.5px;
       font-family: 'Space Mono', monospace;
     }
     .msg-ai th {
@@ -657,11 +664,13 @@ const $ = id => document.getElementById(id);
 const t = k  => L[lang][k];
 
 function fmt(text) {
-  // Use marked.js for full markdown rendering
   if (typeof marked !== 'undefined') {
-    return marked.parse(text, { breaks: true, gfm: true });
+    // Wrap tables in scrollable container
+    const renderer = new marked.Renderer();
+    renderer.table = (header, body) =>
+      `<div class="table-wrap"><table><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
+    return marked.parse(text, { breaks: true, gfm: true, renderer });
   }
-  // Fallback
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
 }
 
