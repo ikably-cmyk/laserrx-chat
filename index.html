@@ -3,329 +3,845 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>LaserRx AI Chat</title>
+  <title>LaserRx AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --navy:     #1B263B;
-      --navy-m:   #243044;
-      --navy-l:   #2E3D55;
-      --steel:    #778DA9;
-      --steel-l:  #9EB3C9;
-      --steel-d:  #4F6A84;
-      --light:    #E0E1DD;
-      --light-m:  #EAEBEA;
-      --light-d:  #B0B3AF;
-      --bg:       #F4F5F2;
-      --white:    #FFFFFF;
-      --txt:      #1B263B;
-      --txt2:     #778DA9;
-      --brd:      rgba(27,38,59,0.12);
-      --brd2:     rgba(27,38,59,0.2);
-      --r:        12px;
-      --sans:     'Plus Jakarta Sans', system-ui, sans-serif;
-      --mono:     'DM Mono', monospace;
+      --navy:  #1B263B;
+      --steel: #778DA9;
+      --light: #E0E1DD;
+      --bg:    #F4F5F2;
+      --white: #FFFFFF;
     }
 
-    html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: var(--sans); color: var(--txt); -webkit-font-smoothing: antialiased; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; }
+    body {
+      font-family: 'Instrument Sans', sans-serif;
+      background: var(--bg);
+      color: var(--navy);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
 
-    /* Header */
-    .hdr { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; background: var(--light); border-bottom: 0.5px solid var(--brd2); flex-shrink: 0; }
-    .logo { width: 30px; height: 30px; border-radius: 9px; background: var(--navy); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .logo svg { width: 14px; height: 14px; }
-    .hdr-info { flex: 1; min-width: 0; }
-    .hdr-title { font-size: 13px; font-weight: 600; color: var(--navy); line-height: 1; margin-bottom: 3px; }
-    .hdr-sub { font-size: 10px; color: var(--steel); font-family: var(--mono); display: flex; align-items: center; gap: 5px; }
-    .dot-live { width: 5px; height: 5px; border-radius: 50%; background: var(--steel); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-    .btn-icon { width: 30px; height: 30px; border-radius: 8px; border: 0.5px solid var(--brd2); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--steel); transition: all 0.13s; flex-shrink: 0; }
-    .btn-icon:hover { border-color: var(--steel); color: var(--navy); background: var(--light-m); }
-    .btn-icon svg { width: 13px; height: 13px; }
+    /* ── HEADER ── */
+    .header {
+      background: var(--navy);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .header-logo {
+      width: 34px; height: 34px;
+      background: var(--steel);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Mono', monospace;
+      color: var(--white); font-size: 13px; font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .header-title { font-size: 15px; font-weight: 600; color: var(--white); }
+    .header-status {
+      font-size: 11px; color: var(--steel);
+      display: flex; align-items: center; gap: 5px;
+      font-family: 'Space Mono', monospace;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #52c77a;
+    }
 
-    /* Tabs */
-    .tabs { display: flex; background: var(--light); border-bottom: 0.5px solid var(--brd2); flex-shrink: 0; }
-    .tab { flex: 1; padding: 9px 6px; font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--steel); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; font-family: var(--mono); transition: all 0.15s; }
-    .tab:hover { color: var(--navy); }
-    .tab.on { color: var(--navy); border-bottom-color: var(--navy); }
+    /* ── TABS ── */
+    .tabs {
+      background: var(--bg);
+      display: flex;
+      border-bottom: 1px solid var(--light);
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 10px 15px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.07em;
+      color: var(--steel);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.18s, border-color 0.18s;
+      user-select: none;
+    }
+    .tab.active { color: var(--navy); border-bottom-color: var(--navy); }
 
-    /* Credits bar */
-    .credits-bar { display: flex; align-items: center; justify-content: space-between; padding: 5px 14px; background: var(--light-m); border-bottom: 0.5px solid var(--brd); flex-shrink: 0; }
-    .credits-label { font-size: 10px; font-family: var(--mono); color: var(--steel); }
-    .credits-value { font-size: 10px; font-family: var(--mono); font-weight: 500; color: var(--navy); }
+    /* ── PLAN BAR ── */
+    .plan-bar {
+      padding: 5px 16px;
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--steel);
+      font-family: 'Space Mono', monospace;
+      border-bottom: 1px solid var(--light);
+      flex-shrink: 0;
+    }
+    .plan-bar strong { color: var(--navy); }
 
-    /* Messages */
-    .msgs { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; background: var(--bg); scrollbar-width: thin; scrollbar-color: var(--light-d) transparent; }
-    .msgs::-webkit-scrollbar { width: 3px; }
-    .msgs::-webkit-scrollbar-thumb { background: var(--light-d); border-radius: 3px; }
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 16px 90px;
+      -webkit-overflow-scrolling: touch;
+    }
 
-    .msg { display: flex; gap: 7px; animation: msgIn 0.18s ease; }
-    @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    .msg.u { flex-direction: row-reverse; }
+    /* ── HOME ── */
+    .home-title {
+      font-size: 22px; font-weight: 700; line-height: 1.2;
+      color: var(--navy); margin-bottom: 3px;
+    }
+    .home-subtitle {
+      font-size: 12px; color: var(--steel);
+      font-family: 'Space Mono', monospace;
+      margin-bottom: 22px;
+    }
+    .lang-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 6px;
+    }
+    .lang-label {
+      font-size: 12px; color: var(--steel);
+      font-family: 'Space Mono', monospace;
+      white-space: nowrap;
+    }
+    .lang-select {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid var(--light);
+      border-radius: 10px;
+      background: var(--white);
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 15px; font-weight: 500;
+      color: var(--navy);
+      appearance: none;
+      cursor: pointer;
+      outline: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23778DA9' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .lang-note {
+      font-size: 11px; color: var(--steel);
+      font-style: italic;
+      margin-bottom: 20px;
+      padding-left: 2px;
+    }
 
-    .av { width: 24px; height: 24px; border-radius: 50%; background: var(--light-m); border: 0.5px solid var(--brd2); font-size: 9px; font-weight: 500; color: var(--steel); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; font-family: var(--mono); }
-    .av.ai { background: var(--navy); border-color: var(--navy); color: var(--light); }
+    .module-card {
+      background: var(--white);
+      border: 1.5px solid var(--light);
+      border-radius: 12px;
+      padding: 13px 14px;
+      display: flex; align-items: center; gap: 13px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: border-color 0.18s, transform 0.15s;
+      user-select: none;
+    }
+    .module-card:hover { border-color: var(--steel); }
+    .module-card:active { transform: scale(0.98); }
+    .module-icon {
+      width: 42px; height: 42px;
+      background: var(--bg);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .module-name { font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 2px; }
+    .module-desc { font-size: 11px; color: var(--steel); font-family: 'Space Mono', monospace; }
+    .module-arrow { color: var(--light); font-size: 18px; font-weight: 300; }
 
-    .bbl { max-width: calc(100% - 36px); padding: 9px 12px; border-radius: var(--r); font-size: 13.5px; line-height: 1.6; color: var(--txt); background: var(--white); border: 0.5px solid var(--brd); word-break: break-word; white-space: pre-wrap; }
-    .msg.u .bbl { background: var(--navy); border-color: var(--navy-m); color: var(--light); }
-    .bbl strong { font-weight: 600; color: var(--navy); }
-    .msg.u .bbl strong { color: var(--steel-l); }
-    .bbl em { font-style: italic; color: var(--steel-d); }
-    .bbl code { font-family: var(--mono); font-size: 12px; background: var(--light-m); padding: 1px 5px; border-radius: 4px; color: var(--navy); }
-    .bbl table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
-    .bbl th, .bbl td { text-align: left; padding: 5px 8px; border: 0.5px solid var(--brd2); }
-    .bbl th { background: var(--light-m); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--steel-d); }
-    .sys { text-align: center; font-size: 10px; font-family: var(--mono); color: var(--light-d); padding: 4px 0; letter-spacing: 0.05em; }
+    /* ── MODULE (CHAT) ── */
+    .mod-header { margin-bottom: 14px; }
+    .mod-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 1px; }
+    .mod-subtitle { font-size: 11px; color: var(--steel); font-family: 'Space Mono', monospace; }
 
-    /* Typing */
-    .typing { display: flex; gap: 4px; padding: 11px 12px; background: var(--white); border: 0.5px solid var(--brd); border-radius: var(--r); align-items: center; }
-    .typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--steel); animation: blink 1.1s infinite; }
-    .typing span:nth-child(2) { animation-delay: 0.15s; }
-    .typing span:nth-child(3) { animation-delay: 0.3s; }
-    @keyframes blink { 0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); } 40% { opacity: 1; transform: scale(1); } }
+    .messages { display: flex; flex-direction: column; gap: 10px; }
 
-    /* Chips */
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; background: var(--bg); flex-shrink: 0; }
-    .chip { font-size: 11px; padding: 5px 12px; border-radius: 100px; border: 0.5px solid var(--brd2); background: var(--white); color: var(--navy); cursor: pointer; font-family: var(--mono); transition: all 0.12s; white-space: nowrap; }
-    .chip:hover { border-color: var(--navy); background: var(--light-m); }
+    .msg {
+      max-width: 86%;
+      padding: 10px 13px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+    .msg-ai {
+      background: var(--white);
+      border: 1px solid var(--light);
+      border-top-left-radius: 3px;
+      align-self: flex-start;
+    }
+    .msg-ai em { font-style: italic; color: var(--steel); font-size: 12px; }
+    .msg-user {
+      background: var(--navy);
+      color: var(--white);
+      border-bottom-right-radius: 3px;
+      align-self: flex-end;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+    }
 
-    /* Input bar */
-    .bar { border-top: 0.5px solid var(--brd2); padding: 8px 10px; display: flex; gap: 7px; align-items: flex-end; flex-shrink: 0; background: var(--light); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
-    .inp { flex: 1; padding: 8px 11px; font-size: 14px; font-family: var(--sans); border: 0.5px solid var(--brd2); border-radius: 10px; background: var(--white); color: var(--txt); resize: none; outline: none; line-height: 1.45; min-height: 36px; max-height: 100px; -webkit-appearance: none; transition: border-color 0.13s; }
-    .inp:focus { border-color: var(--steel); }
-    .inp::placeholder { color: var(--light-d); }
-    .btn-send { width: 36px; height: 36px; border-radius: 10px; background: var(--navy); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.12s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
-    .btn-send:hover { background: var(--navy-l); }
-    .btn-send:active { transform: scale(0.93); }
-    .btn-send:disabled { background: var(--light-d); cursor: not-allowed; }
-    .btn-send svg { width: 14px; height: 14px; }
+    /* ── CHIPS ── */
+    .chips-wrap { margin-top: 6px; }
+    .chips-label {
+      font-size: 10px; color: var(--steel);
+      font-family: 'Space Mono', monospace;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      margin-bottom: 7px;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 5px 11px;
+      border: 1.5px solid var(--light);
+      border-radius: 20px;
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      color: var(--navy);
+      cursor: pointer;
+      background: var(--white);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .chip:hover, .chip.sel {
+      background: var(--navy);
+      color: var(--white);
+      border-color: var(--navy);
+    }
+    .chip-other-field {
+      width: 100%;
+      margin-top: 8px;
+      padding: 8px 11px;
+      border: 1.5px solid var(--steel);
+      border-radius: 8px;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 13px; color: var(--navy);
+      background: var(--white);
+      outline: none;
+    }
+    .chip-other-field::placeholder { color: var(--steel); }
 
-    /* Upgrade card */
-    .upgrade-card { margin: 0 12px 10px; border-radius: var(--r); border: 0.5px solid var(--brd2); overflow: hidden; flex-shrink: 0; display: none; }
-    .upgrade-card.visible { display: block; animation: msgIn 0.2s ease; }
-    .upgrade-top { background: var(--navy); padding: 12px 14px 10px; }
-    .upgrade-top-title { font-size: 13px; font-weight: 600; color: var(--light); margin-bottom: 2px; }
-    .upgrade-top-sub { font-size: 11px; color: var(--steel-l); font-family: var(--mono); }
-    .upgrade-plans { display: flex; gap: 8px; padding: 10px 12px; background: var(--light-m); }
-    .plan-btn { flex: 1; padding: 9px 8px; border-radius: 9px; border: 0.5px solid var(--brd2); background: var(--white); cursor: pointer; text-align: center; text-decoration: none; display: block; transition: all 0.12s; }
-    .plan-btn:hover { border-color: var(--navy); background: var(--light-m); }
-    .plan-btn.featured { border-color: var(--navy); background: var(--light-m); }
-    .plan-name { font-size: 12px; font-weight: 600; color: var(--navy); display: block; margin-bottom: 2px; }
-    .plan-price { font-size: 11px; color: var(--steel-d); font-family: var(--mono); display: block; margin-bottom: 2px; }
-    .plan-desc { font-size: 10px; color: var(--steel); font-family: var(--mono); display: block; }
+    /* ── TYPING ── */
+    .typing {
+      display: flex; gap: 4px; align-items: center;
+      padding: 10px 13px;
+      background: var(--white);
+      border: 1px solid var(--light);
+      border-radius: 12px; border-top-left-radius: 3px;
+      width: fit-content;
+      align-self: flex-start;
+    }
+    .tdot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--steel);
+      animation: pulse 1.2s infinite;
+    }
+    .tdot:nth-child(2) { animation-delay: 0.2s; }
+    .tdot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
+
+    /* ── NEXT STEP CARD ── */
+    .next-card {
+      background: var(--navy);
+      color: var(--white);
+      border-radius: 12px;
+      padding: 13px 15px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-top: 4px;
+      user-select: none;
+    }
+    .next-card:hover { opacity: 0.88; }
+    .next-label {
+      font-size: 9px; font-family: 'Space Mono', monospace;
+      color: var(--steel); text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 3px;
+    }
+    .next-title { font-size: 14px; font-weight: 600; }
+    .next-desc { font-size: 11px; color: var(--light); font-family: 'Space Mono', monospace; }
+    .next-arrow { font-size: 20px; color: var(--steel); flex-shrink: 0; }
+
+    /* ── UPGRADE CARD ── */
+    .upgrade-card {
+      background: linear-gradient(135deg, #1B263B 0%, #243550 100%);
+      border-radius: 12px;
+      padding: 15px 16px;
+      color: var(--white);
+      margin-top: 4px;
+    }
+    .upg-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .upg-desc { font-size: 11px; color: var(--light); font-family: 'Space Mono', monospace; margin-bottom: 12px; }
+    .upg-btns { display: flex; gap: 8px; }
+    .upg-btn {
+      flex: 1; padding: 9px 8px;
+      border-radius: 8px; border: none;
+      font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700;
+      cursor: pointer; text-align: center;
+      text-decoration: none; display: block;
+    }
+    .upg-pro { background: var(--steel); color: var(--white); }
+    .upg-elite { background: var(--white); color: var(--navy); }
+
+    /* ── INPUT BAR ── */
+    .input-bar {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: var(--bg);
+      border-top: 1px solid var(--light);
+      padding: 8px 12px;
+      display: flex; gap: 8px; align-items: flex-end;
+    }
+    .input-field {
+      flex: 1;
+      padding: 9px 13px;
+      border: 1.5px solid var(--light);
+      border-radius: 20px;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 14px; color: var(--navy);
+      background: var(--white);
+      outline: none; resize: none;
+      min-height: 38px; max-height: 96px;
+      line-height: 1.4;
+      transition: border-color 0.18s;
+    }
+    .input-field:focus { border-color: var(--steel); }
+    .input-field::placeholder { color: var(--steel); }
+    .send-btn {
+      width: 38px; height: 38px; flex-shrink: 0;
+      background: var(--navy);
+      border: none; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: opacity 0.18s;
+    }
+    .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-<div class="app">
 
-  <div class="hdr">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
-        <path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z"/>
-      </svg>
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">Rx</div>
+  <div style="flex:1">
+    <div class="header-title">LaserRx AI</div>
+    <div class="header-status">
+      <span class="status-dot"></span>
+      <span id="statusTxt">ready</span>
     </div>
-    <div class="hdr-info">
-      <div class="hdr-title">LaserRx AI</div>
-      <div class="hdr-sub"><span class="dot-live"></span><span id="status-txt">ready</span></div>
-    </div>
-    <button class="btn-icon" onclick="resetChat()" title="New consultation">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
-        <path d="M2 8a6 6 0 1 0 .5-2.4M2 3v3h3"/>
-      </svg>
-    </button>
-  </div>
-
-  <div class="tabs">
-    <button class="tab on" id="tab-protocols" onclick="switchMod('protocols')">Protocols</button>
-    <button class="tab" id="tab-calculator" onclick="switchMod('calculator')">Calculator</button>
-    <button class="tab" id="tab-devices" onclick="switchMod('devices')">Devices</button>
-  </div>
-
-  <div class="credits-bar">
-    <span class="credits-label">Plan: <span id="plan-txt">Free</span></span>
-    <span class="credits-value" id="credits-txt">1 free consultation</span>
-  </div>
-
-  <div class="msgs" id="msgs"></div>
-
-  <div class="upgrade-card" id="upgrade-card">
-    <div class="upgrade-top">
-      <div class="upgrade-top-title">Unlock full access</div>
-      <div class="upgrade-top-sub">Choose a plan to continue your consultations</div>
-    </div>
-    <div class="upgrade-plans">
-      <a class="plan-btn" href="https://buy.stripe.com/14A4grgZN2QGfaqevtdIA0v" target="_blank">
-        <span class="plan-name">Pro</span>
-        <span class="plan-price">$9.99 / mo</span>
-        <span class="plan-desc">60 consultations</span>
-      </a>
-      <a class="plan-btn featured" href="https://buy.stripe.com/bJe6oz24TfDs9Q6bjhdIA0w" target="_blank">
-        <span class="plan-name">Elite</span>
-        <span class="plan-price">$29.99 / mo</span>
-        <span class="plan-desc">Unlimited</span>
-      </a>
-    </div>
-  </div>
-
-  <div class="chips" id="chips"></div>
-
-  <div class="bar">
-    <textarea class="inp" id="inp" placeholder="Write your question..." rows="1"
-      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"
-      oninput="autosize(this)"></textarea>
-    <button class="btn-send" id="sbtn" onclick="send()">
-      <svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2">
-        <path d="M2 8h12M9 3l5 5-5 5"/>
-      </svg>
-    </button>
   </div>
 </div>
 
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" data-tab="home"       onclick="goTab('home')">HOME</div>
+  <div class="tab"        data-tab="devices"    onclick="goTab('devices')">DEVICES</div>
+  <div class="tab"        data-tab="protocols"  onclick="goTab('protocols')">PROTOCOLS</div>
+  <div class="tab"        data-tab="calculator" onclick="goTab('calculator')">CALCULATOR</div>
+</div>
+
+<!-- Plan bar -->
+<div class="plan-bar">
+  <span>Plan: <strong id="planTxt">—</strong></span>
+  <span id="creditsTxt">—</span>
+</div>
+
+<!-- Content -->
+<div class="content" id="content">
+
+  <!-- HOME -->
+  <div id="tab-home">
+    <div class="home-title" id="homeTitle">Where do you want<br>to start?</div>
+    <div class="home-subtitle" id="homeSub">LaserRx · 3 modules available</div>
+
+    <div class="lang-row">
+      <span class="lang-label" id="langLbl">Language</span>
+      <select class="lang-select" id="langSel" onchange="setLang(this.value)">
+        <option value="en">🇺🇸  English</option>
+        <option value="es">🇲🇽  Español</option>
+        <option value="pt">🇧🇷  Português</option>
+      </select>
+    </div>
+    <div class="lang-note" id="langNote">The assistant will respond in this language throughout your consultation.</div>
+
+    <div class="module-card" onclick="goTab('devices')">
+      <div class="module-icon">🔬</div>
+      <div style="flex:1">
+        <div class="module-name" id="cDevName">Identify a device</div>
+        <div class="module-desc" id="cDevDesc">What laser do I have?</div>
+      </div>
+      <div class="module-arrow">›</div>
+    </div>
+    <div class="module-card" onclick="goTab('protocols')">
+      <div class="module-icon">🦷</div>
+      <div style="flex:1">
+        <div class="module-name" id="cProName">Laser protocols</div>
+        <div class="module-desc" id="cProDesc">How do I use it for X?</div>
+      </div>
+      <div class="module-arrow">›</div>
+    </div>
+    <div class="module-card" onclick="goTab('calculator')">
+      <div class="module-icon">⚙️</div>
+      <div style="flex:1">
+        <div class="module-name" id="cCalName">Parameter calculator</div>
+        <div class="module-desc" id="cCalDesc">Give me the exact numbers</div>
+      </div>
+      <div class="module-arrow">›</div>
+    </div>
+  </div>
+
+  <!-- DEVICES -->
+  <div id="tab-devices" class="hidden">
+    <div class="mod-header">
+      <div class="mod-title" id="devTitle">Device Identifier</div>
+      <div class="mod-subtitle" id="devSub">Identify your laser device</div>
+    </div>
+    <div class="messages" id="devMsgs"></div>
+  </div>
+
+  <!-- PROTOCOLS -->
+  <div id="tab-protocols" class="hidden">
+    <div class="mod-header">
+      <div class="mod-title" id="proTitle">Protocol Consultant</div>
+      <div class="mod-subtitle" id="proSub">Find the right protocol</div>
+    </div>
+    <div class="messages" id="proMsgs"></div>
+  </div>
+
+  <!-- CALCULATOR -->
+  <div id="tab-calculator" class="hidden">
+    <div class="mod-header">
+      <div class="mod-title" id="calTitle">Parameter Calculator</div>
+      <div class="mod-subtitle" id="calSub">Calculate exact parameters</div>
+    </div>
+    <div class="messages" id="calMsgs"></div>
+  </div>
+
+</div>
+
+<!-- Input bar (hidden on home) -->
+<div class="input-bar hidden" id="inputBar">
+  <textarea class="input-field" id="inputField" rows="1"
+    placeholder="Write your question..."
+    onkeydown="onKey(event)"
+    oninput="autoH(this)"></textarea>
+  <button class="send-btn" id="sendBtn" onclick="send()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  </button>
+</div>
+
 <script>
-const WEBHOOKS = {
+// ── STATE ──
+const QS    = new URLSearchParams(location.search);
+const EMAIL = QS.get('email') || '';
+const MOD   = QS.get('module') || '';
+
+let lang    = 'en';
+let curTab  = 'home';
+let busy    = false;
+const hist  = { devices:[], protocols:[], calculator:[] };
+
+const HOOKS = {
+  devices:    'https://laserai.app.n8n.cloud/webhook/laserrx-chat-devices',
   protocols:  'https://laserai.app.n8n.cloud/webhook/laserrx-chat-protocols',
-  calculator: 'https://laserai.app.n8n.cloud/webhook/laserrx-chat-calculator',
-  devices:    'https://laserai.app.n8n.cloud/webhook/laserrx-chat-devices'
+  calculator: 'https://laserai.app.n8n.cloud/webhook/laserrx-chat-calculator'
 };
-const MODULES = {
-  protocols: {
-    welcome: "Hello! I'll help you find the right laser protocol.\n\nWhat **laser type** are you using?",
-    chips: ['Diode', 'Er:YAG', 'Er,Cr:YSGG', 'Nd:YAG', 'CO₂', 'PBM Laser', 'Other']
+
+// ── I18N ──
+const L = {
+  en: {
+    status:'ready', homeTitle:'Where do you want\nto start?',
+    homeSub:'LaserRx · 3 modules available',
+    langLbl:'Language',
+    langNote:'The assistant will respond in this language throughout your consultation.',
+    cDevName:'Identify a device',   cDevDesc:'What laser do I have?',
+    cProName:'Laser protocols',     cProDesc:'How do I use it for X?',
+    cCalName:'Parameter calculator',cCalDesc:'Give me the exact numbers',
+    devTitle:'Device Identifier',   devSub:'Identify your laser device',
+    proTitle:'Protocol Consultant', proSub:'Find the right protocol',
+    calTitle:'Parameter Calculator',calSub:'Calculate exact parameters',
+    ph:'Write your question...',    chLbl:'Quick options',
+    othPh:'Describe your case...',
+    plans:{Free:'Free',Pro:'Pro',Elite:'Elite',Institutional:'Institutional'},
+    cred:(n)=> n>=9999?'Unlimited':`${n} credit${n!=1?'s':''} left`,
+    ns:{
+      devices:  {lbl:'Next step',    title:'Laser protocols',     desc:'How do I use it for X?',     tab:'protocols'},
+      protocols:{lbl:'Next step',    title:'Parameter calculator',desc:'Give me the exact numbers',  tab:'calculator'},
+      calculator:{lbl:'Try also',    title:'Laser protocols',     desc:'How do I use it for X?',     tab:'protocols'}
+    },
+    upg:{title:"You've used your free consultation",desc:'Upgrade to keep using LaserRx AI',pro:'Pro · $9.99/mo',elite:'Elite · $29.99/mo'},
+    welcome:{
+      devices:'Hi! I\'ll help you identify your laser device.\n<em>Responding in English · change language from Home anytime</em>\n\nWhat device would you like to identify?',
+      protocols:'Hi! I\'ll help you find the right laser protocol.\n<em>Responding in English · change language from Home anytime</em>\n\nWhat procedure are you looking for?',
+      calculator:'Hi! I\'ll calculate the exact parameters for your procedure.\n<em>Responding in English · change language from Home anytime</em>\n\nWhat do you need to calculate?'
+    },
+    chips:{
+      devices:['Diode laser','CO₂ laser','Nd:YAG','Er:YAG','IPL','Other'],
+      protocols:['Whitening','Periodontics','Endodontics','Surgery','Pain relief','Other'],
+      calculator:['Power (W)','Time (s)','Fluence','Spot size','Frequency','Other']
+    },
+    other:'Other'
   },
-  calculator: {
-    welcome: "Let's calculate your laser parameters.\n\nWhat **laser type** are you working with?",
-    chips: ['Diode', 'Er:YAG', 'Er,Cr:YSGG', 'CO₂', 'PBM Laser', 'Other']
+  es: {
+    status:'listo', homeTitle:'¿Con qué quieres\nempezar?',
+    homeSub:'LaserRx · 3 módulos disponibles',
+    langLbl:'Idioma',
+    langNote:'El asistente responderá en este idioma durante toda tu consulta.',
+    cDevName:'Identificar dispositivo', cDevDesc:'¿Qué láser tengo?',
+    cProName:'Protocolos láser',        cProDesc:'¿Cómo lo uso para X?',
+    cCalName:'Calculadora de parámetros',cCalDesc:'Dame los números exactos',
+    devTitle:'Identificador',           devSub:'Identifica tu dispositivo láser',
+    proTitle:'Consultor de Protocolos', proSub:'Encuentra el protocolo correcto',
+    calTitle:'Calculadora de Parámetros',calSub:'Calcula los parámetros exactos',
+    ph:'Escribe tu pregunta...',        chLbl:'Opciones rápidas',
+    othPh:'Describe tu caso...',
+    plans:{Free:'Gratis',Pro:'Pro',Elite:'Elite',Institutional:'Institucional'},
+    cred:(n)=> n>=9999?'Ilimitado':`${n} crédito${n!=1?'s':''} restante${n!=1?'s':''}`,
+    ns:{
+      devices:  {lbl:'Siguiente paso', title:'Protocolos láser',         desc:'¿Cómo lo uso para X?',     tab:'protocols'},
+      protocols:{lbl:'Siguiente paso', title:'Calculadora de parámetros',desc:'Dame los números exactos', tab:'calculator'},
+      calculator:{lbl:'Prueba también',title:'Protocolos láser',         desc:'¿Cómo lo uso para X?',     tab:'protocols'}
+    },
+    upg:{title:'Usaste tu consulta gratuita',desc:'Actualiza tu plan para continuar',pro:'Pro · $9.99/mes',elite:'Elite · $29.99/mes'},
+    welcome:{
+      devices:'¡Hola! Te ayudo a identificar tu dispositivo láser.\n<em>Respondiendo en Español · cambia el idioma desde Home</em>\n\n¿Qué dispositivo quieres identificar?',
+      protocols:'¡Hola! Te ayudo a encontrar el protocolo correcto.\n<em>Respondiendo en Español · cambia el idioma desde Home</em>\n\n¿Qué procedimiento vas a realizar?',
+      calculator:'¡Hola! Calculo los parámetros exactos para tu procedimiento.\n<em>Respondiendo en Español · cambia el idioma desde Home</em>\n\n¿Qué necesitas calcular?'
+    },
+    chips:{
+      devices:['Láser diodo','Láser CO₂','Nd:YAG','Er:YAG','IPL','Otro'],
+      protocols:['Blanqueamiento','Periodoncia','Endodoncia','Cirugía','Analgesia','Otro'],
+      calculator:['Potencia (W)','Tiempo (s)','Fluencia','Tamaño spot','Frecuencia','Otro']
+    },
+    other:'Otro'
   },
-  devices: {
-    welcome: "I can identify any dental laser or PBM device.\n\nWhat is the **device name, brand, or wavelength**?",
-    chips: ['Fotona LightWalker', 'Biolase Waterlase', 'SIROLaser Advance', '980nm diode', '10600nm CO₂', 'Other']
+  pt: {
+    status:'pronto', homeTitle:'Por onde você quer\ncomeçar?',
+    homeSub:'LaserRx · 3 módulos disponíveis',
+    langLbl:'Idioma',
+    langNote:'O assistente responderá neste idioma durante toda a sua consulta.',
+    cDevName:'Identificar dispositivo', cDevDesc:'Qual laser eu tenho?',
+    cProName:'Protocolos laser',        cProDesc:'Como uso para X?',
+    cCalName:'Calculadora de parâmetros',cCalDesc:'Me dê os números exatos',
+    devTitle:'Identificador',           devSub:'Identifique seu dispositivo laser',
+    proTitle:'Consultor de Protocolos', proSub:'Encontre o protocolo certo',
+    calTitle:'Calculadora de Parâmetros',calSub:'Calcule os parâmetros exatos',
+    ph:'Escreva sua pergunta...',       chLbl:'Opções rápidas',
+    othPh:'Descreva seu caso...',
+    plans:{Free:'Grátis',Pro:'Pro',Elite:'Elite',Institutional:'Institucional'},
+    cred:(n)=> n>=9999?'Ilimitado':`${n} crédito${n!=1?'s':''} restante${n!=1?'s':''}`,
+    ns:{
+      devices:  {lbl:'Próximo passo',    title:'Protocolos laser',         desc:'Como uso para X?',         tab:'protocols'},
+      protocols:{lbl:'Próximo passo',    title:'Calculadora de parâmetros',desc:'Me dê os números exatos',  tab:'calculator'},
+      calculator:{lbl:'Experimente também',title:'Protocolos laser',       desc:'Como uso para X?',         tab:'protocols'}
+    },
+    upg:{title:'Você usou sua consulta gratuita',desc:'Atualize seu plano para continuar',pro:'Pro · $9.99/mês',elite:'Elite · $29.99/mês'},
+    welcome:{
+      devices:'Olá! Vou te ajudar a identificar seu dispositivo laser.\n<em>Respondendo em Português · mude o idioma no Home</em>\n\nQual dispositivo você quer identificar?',
+      protocols:'Olá! Vou te ajudar a encontrar o protocolo certo.\n<em>Respondendo em Português · mude o idioma no Home</em>\n\nQual procedimento você vai realizar?',
+      calculator:'Olá! Vou calcular os parâmetros exatos para seu procedimento.\n<em>Respondendo em Português · mude o idioma no Home</em>\n\nO que você precisa calcular?'
+    },
+    chips:{
+      devices:['Laser diodo','Laser CO₂','Nd:YAG','Er:YAG','IPL','Outro'],
+      protocols:['Clareamento','Periodontia','Endodontia','Cirurgia','Analgesia','Outro'],
+      calculator:['Potência (W)','Tempo (s)','Fluência','Tamanho spot','Frequência','Outro']
+    },
+    other:'Outro'
   }
 };
 
-const params = new URLSearchParams(window.location.search);
-const USER_EMAIL = params.get('email') || '';
-let mod = params.get('module') || 'protocols';
-let history = [], busy = false, upgradeShown = false;
+// ── HELPERS ──
+const $ = id => document.getElementById(id);
+const t = k  => L[lang][k];
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (!MODULES[mod]) mod = 'protocols';
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  document.getElementById('tab-' + mod).classList.add('on');
-  if (USER_EMAIL) document.getElementById('status-txt').textContent = USER_EMAIL.split('@')[0];
-  startChat();
-});
+function fmt(text) {
+  // nl2br, keep <em> tags, escape rest
+  return text
+    .replace(/&(?!amp;|lt;|gt;|em;|\/em;)/g,'&amp;')
+    .replace(/\n/g,'<br>');
+}
 
-function autosize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
-function scrollBottom() { const m = document.getElementById('msgs'); requestAnimationFrame(() => m.scrollTop = m.scrollHeight); }
-function md(t) {
-  return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\n/g,'<br>');
+function scrollBot() {
+  const c = $('content');
+  setTimeout(()=>{ c.scrollTop = c.scrollHeight; }, 60);
 }
-function addMsg(role, text) {
-  const m = document.getElementById('msgs'), isUser = role==='user';
-  const div = document.createElement('div'); div.className = 'msg'+(isUser?' u':'');
-  const av = document.createElement('div'); av.className = 'av'+(isUser?'':' ai'); av.textContent = isUser?'me':'AI';
-  const bbl = document.createElement('div'); bbl.className = 'bbl'; bbl.innerHTML = md(text);
-  div.appendChild(av); div.appendChild(bbl); document.getElementById('msgs').appendChild(div); scrollBottom();
+
+function autoH(el) {
+  el.style.height='auto';
+  el.style.height = Math.min(el.scrollHeight,96)+'px';
 }
-function addSys(text) {
-  const div = document.createElement('div'); div.className = 'sys'; div.textContent = '— '+text+' —';
-  document.getElementById('msgs').appendChild(div); scrollBottom();
+
+// ── PLAN BAR ──
+function setPlanBar(plan, credits) {
+  $('planTxt').textContent   = t('plans')[plan] || plan;
+  $('creditsTxt').textContent = t('cred')(Number(credits));
 }
-function showTyping() {
-  const m = document.getElementById('msgs'), wrap = document.createElement('div'); wrap.className='msg'; wrap.id='typing';
-  const av = document.createElement('div'); av.className='av ai'; av.textContent='AI';
-  const t = document.createElement('div'); t.className='typing'; t.innerHTML='<span></span><span></span><span></span>';
-  wrap.appendChild(av); wrap.appendChild(t); m.appendChild(wrap); scrollBottom();
+
+// ── LANGUAGE ──
+function setLang(l) {
+  lang = l;
+  applyLang();
+  // Reset modules so welcome re-appears in new language
+  ['devices','protocols','calculator'].forEach(m=>{
+    hist[m]=[];
+    $(`${m==='devices'?'dev':m==='protocols'?'pro':'cal'}Msgs`).innerHTML='';
+  });
+  if (curTab !== 'home') initMod(curTab);
 }
-function hideTyping() { const t=document.getElementById('typing'); if(t) t.remove(); }
-function setChips(list) {
-  const c = document.getElementById('chips'); c.innerHTML = '';
-  if (upgradeShown) return;
-  list.forEach(text => { const btn=document.createElement('button'); btn.className='chip'; btn.textContent=text; btn.onclick=()=>quickSend(text); c.appendChild(btn); });
+
+function applyLang() {
+  const l = L[lang];
+  $('statusTxt').textContent = l.status;
+  $('homeTitle').innerHTML   = l.homeTitle.replace('\n','<br>');
+  $('homeSub').textContent   = l.homeSub;
+  $('langLbl').textContent   = l.langLbl;
+  $('langNote').textContent  = l.langNote;
+  $('cDevName').textContent  = l.cDevName; $('cDevDesc').textContent = l.cDevDesc;
+  $('cProName').textContent  = l.cProName; $('cProDesc').textContent = l.cProDesc;
+  $('cCalName').textContent  = l.cCalName; $('cCalDesc').textContent = l.cCalDesc;
+  $('devTitle').textContent  = l.devTitle; $('devSub').textContent   = l.devSub;
+  $('proTitle').textContent  = l.proTitle; $('proSub').textContent   = l.proSub;
+  $('calTitle').textContent  = l.calTitle; $('calSub').textContent   = l.calSub;
+  $('inputField').placeholder = l.ph;
 }
-function showUpgrade() {
-  upgradeShown = true;
-  document.getElementById('upgrade-card').classList.add('visible');
-  document.getElementById('inp').disabled = true;
-  document.getElementById('sbtn').disabled = true;
-  document.getElementById('inp').placeholder = 'Upgrade to continue...';
-  setChips([]);
-  document.getElementById('credits-txt').textContent = '0 left';
-  document.getElementById('credits-txt').style.color = '#C0392B';
+
+// ── TABS ──
+function goTab(tab) {
+  document.querySelectorAll('.tab').forEach(el=>{
+    el.classList.toggle('active', el.dataset.tab===tab);
+  });
+  ['home','devices','protocols','calculator'].forEach(t=>{
+    $(`tab-${t}`).classList.toggle('hidden', t!==tab);
+  });
+  curTab = tab;
+  $('inputBar').classList.toggle('hidden', tab==='home');
+
+  if (tab !== 'home') {
+    const msgs = msgEl(tab);
+    if (msgs.children.length === 0) initMod(tab);
+    scrollBot();
+  }
 }
-function updateCredits(plan, credits) {
-  document.getElementById('plan-txt').textContent = plan || 'Free';
-  if (plan==='Elite'||plan==='Institutional') document.getElementById('credits-txt').textContent = 'Unlimited';
-  else if (credits!==undefined) document.getElementById('credits-txt').textContent = credits+' left';
+
+function msgEl(mod) {
+  return $({devices:'devMsgs',protocols:'proMsgs',calculator:'calMsgs'}[mod]);
 }
-function startChat() {
-  history=[]; upgradeShown=false;
-  document.getElementById('msgs').innerHTML='';
-  document.getElementById('upgrade-card').classList.remove('visible');
-  document.getElementById('inp').disabled=false; document.getElementById('sbtn').disabled=false;
-  document.getElementById('inp').placeholder='Write your question...';
-  document.getElementById('credits-txt').style.color='';
-  setChips(MODULES[mod].chips);
-  const w=MODULES[mod].welcome; addMsg('ai',w); history.push({role:'assistant',content:w});
+
+// ── MODULE INIT ──
+function initMod(mod) {
+  const msgs = msgEl(mod);
+  msgs.innerHTML = '';
+  hist[mod] = [];
+  addAI(mod, t('welcome')[mod]);
+  addChips(mod);
 }
-function resetChat() { startChat(); addSys('New consultation'); }
-function switchMod(newMod) {
-  if (newMod===mod&&history.length>1) return;
-  mod=newMod;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  document.getElementById('tab-'+mod).classList.add('on');
-  document.getElementById('msgs').innerHTML=''; history=[]; upgradeShown=false;
-  document.getElementById('upgrade-card').classList.remove('visible');
-  document.getElementById('inp').disabled=false; document.getElementById('sbtn').disabled=false;
-  document.getElementById('inp').placeholder='Write your question...';
-  addSys(newMod.charAt(0).toUpperCase()+newMod.slice(1)+' module');
-  setChips(MODULES[mod].chips);
-  const w=MODULES[mod].welcome; addMsg('ai',w); history.push({role:'assistant',content:w});
+
+// ── ADD MESSAGE ──
+function addAI(mod, html) {
+  const msgs = msgEl(mod);
+  const d = document.createElement('div');
+  d.className = 'msg msg-ai';
+  d.innerHTML = fmt(html);
+  msgs.appendChild(d);
+  scrollBot();
 }
-function quickSend(text) { document.getElementById('inp').value=text; send(); }
-async function send() {
-  if (busy||upgradeShown) return;
-  const inp=document.getElementById('inp'), text=inp.value.trim(); if(!text) return;
-  inp.value=''; inp.style.height='auto'; busy=true;
-  document.getElementById('sbtn').disabled=true; setChips([]);
-  document.getElementById('status-txt').textContent='thinking...';
-  addMsg('user',text); history.push({role:'user',content:text}); showTyping();
-  try {
-    const res = await fetch(WEBHOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:USER_EMAIL,last_message:text,history:history.slice(0,-1),module:mod})});
-    const data = await res.json(); hideTyping();
-    if (data.error||res.status===403) {
-      if (data.response) { history.push({role:'assistant',content:data.response}); addMsg('ai',data.response); }
-      else addMsg('ai',"You've used your free consultation. Upgrade to continue.");
-      showUpgrade(); document.getElementById('status-txt').textContent='upgrade required';
-    } else {
-      const reply=data.response||'I could not process that. Please try again.';
-      history.push({role:'assistant',content:reply}); addMsg('ai',reply);
-      if (data.plan) updateCredits(data.plan,data.credits);
-      setChips(getSuggestions(mod,reply));
-      document.getElementById('status-txt').textContent=USER_EMAIL?USER_EMAIL.split('@')[0]:'ready';
+
+function addUser(mod, text) {
+  const msgs = msgEl(mod);
+  const d = document.createElement('div');
+  d.className = 'msg msg-user';
+  d.textContent = text;
+  msgs.appendChild(d);
+  scrollBot();
+}
+
+// ── CHIPS ──
+function addChips(mod) {
+  const msgs = msgEl(mod);
+  const l = L[lang];
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chips-wrap';
+  wrap.id = `chips-${mod}`;
+
+  const lbl = document.createElement('div');
+  lbl.className = 'chips-label';
+  lbl.textContent = l.chLbl;
+  wrap.appendChild(lbl);
+
+  const row = document.createElement('div');
+  row.className = 'chips';
+
+  // Other input field (hidden)
+  const otherFld = document.createElement('input');
+  otherFld.type = 'text';
+  otherFld.className = 'chip-other-field hidden';
+  otherFld.placeholder = l.othPh;
+  otherFld.oninput = () => { $('inputField').value = otherFld.value; };
+  otherFld.onkeydown = e => { if(e.key==='Enter') send(); };
+
+  l.chips[mod].forEach(txt => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = txt;
+    const isOther = txt === l.other;
+    c.onclick = () => {
+      row.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      c.classList.add('sel');
+      if (isOther) {
+        otherFld.classList.remove('hidden');
+        otherFld.focus();
+        $('inputField').value = '';
+      } else {
+        otherFld.classList.add('hidden');
+        $('inputField').value = txt;
+        autoH($('inputField'));
+      }
+    };
+    row.appendChild(c);
+  });
+
+  wrap.appendChild(row);
+  wrap.appendChild(otherFld);
+  msgs.appendChild(wrap);
+  scrollBot();
+}
+
+function removeChips(mod) {
+  const el = $(`chips-${mod}`);
+  if (el) el.remove();
+}
+
+// ── TYPING ──
+function showTyping(mod) {
+  const msgs = msgEl(mod);
+  const d = document.createElement('div');
+  d.className = 'typing'; d.id = `typing-${mod}`;
+  d.innerHTML = '<div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>';
+  msgs.appendChild(d);
+  scrollBot();
+}
+function hideTyping(mod) { const e=$(`typing-${mod}`); if(e)e.remove(); }
+
+// ── NEXT STEP CARD ──
+function addNextCard(mod) {
+  const ns = t('ns')[mod];
+  const msgs = msgEl(mod);
+  const d = document.createElement('div');
+  d.className = 'next-card';
+  d.innerHTML = `
+    <div style="flex:1">
+      <div class="next-label">${ns.lbl}</div>
+      <div class="next-title">${ns.title}</div>
+      <div class="next-desc">${ns.desc}</div>
+    </div>
+    <div class="next-arrow">→</div>`;
+  d.onclick = () => goTab(ns.tab);
+  msgs.appendChild(d);
+  scrollBot();
+}
+
+// ── UPGRADE CARD ──
+function addUpgradeCard(mod) {
+  const u = t('upg');
+  const msgs = msgEl(mod);
+  const d = document.createElement('div');
+  d.className = 'upgrade-card';
+  d.innerHTML = `
+    <div class="upg-title">${u.title}</div>
+    <div class="upg-desc">${u.desc}</div>
+    <div class="upg-btns">
+      <a class="upg-btn upg-pro"   href="https://buy.stripe.com/14A4grgZN2QGfaqevtdIA0v" target="_blank">${u.pro}</a>
+      <a class="upg-btn upg-elite" href="https://buy.stripe.com/bJe6oz24TfDs9Q6bjhdIA0w" target="_blank">${u.elite}</a>
+    </div>`;
+  msgs.appendChild(d);
+  scrollBot();
+}
+
+// ── SEND ──
+function send() {
+  if (curTab==='home' || busy) return;
+  const field = $('inputField');
+  const text  = field.value.trim();
+  if (!text) return;
+
+  const mod = curTab;
+  removeChips(mod);
+  addUser(mod, text);
+  field.value=''; autoH(field);
+
+  hist[mod].push(`User: ${text}`);
+  const history = hist[mod].slice(-12).join('\n');
+
+  showTyping(mod); busy=true; $('sendBtn').disabled=true;
+
+  fetch(HOOKS[mod], {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      user_email: EMAIL || 'guest@laserrx.app',
+      last_message: text,
+      history: history,
+      language: lang
+    })
+  })
+  .then(res => {
+    if (res.status===403) {
+      hideTyping(mod);
+      addUpgradeCard(mod);
+      done(); return null;
     }
-  } catch(e) { hideTyping(); addMsg('ai','Connection error. Please try again.'); document.getElementById('status-txt').textContent='offline'; }
-  busy=false; if(!upgradeShown) document.getElementById('sbtn').disabled=false;
+    return res.json();
+  })
+  .then(data => {
+    if (!data) return;
+    hideTyping(mod);
+    const reply = data.response || data.message || '—';
+    if (data.plan && data.credits!==undefined) setPlanBar(data.plan, data.credits);
+    hist[mod].push(`Assistant: ${reply}`);
+    addAI(mod, reply);
+    addNextCard(mod);
+    addChips(mod);
+    done();
+  })
+  .catch(err => {
+    hideTyping(mod);
+    const errMsg = lang==='es'?'Error de conexión. Intenta de nuevo.':lang==='pt'?'Erro de conexão. Tente novamente.':'Connection error. Please try again.';
+    addAI(mod, errMsg);
+    done(); console.error(err);
+  });
 }
-function getSuggestions(m, reply) {
-  const r=reply.toLowerCase();
-  if (m==='protocols') {
-    if (r.includes('laser type')||r.includes('tipo de láser')) return ['Diode','Er:YAG','Er,Cr:YSGG','Nd:YAG','CO₂','Other'];
-    if (r.includes('tissue')||r.includes('tejido')) return ['Soft tissue','Hard tissue','Endodontics','Periodontics','Other'];
-    if (r.includes('indication')||r.includes('procedure')) return ['Gingivectomy','Frenectomy','Wound healing','Peri-implantitis','Other'];
-    return ['What are the contraindications?','Explain the technique','Safety tips','Other procedure'];
-  }
-  if (m==='calculator') {
-    if (r.includes('power')||r.includes('potencia')) return ['0.5 W','1.0 W','1.5 W','2.0 W','Other'];
-    if (r.includes('frequency')||r.includes('hz')) return ['10 Hz','15 Hz','20 Hz','25 Hz','CW mode'];
-    if (r.includes('tip')||r.includes('diameter')) return ['300 µm','400 µm','600 µm','800 µm','Other'];
-    return ['What does this irradiance mean clinically?','Is this safe?','Calculate another setup'];
-  }
-  if (m==='devices') return ['What protocols can I use?','What tips does it use?','How do I initiate the fiber?','Maintenance tips'];
-  return [];
+
+function done() { busy=false; $('sendBtn').disabled=false; }
+
+function onKey(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+
+// ── INIT ──
+applyLang();
+if (MOD && ['devices','protocols','calculator'].includes(MOD)) {
+  goTab(MOD);
 }
 </script>
 </body>
