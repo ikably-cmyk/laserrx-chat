@@ -338,6 +338,69 @@
 
     .hidden { display: none !important; }
 
+    /* ── PROTOCOL SETUP ── */
+    .proto-setup {
+      background: var(--white);
+      border: 1.5px solid var(--light);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .setup-section { display: flex; flex-direction: column; gap: 7px; }
+    .setup-section-title {
+      font-size: 11px; font-weight: 700;
+      font-family: 'Space Mono', monospace;
+      color: var(--navy); text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .sub-chips {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      padding: 6px 0 2px 4px;
+      border-left: 2px solid var(--light);
+      margin-left: 2px;
+    }
+    .chip-sub {
+      font-size: 10.5px !important;
+      padding: 3px 9px !important;
+      background: var(--bg) !important;
+      border-color: var(--steel) !important;
+      color: var(--steel) !important;
+    }
+    .chip-sub.sel {
+      background: var(--steel) !important;
+      color: var(--white) !important;
+      border-color: var(--steel) !important;
+    }
+    .chip-none {
+      border-style: dashed !important;
+      color: var(--steel) !important;
+    }
+    .chip-none.sel {
+      background: var(--bg) !important;
+      color: var(--navy) !important;
+      border-color: var(--navy) !important;
+      border-style: solid !important;
+    }
+    .notes-field {
+      resize: none;
+      min-height: 52px;
+      line-height: 1.45;
+      font-family: 'Instrument Sans', sans-serif !important;
+    }
+    .proto-send-btn {
+      width: 100%;
+      padding: 11px;
+      background: var(--navy);
+      color: var(--white);
+      border: none; border-radius: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px; font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: opacity 0.18s;
+    }
+    .proto-send-btn:hover { opacity: 0.85; }
+
     /* ── MARKDOWN RENDERING ── */
     .msg-ai h1, .msg-ai h2, .msg-ai h3 {
       font-family: 'Instrument Sans', sans-serif;
@@ -746,7 +809,8 @@ function initMod(mod) {
   msgs.innerHTML = '';
   hist[mod] = [];
   addAI(mod, t('welcome')[mod]);
-  addChips(mod);
+  if (mod === 'protocols') addProtocolSetup();
+  else addChips(mod);
 }
 
 // ── ADD MESSAGE ──
@@ -768,7 +832,350 @@ function addUser(mod, text) {
   scrollBot();
 }
 
-// ── CHIPS ──
+// ── PROTOCOL SETUP DATA ──
+const PROTO = {
+  groups: [
+    {
+      id: 'diodo', icon: '🔵',
+      label: { en: 'Diode laser', es: 'Láser de diodo', pt: 'Laser de diodo' },
+      noLabel: { en: 'No diode laser', es: 'No tengo diodo', pt: 'Não tenho diodo' },
+      chips: [
+        { id:'450',    label:'450 nm',                          subs:['Soga','Pion','Other'] },
+        { id:'650pdt', label:{ en:'650 nm (For PDT)', es:'650 nm (Para PDT)', pt:'650 nm (Para PDT)' }, subs:['Soga','Pion','Other'] },
+        { id:'810',    label:'810 nm',                          subs:['Biolase Epic','Dentsply','Other'] },
+        { id:'940',    label:'940 nm',                          subs:['Biolase Epic Pro','Other'] },
+        { id:'980',    label:'980 nm',                          subs:['Soga','Pion','Fotona','Other'] },
+        { id:'1064frp',label:'1064 nm free running pulse',      subs:['Fotona','PerioLase MVP-7','Other'] },
+        { id:'1064d',  label:'1064 nm (diodo)',                 subs:['Other'] },
+      ]
+    },
+    {
+      id: 'erbio', icon: '🔴',
+      label: { en: 'Erbium laser', es: 'Láser de erbio', pt: 'Laser de érbio' },
+      noLabel: { en: 'No erbium laser', es: 'No tengo erbio', pt: 'Não tenho érbio' },
+      chips: [
+        { id:'ercrysgg', label:'Er,Cr:YSGG 2780 nm', subs:['Biolase Waterlase','Other'] },
+        { id:'eryag',    label:'Er:YAG 2940 nm',      subs:['Fotona LightWalker','Other'] },
+      ]
+    },
+    {
+      id: 'otros', icon: '⚪',
+      label: { en: 'Other lasers', es: 'Otros láseres', pt: 'Outros lasers' },
+      noLabel: { en: 'No other laser', es: 'No tengo otro', pt: 'Não tenho outro' },
+      chips: [
+        { id:'co2', label:'CO₂ 10,600 nm', subs:['Other'] },
+        { id:'ndyag', label:'Nd:YAG 1064 nm', subs:['Other'] },
+      ]
+    }
+  ],
+  procedures: {
+    en: [
+      { id:'endo',    label:'Endodontics',       subs:['Vital pulpectomy','Vital pulp therapy','Chronic apical periodontitis','Retreatment'] },
+      { id:'perio',   label:'Periodontics',       subs:['Pocket decontamination','Peri-implantitis','Deep curettage','Periodontal surgery'] },
+      { id:'surg',    label:'Surgery',            subs:['Frenectomy','Biopsy','Alveoloplasty','Implant exposure'] },
+      { id:'white',   label:'Whitening',          subs:['In-office','Laser activation'] },
+      { id:'pbm',     label:'Analgesia / PBM',    subs:['Post-op pain','TMJ','Neuralgia','Wound healing'] },
+      { id:'lesion',  label:'Ulcers / lesions',   subs:['Aphthous ulcers','Herpes labialis','Lichen planus','Leukoplakia'] },
+    ],
+    es: [
+      { id:'endo',    label:'Endodoncia',         subs:['Pulpectomía vital','Terapia pulpar vital','Periodontitis apical crónica','Retratamiento'] },
+      { id:'perio',   label:'Periodoncia',         subs:['Descontaminación de bolsas','Perimplantitis','Curetaje profundo','Cirugía periodontal'] },
+      { id:'surg',    label:'Cirugía',             subs:['Frenectomía','Biopsia','Alveoloplastia','Exposición implante'] },
+      { id:'white',   label:'Blanqueamiento',      subs:['En consultorio','Activación láser'] },
+      { id:'pbm',     label:'Analgesia / PBM',     subs:['Dolor postop','ATM','Neuralgia','Cicatrización'] },
+      { id:'lesion',  label:'Úlceras / lesiones',  subs:['Aftas','Herpes labial','Liquen plano','Leucoplasia'] },
+    ],
+    pt: [
+      { id:'endo',    label:'Endodontia',          subs:['Pulpectomia vital','Terapia pulpar vital','Periodontite apical crônica','Retratamento'] },
+      { id:'perio',   label:'Periodontia',          subs:['Descontaminação de bolsa','Periimplantite','Curetagem profunda','Cirurgia periodontal'] },
+      { id:'surg',    label:'Cirurgia',             subs:['Frenectomia','Biópsia','Alveoloplastia','Exposição implante'] },
+      { id:'white',   label:'Clareamento',          subs:['Em consultório','Ativação laser'] },
+      { id:'pbm',     label:'Analgesia / PBM',      subs:['Dor pós-op','ATM','Neuralgia','Cicatrização'] },
+      { id:'lesion',  label:'Úlceras / lesões',     subs:['Aftas','Herpes labial','Líquen plano','Leucoplasia'] },
+    ]
+  },
+  ui: {
+    en: { title:'Tell me about your setup', procTitle:'What procedure?', notesLbl:'Clinical notes (optional)', notesPh:'e.g. diabetic patient, anticoagulants, pregnancy, mucositis... any relevant clinical data', otherPh:'Describe...', btn:'Get protocol', noSel:'(none selected)' },
+    es: { title:'Cuéntame tu equipo', procTitle:'¿Qué procedimiento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ej: paciente diabético, anticoagulantes, embarazo, mucositis... cualquier dato clínico relevante', otherPh:'Describe...', btn:'Consultar protocolo', noSel:'(ninguno)' },
+    pt: { title:'Me conte seu equipamento', procTitle:'Qual procedimento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ex: paciente diabético, anticoagulantes, gravidez, mucosite... qualquer dado clínico relevante', otherPh:'Descreva...', btn:'Consultar protocolo', noSel:'(nenhum)' },
+  }
+};
+
+// Per-session protocol setup state
+const proState = { selections:{}, subs:{}, procId:null, procSub:null, notes:'' };
+
+// ── PROTOCOL SETUP ──
+function addProtocolSetup() {
+  const msgs = msgEl('protocols');
+  const ui = PROTO.ui[lang];
+  const procs = PROTO.procedures[lang] || PROTO.procedures.en;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chips-wrap proto-setup';
+  wrap.id = 'chips-protocols';
+
+  // Reset state
+  proState.selections = {}; proState.subs = {};
+  proState.procId = null; proState.procSub = null; proState.notes = '';
+
+  // ── Equipment groups ──
+  PROTO.groups.forEach(grp => {
+    const grpLabel = typeof grp.label === 'string' ? grp.label : grp.label[lang] || grp.label.en;
+    const noLabel  = typeof grp.noLabel === 'string' ? grp.noLabel : grp.noLabel[lang] || grp.noLabel.en;
+
+    const sec = document.createElement('div');
+    sec.className = 'setup-section';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'setup-section-title';
+    hdr.textContent = `${grp.icon} ${grpLabel}`;
+    sec.appendChild(hdr);
+
+    const chipRow = document.createElement('div');
+    chipRow.className = 'chips';
+
+    // Sub-chip container (hidden until chip selected)
+    const subRow = document.createElement('div');
+    subRow.className = 'sub-chips hidden';
+    subRow.id = `subs-${grp.id}`;
+
+    grp.chips.forEach(chip => {
+      const chipLabel = typeof chip.label === 'string' ? chip.label : chip.label[lang] || chip.label.en;
+      const c = document.createElement('div');
+      c.className = 'chip';
+      c.textContent = chipLabel;
+      c.onclick = () => {
+        // Toggle selection
+        if (c.classList.contains('sel')) {
+          c.classList.remove('sel');
+          delete proState.selections[grp.id];
+          delete proState.subs[grp.id];
+          subRow.innerHTML = ''; subRow.classList.add('hidden');
+        } else {
+          chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+          c.classList.add('sel');
+          proState.selections[grp.id] = chipLabel;
+          delete proState.subs[grp.id];
+          // Show sub-chips
+          subRow.innerHTML = '';
+          if (chip.subs && chip.subs.length) {
+            chip.subs.forEach(sub => {
+              const isOtherSub = sub === 'Other' || sub === 'Otro' || sub === 'Outro';
+              const s = document.createElement('div');
+              s.className = 'chip chip-sub';
+              s.textContent = isOtherSub ? (lang==='es'?'Otro':lang==='pt'?'Outro':'Other') : sub;
+              s.onclick = (e) => {
+                e.stopPropagation();
+                subRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+                s.classList.add('sel');
+                proState.subs[grp.id] = s.textContent;
+              };
+              subRow.appendChild(s);
+            });
+            subRow.classList.remove('hidden');
+          }
+        }
+      };
+      chipRow.appendChild(c);
+    });
+
+    // "No tengo" chip
+    const noChip = document.createElement('div');
+    noChip.className = 'chip chip-none';
+    noChip.textContent = noLabel;
+    noChip.onclick = () => {
+      chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+      noChip.classList.add('sel');
+      proState.selections[grp.id] = noLabel;
+      delete proState.subs[grp.id];
+      subRow.innerHTML = ''; subRow.classList.add('hidden');
+    };
+    chipRow.appendChild(noChip);
+
+    sec.appendChild(chipRow);
+    sec.appendChild(subRow);
+
+    // Other free text
+    const otherWrap = document.createElement('div');
+    otherWrap.style.marginTop = '6px';
+    const otherFld = document.createElement('input');
+    otherFld.type = 'text';
+    otherFld.className = 'chip-other-field';
+    otherFld.placeholder = ui.otherPh;
+    otherFld.oninput = () => {
+      if (otherFld.value.trim()) proState.selections[grp.id + '_note'] = otherFld.value.trim();
+      else delete proState.selections[grp.id + '_note'];
+    };
+    otherWrap.appendChild(otherFld);
+    sec.appendChild(otherWrap);
+    wrap.appendChild(sec);
+  });
+
+  // ── Procedure ──
+  const procSec = document.createElement('div');
+  procSec.className = 'setup-section';
+  const procHdr = document.createElement('div');
+  procHdr.className = 'setup-section-title';
+  procHdr.textContent = `🦷 ${ui.procTitle}`;
+  procSec.appendChild(procHdr);
+
+  const procRow = document.createElement('div');
+  procRow.className = 'chips';
+
+  const procSubRow = document.createElement('div');
+  procSubRow.className = 'sub-chips hidden';
+  procSubRow.id = 'subs-proc';
+
+  procs.forEach(proc => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = proc.label;
+    c.onclick = () => {
+      if (c.classList.contains('sel')) {
+        c.classList.remove('sel');
+        proState.procId = null; proState.procSub = null;
+        procSubRow.innerHTML = ''; procSubRow.classList.add('hidden');
+      } else {
+        procRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+        c.classList.add('sel');
+        proState.procId = proc.label;
+        proState.procSub = null;
+        procSubRow.innerHTML = '';
+        proc.subs.forEach(sub => {
+          const s = document.createElement('div');
+          s.className = 'chip chip-sub';
+          s.textContent = sub;
+          s.onclick = (e) => {
+            e.stopPropagation();
+            procSubRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+            s.classList.add('sel');
+            proState.procSub = sub;
+          };
+          procSubRow.appendChild(s);
+        });
+        procSubRow.classList.remove('hidden');
+      }
+    };
+    procRow.appendChild(c);
+  });
+
+  procSec.appendChild(procRow);
+  procSec.appendChild(procSubRow);
+
+  // Other free text for procedure
+  const procOtherFld = document.createElement('input');
+  procOtherFld.type = 'text';
+  procOtherFld.className = 'chip-other-field';
+  procOtherFld.placeholder = ui.otherPh;
+  procOtherFld.style.marginTop = '6px';
+  procOtherFld.oninput = () => { proState.procOther = procOtherFld.value.trim(); };
+  procSec.appendChild(procOtherFld);
+  wrap.appendChild(procSec);
+
+  // ── Clinical notes ──
+  const notesSec = document.createElement('div');
+  notesSec.className = 'setup-section';
+  const notesLbl = document.createElement('div');
+  notesLbl.className = 'setup-section-title';
+  notesLbl.textContent = `📋 ${ui.notesLbl}`;
+  notesSec.appendChild(notesLbl);
+  const notesFld = document.createElement('textarea');
+  notesFld.className = 'chip-other-field notes-field';
+  notesFld.placeholder = ui.notesPh;
+  notesFld.rows = 2;
+  notesFld.oninput = () => { proState.notes = notesFld.value.trim(); };
+  notesSec.appendChild(notesFld);
+  wrap.appendChild(notesSec);
+
+  // ── Send button ──
+  const btn = document.createElement('button');
+  btn.className = 'proto-send-btn';
+  btn.textContent = ui.btn;
+  btn.onclick = sendProtoSetup;
+  wrap.appendChild(btn);
+
+  msgs.appendChild(wrap);
+  scrollBot();
+}
+
+function buildProtoMessage() {
+  const ui = PROTO.ui[lang];
+  const parts = [];
+
+  PROTO.groups.forEach(grp => {
+    const grpLabel = typeof grp.label === 'string' ? grp.label : grp.label[lang] || grp.label.en;
+    const sel = proState.selections[grp.id];
+    const sub = proState.subs[grp.id];
+    const note = proState.selections[grp.id + '_note'];
+    let val = sel ? sel : ui.noSel;
+    if (sub) val += ` — ${sub}`;
+    if (note) val += ` (${note})`;
+    parts.push(`${grpLabel}: ${val}`);
+  });
+
+  // Procedure
+  let procStr = '';
+  if (proState.procId) {
+    procStr = proState.procId;
+    if (proState.procSub) procStr += ` → ${proState.procSub}`;
+  } else if (proState.procOther) {
+    procStr = proState.procOther;
+  }
+  if (procStr) {
+    const procTitle = PROTO.ui[lang].procTitle.replace('?','').replace('¿','').trim();
+    parts.push(`${procTitle}: ${procStr}`);
+  }
+
+  if (proState.notes) parts.push(`Nota clínica: ${proState.notes}`);
+
+  return parts.join('. ');
+}
+
+function sendProtoSetup() {
+  const msg = buildProtoMessage();
+  if (!msg.trim()) return;
+
+  removeChips('protocols');
+  addUser('protocols', msg);
+
+  hist.protocols.push(`User: ${msg}`);
+  const history = hist.protocols.slice(-12).join('\n');
+
+  showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
+
+  fetch(HOOKS.protocols, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_email: EMAIL || 'guest@laserrx.app',
+      last_message: msg,
+      history: history,
+      language: lang
+    })
+  })
+  .then(res => {
+    if (res.status === 403) { hideTyping('protocols'); addUpgradeCard('protocols'); done(); return null; }
+    return res.json();
+  })
+  .then(data => {
+    if (!data) return;
+    hideTyping('protocols');
+    const reply = data.response || data.message || '—';
+    if (data.plan && data.credits !== undefined) setPlanBar(data.plan, data.credits);
+    hist.protocols.push(`Assistant: ${reply}`);
+    addAI('protocols', reply);
+    addNextCard('protocols');
+    addChips('protocols'); // subsequent turns use simple chips
+    done();
+  })
+  .catch(err => {
+    hideTyping('protocols');
+    addAI('protocols', lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');
+    done(); console.error(err);
+  });
+}
+
+// ── SIMPLE CHIPS (Devices, Calculator, subsequent Protocol turns) ──
 function addChips(mod) {
   const msgs = msgEl(mod);
   const l = L[lang];
@@ -785,7 +1192,6 @@ function addChips(mod) {
   const row = document.createElement('div');
   row.className = 'chips';
 
-  // Other input field (hidden)
   const otherFld = document.createElement('input');
   otherFld.type = 'text';
   otherFld.className = 'chip-other-field hidden';
@@ -799,7 +1205,7 @@ function addChips(mod) {
     c.textContent = txt;
     const isOther = txt === l.other;
     c.onclick = () => {
-      row.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      row.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
       c.classList.add('sel');
       if (isOther) {
         otherFld.classList.remove('hidden');
