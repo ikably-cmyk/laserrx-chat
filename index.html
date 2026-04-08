@@ -340,28 +340,23 @@
 
     /* ── PROTOCOL SETUP ── */
     .proto-setup {
-      background: var(--white);
-      border: 1.5px solid var(--light);
-      border-radius: 12px;
-      padding: 14px;
-      display: flex; flex-direction: column; gap: 14px;
+      display: flex; flex-direction: column; gap: 10px;
     }
     .setup-section { display: flex; flex-direction: column; gap: 7px; }
     .setup-section-title {
-      font-size: 11px; font-weight: 700;
+      font-size: 10px; font-weight: 700;
       font-family: 'Space Mono', monospace;
-      color: var(--navy); text-transform: uppercase;
-      letter-spacing: 0.06em;
+      color: var(--steel); text-transform: uppercase;
+      letter-spacing: 0.07em;
     }
     .sub-chips {
       display: flex; flex-wrap: wrap; gap: 5px;
-      padding: 6px 0 2px 4px;
+      padding: 5px 0 2px 8px;
       border-left: 2px solid var(--light);
-      margin-left: 2px;
     }
     .chip-sub {
-      font-size: 10.5px !important;
-      padding: 3px 9px !important;
+      font-size: 10px !important;
+      padding: 3px 8px !important;
       background: var(--bg) !important;
       border-color: var(--steel) !important;
       color: var(--steel) !important;
@@ -387,6 +382,32 @@
       line-height: 1.45;
       font-family: 'Instrument Sans', sans-serif !important;
     }
+    /* Separator */
+    .setup-separator {
+      display: flex; align-items: center; gap: 8px;
+      margin: 4px 0;
+    }
+    .setup-separator-line { flex: 1; height: 1px; background: var(--light); }
+    .setup-separator-label {
+      font-size: 9.5px; color: var(--steel);
+      font-family: 'Space Mono', monospace;
+      white-space: nowrap; font-style: italic;
+    }
+    /* Equipment section — subdued */
+    .setup-equipment {
+      background: var(--bg);
+      border: 1px solid var(--light);
+      border-radius: 10px;
+      padding: 11px 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .setup-equip-group { display: flex; flex-direction: column; gap: 5px; }
+    .setup-equip-label {
+      font-size: 9px; font-weight: 700;
+      font-family: 'Space Mono', monospace;
+      color: var(--steel); text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
     .proto-send-btn {
       width: 100%;
       padding: 11px;
@@ -398,6 +419,7 @@
       cursor: pointer;
       letter-spacing: 0.04em;
       transition: opacity 0.18s;
+      margin-top: 2px;
     }
     .proto-send-btn:hover { opacity: 0.85; }
 
@@ -895,9 +917,9 @@ const PROTO = {
     ]
   },
   ui: {
-    en: { title:'Tell me about your setup', procTitle:'What procedure?', notesLbl:'Clinical notes (optional)', notesPh:'e.g. diabetic patient, anticoagulants, pregnancy, mucositis... any relevant clinical data', otherPh:'Describe...', btn:'Get protocol', noSel:'(none selected)' },
-    es: { title:'Cuéntame tu equipo', procTitle:'¿Qué procedimiento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ej: paciente diabético, anticoagulantes, embarazo, mucositis... cualquier dato clínico relevante', otherPh:'Describe...', btn:'Consultar protocolo', noSel:'(ninguno)' },
-    pt: { title:'Me conte seu equipamento', procTitle:'Qual procedimento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ex: paciente diabético, anticoagulantes, gravidez, mucosite... qualquer dado clínico relevante', otherPh:'Descreva...', btn:'Consultar protocolo', noSel:'(nenhum)' },
+    en: { title:'Tell me about your setup', procTitle:'What procedure?', notesLbl:'Clinical notes (optional)', notesPh:'e.g. diabetic patient, anticoagulants, pregnancy, mucositis... any relevant clinical data', otherPh:'Describe...', btn:'Get protocol', noSel:'(none selected)', sepLabel:'personalize your protocol with your laser choices (optional)' },
+    es: { title:'Cuéntame tu equipo', procTitle:'¿Qué procedimiento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ej: paciente diabético, anticoagulantes, embarazo, mucositis... cualquier dato clínico relevante', otherPh:'Describe...', btn:'Consultar protocolo', noSel:'(ninguno)', sepLabel:'personaliza el protocolo con tus equipos (opcional)' },
+    pt: { title:'Me conte seu equipamento', procTitle:'Qual procedimento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ex: paciente diabético, anticoagulantes, gravidez, mucosite... qualquer dado clínico relevante', otherPh:'Descreva...', btn:'Consultar protocolo', noSel:'(nenhum)', sepLabel:'personalize o protocolo com seus equipamentos (opcional)' },
   }
 };
 
@@ -916,115 +938,18 @@ function addProtocolSetup() {
 
   // Reset state
   proState.selections = {}; proState.subs = {};
-  proState.procId = null; proState.procSub = null; proState.notes = '';
+  proState.procId = null; proState.procSub = null;
+  proState.procOther = ''; proState.notes = '';
 
-  // ── Equipment groups ──
-  PROTO.groups.forEach(grp => {
-    const grpLabel = typeof grp.label === 'string' ? grp.label : grp.label[lang] || grp.label.en;
-    const noLabel  = typeof grp.noLabel === 'string' ? grp.noLabel : grp.noLabel[lang] || grp.noLabel.en;
-
-    const sec = document.createElement('div');
-    sec.className = 'setup-section';
-
-    const hdr = document.createElement('div');
-    hdr.className = 'setup-section-title';
-    hdr.textContent = `${grp.icon} ${grpLabel}`;
-    sec.appendChild(hdr);
-
-    const chipRow = document.createElement('div');
-    chipRow.className = 'chips';
-
-    // Sub-chip container (hidden until chip selected)
-    const subRow = document.createElement('div');
-    subRow.className = 'sub-chips hidden';
-    subRow.id = `subs-${grp.id}`;
-
-    grp.chips.forEach(chip => {
-      const chipLabel = typeof chip.label === 'string' ? chip.label : chip.label[lang] || chip.label.en;
-      const c = document.createElement('div');
-      c.className = 'chip';
-      c.textContent = chipLabel;
-      c.onclick = () => {
-        // Toggle selection
-        if (c.classList.contains('sel')) {
-          c.classList.remove('sel');
-          delete proState.selections[grp.id];
-          delete proState.subs[grp.id];
-          subRow.innerHTML = ''; subRow.classList.add('hidden');
-        } else {
-          chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
-          c.classList.add('sel');
-          proState.selections[grp.id] = chipLabel;
-          delete proState.subs[grp.id];
-          // Show sub-chips
-          subRow.innerHTML = '';
-          if (chip.subs && chip.subs.length) {
-            chip.subs.forEach(sub => {
-              const isOtherSub = sub === 'Other' || sub === 'Otro' || sub === 'Outro';
-              const s = document.createElement('div');
-              s.className = 'chip chip-sub';
-              s.textContent = isOtherSub ? (lang==='es'?'Otro':lang==='pt'?'Outro':'Other') : sub;
-              s.onclick = (e) => {
-                e.stopPropagation();
-                subRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
-                s.classList.add('sel');
-                proState.subs[grp.id] = s.textContent;
-              };
-              subRow.appendChild(s);
-            });
-            subRow.classList.remove('hidden');
-          }
-        }
-      };
-      chipRow.appendChild(c);
-    });
-
-    // "No tengo" chip
-    const noChip = document.createElement('div');
-    noChip.className = 'chip chip-none';
-    noChip.textContent = noLabel;
-    noChip.onclick = () => {
-      chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
-      noChip.classList.add('sel');
-      proState.selections[grp.id] = noLabel;
-      delete proState.subs[grp.id];
-      subRow.innerHTML = ''; subRow.classList.add('hidden');
-    };
-    chipRow.appendChild(noChip);
-
-    sec.appendChild(chipRow);
-    sec.appendChild(subRow);
-
-    // Other free text
-    const otherWrap = document.createElement('div');
-    otherWrap.style.marginTop = '6px';
-    const otherFld = document.createElement('input');
-    otherFld.type = 'text';
-    otherFld.className = 'chip-other-field';
-    otherFld.placeholder = ui.otherPh;
-    otherFld.oninput = () => {
-      if (otherFld.value.trim()) proState.selections[grp.id + '_note'] = otherFld.value.trim();
-      else delete proState.selections[grp.id + '_note'];
-    };
-    otherWrap.appendChild(otherFld);
-    sec.appendChild(otherWrap);
-    wrap.appendChild(sec);
-  });
-
-  // ── Procedure ──
+  // ── 1. PROCEDURE ──
   const procSec = document.createElement('div');
   procSec.className = 'setup-section';
-  const procHdr = document.createElement('div');
-  procHdr.className = 'setup-section-title';
-  procHdr.textContent = `🦷 ${ui.procTitle}`;
-  procSec.appendChild(procHdr);
 
   const procRow = document.createElement('div');
   procRow.className = 'chips';
 
   const procSubRow = document.createElement('div');
   procSubRow.className = 'sub-chips hidden';
-  procSubRow.id = 'subs-proc';
 
   procs.forEach(proc => {
     const c = document.createElement('div');
@@ -1038,14 +963,13 @@ function addProtocolSetup() {
       } else {
         procRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
         c.classList.add('sel');
-        proState.procId = proc.label;
-        proState.procSub = null;
+        proState.procId = proc.label; proState.procSub = null;
         procSubRow.innerHTML = '';
         proc.subs.forEach(sub => {
           const s = document.createElement('div');
           s.className = 'chip chip-sub';
           s.textContent = sub;
-          s.onclick = (e) => {
+          s.onclick = e => {
             e.stopPropagation();
             procSubRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
             s.classList.add('sel');
@@ -1072,7 +996,7 @@ function addProtocolSetup() {
   procSec.appendChild(procOtherFld);
   wrap.appendChild(procSec);
 
-  // ── Clinical notes ──
+  // ── 2. CLINICAL NOTES ──
   const notesSec = document.createElement('div');
   notesSec.className = 'setup-section';
   const notesLbl = document.createElement('div');
@@ -1087,7 +1011,108 @@ function addProtocolSetup() {
   notesSec.appendChild(notesFld);
   wrap.appendChild(notesSec);
 
-  // ── Send button ──
+  // ── 3. SEPARATOR ──
+  const sep = document.createElement('div');
+  sep.className = 'setup-separator';
+  sep.innerHTML = `
+    <div class="setup-separator-line"></div>
+    <span class="setup-separator-label">${ui.sepLabel}</span>
+    <div class="setup-separator-line"></div>`;
+  wrap.appendChild(sep);
+
+  // ── 4. EQUIPMENT (subdued) ──
+  const equipWrap = document.createElement('div');
+  equipWrap.className = 'setup-equipment';
+
+  PROTO.groups.forEach(grp => {
+    const grpLabel = typeof grp.label === 'string' ? grp.label : grp.label[lang] || grp.label.en;
+    const noLabel  = typeof grp.noLabel === 'string' ? grp.noLabel : grp.noLabel[lang] || grp.noLabel.en;
+
+    const grpDiv = document.createElement('div');
+    grpDiv.className = 'setup-equip-group';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'setup-equip-label';
+    lbl.textContent = `${grp.icon} ${grpLabel}`;
+    grpDiv.appendChild(lbl);
+
+    const chipRow = document.createElement('div');
+    chipRow.className = 'chips';
+
+    const subRow = document.createElement('div');
+    subRow.className = 'sub-chips hidden';
+
+    grp.chips.forEach(chip => {
+      const chipLabel = typeof chip.label === 'string' ? chip.label : chip.label[lang] || chip.label.en;
+      const c = document.createElement('div');
+      c.className = 'chip';
+      c.textContent = chipLabel;
+      c.onclick = () => {
+        if (c.classList.contains('sel')) {
+          c.classList.remove('sel');
+          delete proState.selections[grp.id];
+          delete proState.subs[grp.id];
+          subRow.innerHTML = ''; subRow.classList.add('hidden');
+        } else {
+          chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+          c.classList.add('sel');
+          proState.selections[grp.id] = chipLabel;
+          delete proState.subs[grp.id];
+          subRow.innerHTML = '';
+          if (chip.subs && chip.subs.length) {
+            chip.subs.forEach(sub => {
+              const isOtherSub = ['Other','Otro','Outro'].includes(sub);
+              const s = document.createElement('div');
+              s.className = 'chip chip-sub';
+              s.textContent = isOtherSub ? (lang==='es'?'Otro':lang==='pt'?'Outro':'Other') : sub;
+              s.onclick = e => {
+                e.stopPropagation();
+                subRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+                s.classList.add('sel');
+                proState.subs[grp.id] = s.textContent;
+              };
+              subRow.appendChild(s);
+            });
+            subRow.classList.remove('hidden');
+          }
+        }
+      };
+      chipRow.appendChild(c);
+    });
+
+    // None chip
+    const noChip = document.createElement('div');
+    noChip.className = 'chip chip-none';
+    noChip.textContent = noLabel;
+    noChip.onclick = () => {
+      chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+      noChip.classList.add('sel');
+      proState.selections[grp.id] = noLabel;
+      delete proState.subs[grp.id];
+      subRow.innerHTML = ''; subRow.classList.add('hidden');
+    };
+    chipRow.appendChild(noChip);
+
+    grpDiv.appendChild(chipRow);
+    grpDiv.appendChild(subRow);
+
+    // Other free field per group
+    const otherFld = document.createElement('input');
+    otherFld.type = 'text';
+    otherFld.className = 'chip-other-field';
+    otherFld.placeholder = ui.otherPh;
+    otherFld.style.marginTop = '4px';
+    otherFld.oninput = () => {
+      if (otherFld.value.trim()) proState.selections[grp.id + '_note'] = otherFld.value.trim();
+      else delete proState.selections[grp.id + '_note'];
+    };
+    grpDiv.appendChild(otherFld);
+    equipWrap.appendChild(grpDiv);
+  });
+
+  wrap.appendChild(equipWrap);
+
+  // ── 5. BUTTON ──
   const btn = document.createElement('button');
   btn.className = 'proto-send-btn';
   btn.textContent = ui.btn;
