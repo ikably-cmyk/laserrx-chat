@@ -943,6 +943,31 @@ function addProtocolSetup() {
   proState.procId = null; proState.procSub = null;
   proState.procOther = ''; proState.notes = '';
 
+  // ── FROM DEVICES BANNER ──
+  if (lastDeviceContext.active && lastDeviceContext.label) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--light);border-radius:8px;padding:7px 10px;';
+    const info = document.createElement('div');
+    info.style.cssText = 'display:flex;flex-direction:column;gap:2px;';
+    const lbl = document.createElement('span');
+    lbl.style.cssText = 'font-size:9px;font-family:"Space Mono",monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.07em;';
+    lbl.textContent = lang==='es'?'Desde Devices':lang==='pt'?'De Devices':'From Devices';
+    const dev = document.createElement('span');
+    dev.style.cssText = 'font-size:11px;font-family:"Space Mono",monospace;color:var(--navy);font-weight:700;';
+    dev.textContent = lastDeviceContext.label;
+    info.appendChild(lbl);
+    info.appendChild(dev);
+    const clr = document.createElement('span');
+    clr.style.cssText = 'font-size:9px;font-family:"Space Mono",monospace;color:var(--steel);border:0.5px solid var(--steel);padding:2px 7px;border-radius:10px;cursor:pointer;';
+    clr.textContent = '✕';
+    clr.onclick = () => { lastDeviceContext.active=false; lastDeviceContext.label=''; banner.remove(); };
+    banner.appendChild(info);
+    banner.appendChild(clr);
+    wrap.appendChild(banner);
+    // Pre-fill notes with device context
+    proState.notes = lastDeviceContext.label;
+  }
+
   // ── 1. PROCEDURE ──
   const procSec = document.createElement('div');
   procSec.className = 'setup-section';
@@ -1009,6 +1034,10 @@ function addProtocolSetup() {
   notesFld.className = 'chip-other-field notes-field';
   notesFld.placeholder = ui.notesPh;
   notesFld.rows = 2;
+  if (proState.notes) {
+    notesFld.value = proState.notes;
+    notesFld.style.borderColor = 'var(--navy)';
+  }
   notesFld.oninput = () => { proState.notes = notesFld.value.trim(); };
   notesSec.appendChild(notesFld);
   wrap.appendChild(notesSec);
@@ -1196,6 +1225,8 @@ function sendProtoSetup() {
     lastProtocol.laserType = erbioSel || diodoSel || '';
     lastProtocol.procedure = proState.procId ? (proState.procSub ? `${proState.procId} → ${proState.procSub}` : proState.procId) : '';
     lastProtocol.power = ''; lastProtocol.frequency = ''; lastProtocol.tipDiameter = '';
+    // Clear device context after use
+    lastDeviceContext.active = false; lastDeviceContext.label = '';
     addAI('protocols', reply);
     addNextCard('protocols');
     addChips('protocols'); // subsequent turns use simple chips
@@ -1727,7 +1758,28 @@ function buildDeviceMessage() {
   return parts.join('. ') || '';
 }
 
+// ── SHARED DEVICE → PROTOCOLS CONTEXT ──
+const lastDeviceContext = { label:'', active:false };
+
 function sendDeviceSetup() {
+  const clinicalProtocolNeeds = ['Clinical protocols','Protocolos clínicos','Protocolos clínicos'];
+  const isProtocolsRedirect = clinicalProtocolNeeds.includes(devState.need);
+
+  if (isProtocolsRedirect) {
+    // Build device label and redirect to Protocols
+    let label = devState.type || '';
+    if (devState.brand) label += ` — ${devState.brand}`;
+    if (devState.model && devState.model !== 'Other') label += ` ${devState.model}`;
+    if (devState.wl) label += ` (${devState.wl})`;
+    lastDeviceContext.label = label;
+    lastDeviceContext.active = true;
+    // Reset protocols so it reinitializes with device context
+    hist.protocols = [];
+    $('proMsgs').innerHTML = '';
+    goTab('protocols');
+    return;
+  }
+
   const msg = buildDeviceMessage();
   if (!msg.trim()) return;
   removeChips('devices');
