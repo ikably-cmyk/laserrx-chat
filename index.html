@@ -832,6 +832,7 @@ function initMod(mod) {
   hist[mod] = [];
   addAI(mod, t('welcome')[mod]);
   if (mod === 'protocols') addProtocolSetup();
+  else if (mod === 'devices') addDeviceSetup();
   else addChips(mod);
 }
 
@@ -1200,7 +1201,479 @@ function sendProtoSetup() {
   });
 }
 
-// ── SIMPLE CHIPS (Devices, Calculator, subsequent Protocol turns) ──
+// ── DEVICES DATA ──
+const DEVICES = {
+  ui: {
+    en: { typeLabel:'What type of laser?', brandLabel:'Brand', modelLabel:'Model', needLabel:'What do you need?', searchPh:'Not listed? Search or type brand...', otherPh:'Describe your device...', showMore:'+ more ▾', showLess:'▲ less', btn:'Identify device', noType:'(not specified)', ledTypeLabel:'Device type', ledBrandLabel:'Brand', ledSpecsLabel:'Device specs (if unknown brand)' },
+    es: { typeLabel:'¿Qué tipo de láser?', brandLabel:'Marca', modelLabel:'Modelo', needLabel:'¿Qué necesitas?', searchPh:'¿No está? Busca o escribe la marca...', otherPh:'Describe tu dispositivo...', showMore:'+ más ▾', showLess:'▲ menos', btn:'Identificar dispositivo', noType:'(no especificado)', ledTypeLabel:'Tipo de dispositivo', ledBrandLabel:'Marca', ledSpecsLabel:'Especificaciones (si marca desconocida)' },
+    pt: { typeLabel:'Que tipo de laser?', brandLabel:'Marca', modelLabel:'Modelo', needLabel:'O que você precisa?', searchPh:'Não listado? Busque ou escreva a marca...', otherPh:'Descreva seu dispositivo...', showMore:'+ mais ▾', showLess:'▲ menos', btn:'Identificar dispositivo', noType:'(não especificado)', ledTypeLabel:'Tipo de dispositivo', ledBrandLabel:'Marca', ledSpecsLabel:'Especificações (se marca desconhecida)' },
+  },
+  types: {
+    en: ['Diode','Erbium','CO₂','Nd:YAG','LED / PBM','Other'],
+    es: ['Diodo','Erbio','CO₂','Nd:YAG','LED / PBM','Otro'],
+    pt: ['Diodo','Érbio','CO₂','Nd:YAG','LED / PBM','Outro'],
+  },
+  wavelengths: {
+    Diode:  ['450 nm','650 nm (PDT)','810 nm','940 nm','980 nm','1064 nm free running pulse','1064 nm (diodo)'],
+    Diodo:  ['450 nm','650 nm (PDT)','810 nm','940 nm','980 nm','1064 nm free running pulse','1064 nm (diodo)'],
+    Érbio:  ['Er,Cr:YSGG 2780 nm','Er:YAG 2940 nm'],
+    Erbium: ['Er,Cr:YSGG 2780 nm','Er:YAG 2940 nm'],
+    Erbio:  ['Er,Cr:YSGG 2780 nm','Er:YAG 2940 nm'],
+    'CO₂':  ['9300 nm','10,600 nm'],
+    'Nd:YAG':['1064 nm'],
+  },
+  brands: {
+    '450 nm':      { top:['Soga','Pion','Elexxion','Dentsply Sirona'], all:['Soga','Pion','Elexxion','Dentsply Sirona'] },
+    '650 nm (PDT)':{ top:['Soga','Pion'], all:['Soga','Pion'] },
+    '810 nm':      { top:['AMD Lasers','Dentsply Sirona','Doctor Smile','Zolar'], all:['AMD Lasers','Dentsply Sirona','Doctor Smile','Zolar','A.R.C. Laser','Gigaa Optronics','KaVo','Pion'] },
+    '940 nm':      { top:['Biolase','Dentsply Sirona','Elexxion','Doctor Smile'], all:['Biolase','Dentsply Sirona','Elexxion','Doctor Smile'] },
+    '980 nm':      { top:['Soga','Pion','Fotona','Dentsply Sirona'], all:['Soga','Pion','Fotona','Dentsply Sirona','A.R.C. Laser','J. Morita','Lasotronix','Elexxion','Doctor Smile','Gigaa Optronics','NV Microdent'] },
+    '1064 nm free running pulse': { top:['PerioLase MVP-7','Fotona','Deka','Quanta System'], all:['PerioLase MVP-7','Fotona','Deka','Quanta System'] },
+    '1064 nm (diodo)': { top:['Soga','Pion'], all:['Soga','Pion'] },
+    'Er,Cr:YSGG 2780 nm': { top:['Biolase'], all:['Biolase'] },
+    'Er:YAG 2940 nm': { top:['Fotona','KaVo','Deka','Soga'], all:['Fotona','KaVo','Deka','Soga','Light Instruments','J. Morita','A.R.C. Laser','Alma Lasers','Quanta System','Elexxion'] },
+    '9300 nm':     { top:['Convergent Dental (Solea)'], all:['Convergent Dental (Solea)'] },
+    '10,600 nm':   { top:['Deka','Elexxion','Aesculight','Doctor Smile'], all:['Deka','Elexxion','Aesculight','Doctor Smile'] },
+    '1064 nm':     { top:['PerioLase MVP-7','Fotona','Deka','Quanta System'], all:['PerioLase MVP-7','Fotona','Deka','Quanta System'] },
+  },
+  models: {
+    'Soga':              ['I Laser I','I Laser I Plus','I Laser II','H2O Laser','iLaser 1'],
+    'Pion':              ['Mercury-Dual','Mercury 3','S3','Helipen Blue','Helipen Red','H1'],
+    'Biolase':           ['Epic X','Epic Q','Epic 10','Epic Pro','Epic Hygiene','iLase','ezlase 940','Waterlase Express','Waterlase iPlus','Waterlase iPlus 2.0','Waterlase MDX','Waterlase MD'],
+    'Fotona':            ['LightWalker AT','LightWalker AT-S','LightWalker TT','Versa','Fidelis Plus III'],
+    'Dentsply Sirona':   ['SIROLaser Blue','SIROLaser Advance'],
+    'AMD Lasers':        ['Picasso','Picasso Lite'],
+    'Doctor Smile':      ['Wiser','Lambda SC','Lambda Plus','Lambda CO₂'],
+    'KaVo':              ['MASTERlase','KEY Laser 3+','KEY Laser 4'],
+    'Deka':              ['Smart 2940D','Er:YAG Dental Pro','SmartUS CO₂','Nd:YAG Dental'],
+    'A.R.C. Laser':      ['FoxII','OfficeLase'],
+    'Elexxion':          ['Claros Nano','Claros','Delos','Duros','Arcus'],
+    'Gigaa Optronics':   ['CHEESE Mini','CHEESE 4W','CHEESE 7W','CHEESE 10W'],
+    'PerioLase MVP-7':   ['PerioLase MVP-7'],
+    'Convergent Dental (Solea)': ['Solea'],
+    'Quanta System':     ['Nd:YAG Dental','HF Dental Er:YAG'],
+    'Light Instruments': ['LightTouch','SlimLine'],
+    'Alma Lasers':       ['OpusDuo'],
+    'Lasotronix':        ['Smart M Pro'],
+    'NV Microdent':      ['NV Pro3'],
+    'J. Morita':         ['ReLase','Er:YAG Dental'],
+    'Zolar':             ['Photon Plus'],
+    'Aesculight':        ['Aesculight CO₂ Dental'],
+  },
+  needs: {
+    en: ['Full tech profile','Clinical protocols','Compare devices','Other'],
+    es: ['Ficha técnica completa','Protocolos clínicos','Comparar dispositivos','Otro'],
+    pt: ['Ficha técnica completa','Protocolos clínicos','Comparar dispositivos','Outro'],
+  },
+  ledTypes: {
+    en: ['Wearable','Panel'],
+    es: ['Wearable','Panel'],
+    pt: ['Wearable','Painel'],
+  },
+  ledBrands: {
+    Wearable: ['Biolux Pro Mini','Biolux Pro Max','Biolux Pro Dent','Biolux Pro Lens','Biolux Research OrthoPulse','Erchonia EVRL','Erchonia FX635'],
+    Panel:    ['Thor LX2','Thor LED Cluster','B-Cure Dental','Omega XP','Asahi Super Lizer'],
+  },
+  ledSpecs: {
+    en: ['No. of LEDs','LED diameter (mm)','Wavelength(s) nm','Total power output (mW)'],
+    es: ['Número de LEDs','Diámetro de LED (mm)','Longitud(es) de onda nm','Potencia total (mW)'],
+    pt: ['Número de LEDs','Diâmetro do LED (mm)','Comprimento(s) de onda nm','Potência total (mW)'],
+  }
+};
+
+// All brands flat list for search autocomplete
+const ALL_BRANDS_FLAT = [...new Set(Object.values(DEVICES.brands).flatMap(b => b.all))].sort();
+
+const devState = { type:null, wl:null, brand:null, model:null, ledType:null, ledBrand:null, ledSpecs:{}, need:null, custom:'' };
+
+// ── DEVICE SETUP ──
+function addDeviceSetup() {
+  const msgs = msgEl('devices');
+  const ui = DEVICES.ui[lang];
+  const types = DEVICES.types[lang] || DEVICES.types.en;
+  const needs = DEVICES.needs[lang] || DEVICES.needs.en;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chips-wrap proto-setup';
+  wrap.id = 'chips-devices';
+
+  // Reset state
+  Object.assign(devState, {type:null,wl:null,brand:null,model:null,ledType:null,ledBrand:null,ledSpecs:{},need:null,custom:''});
+
+  // ── TYPE ──
+  const typeSec = document.createElement('div');
+  typeSec.className = 'setup-section';
+  const typeRow = document.createElement('div');
+  typeRow.className = 'chips';
+
+  // wavelength row (hidden)
+  const wlRow = document.createElement('div');
+  wlRow.className = 'sub-chips hidden';
+
+  // brand section (hidden)
+  const brandSec = document.createElement('div');
+  brandSec.className = 'setup-section hidden';
+  brandSec.id = 'dev-brand-sec';
+
+  // model row (hidden)
+  const modelSec = document.createElement('div');
+  modelSec.className = 'setup-section hidden';
+  modelSec.id = 'dev-model-sec';
+
+  // LED section (hidden)
+  const ledSec = document.createElement('div');
+  ledSec.className = 'setup-equipment hidden';
+  ledSec.id = 'dev-led-sec';
+
+  types.forEach(tp => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = tp;
+    c.onclick = () => {
+      typeRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+      c.classList.add('sel');
+      devState.type = tp; devState.wl = null; devState.brand = null; devState.model = null;
+
+      wlRow.innerHTML = ''; brandSec.innerHTML = ''; modelSec.innerHTML = '';
+      wlRow.classList.add('hidden'); brandSec.classList.add('hidden');
+      modelSec.classList.add('hidden'); ledSec.classList.add('hidden');
+
+      const isLED = tp.includes('LED') || tp.includes('PBM');
+      const isOther = tp === 'Other' || tp === 'Otro' || tp === 'Outro';
+
+      if (isLED) { buildLedSection(); ledSec.classList.remove('hidden'); return; }
+      if (isOther) return;
+
+      // wavelengths
+      const wls = DEVICES.wavelengths[tp] || [];
+      wls.forEach(wl => {
+        const w = document.createElement('div');
+        w.className = 'chip chip-sub';
+        w.textContent = wl;
+        w.onclick = e => {
+          e.stopPropagation();
+          wlRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+          w.classList.add('sel');
+          devState.wl = wl; devState.brand = null; devState.model = null;
+          buildBrandSection(wl);
+        };
+        wlRow.appendChild(w);
+      });
+      wlRow.classList.remove('hidden');
+    };
+    typeRow.appendChild(c);
+  });
+
+  typeSec.appendChild(typeRow);
+  typeSec.appendChild(wlRow);
+  wrap.appendChild(typeSec);
+
+  // Brand section placeholder
+  function buildBrandSection(wl) {
+    brandSec.innerHTML = '';
+    brandSec.className = 'setup-section';
+    const data = DEVICES.brands[wl] || {top:[], all:[]};
+    const top = data.top; const all = data.all;
+    const extra = all.filter(b => !top.includes(b));
+
+    const lbl = document.createElement('div');
+    lbl.className = 'setup-section-title';
+    lbl.textContent = `${ui.brandLabel} — ${wl}`;
+    brandSec.appendChild(lbl);
+
+    const brandRow = document.createElement('div');
+    brandRow.className = 'chips';
+
+    const extraRow = document.createElement('div');
+    extraRow.className = 'sub-chips hidden';
+    extraRow.style.borderLeft = 'none';
+    extraRow.style.paddingLeft = '0';
+
+    const toggleBtn = document.createElement('div');
+    toggleBtn.className = 'chip chip-sub';
+    toggleBtn.style.borderStyle = 'dashed';
+    toggleBtn.textContent = `${ui.showMore.replace('N', extra.length)} (${extra.length})`;
+    let expanded = false;
+
+    if (extra.length > 0) {
+      toggleBtn.onclick = e => {
+        e.stopPropagation();
+        expanded = !expanded;
+        extraRow.classList.toggle('hidden', !expanded);
+        toggleBtn.textContent = expanded ? ui.showLess : `${ui.showMore} (${extra.length})`;
+      };
+    }
+
+    const buildBrandChip = (brand, row) => {
+      const b = document.createElement('div');
+      b.className = 'chip chip-sub';
+      b.textContent = brand;
+      b.onclick = e => {
+        e.stopPropagation();
+        brandRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+        extraRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+        b.classList.add('sel');
+        devState.brand = brand; devState.model = null;
+        buildModelSection(brand);
+        searchFld.value = '';
+      };
+      row.appendChild(b);
+    };
+
+    top.forEach(b => buildBrandChip(b, brandRow));
+    if (extra.length > 0) {
+      brandRow.appendChild(toggleBtn);
+      extra.forEach(b => buildBrandChip(b, extraRow));
+    }
+
+    // Search field
+    const searchFld = document.createElement('input');
+    searchFld.type = 'text';
+    searchFld.className = 'chip-other-field';
+    searchFld.placeholder = ui.searchPh;
+    searchFld.style.marginTop = '6px';
+
+    const suggBox = document.createElement('div');
+    suggBox.style.cssText = 'display:none;flex-direction:column;gap:3px;margin-top:4px;';
+
+    searchFld.oninput = () => {
+      const q = searchFld.value.trim().toLowerCase();
+      suggBox.innerHTML = '';
+      if (!q) { suggBox.style.display='none'; devState.custom=''; return; }
+      devState.custom = searchFld.value.trim();
+      const matches = ALL_BRANDS_FLAT.filter(b => b.toLowerCase().includes(q)).slice(0,6);
+      if (matches.length) {
+        matches.forEach(m => {
+          const s = document.createElement('div');
+          s.className = 'chip chip-sub';
+          s.textContent = m;
+          s.style.marginBottom = '2px';
+          s.onclick = () => {
+            devState.brand = m; devState.custom = '';
+            searchFld.value = m;
+            suggBox.style.display='none';
+            brandRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
+            extraRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
+            buildModelSection(m);
+          };
+          suggBox.appendChild(s);
+        });
+        suggBox.style.display='flex';
+      } else { suggBox.style.display='none'; }
+    };
+
+    brandSec.appendChild(brandRow);
+    if (extra.length > 0) brandSec.appendChild(extraRow);
+    brandSec.appendChild(searchFld);
+    brandSec.appendChild(suggBox);
+    brandSec.classList.remove('hidden');
+    scrollBot();
+  }
+
+  function buildModelSection(brand) {
+    modelSec.innerHTML = '';
+    modelSec.className = 'setup-section';
+    const models = DEVICES.models[brand];
+    if (!models || !models.length) { modelSec.classList.add('hidden'); return; }
+
+    const lbl = document.createElement('div');
+    lbl.className = 'setup-section-title';
+    lbl.textContent = `${ui.modelLabel} — ${brand}`;
+    modelSec.appendChild(lbl);
+
+    const mRow = document.createElement('div');
+    mRow.className = 'chips';
+    models.forEach(m => {
+      const mc = document.createElement('div');
+      mc.className = 'chip chip-sub';
+      mc.textContent = m;
+      mc.onclick = e => {
+        e.stopPropagation();
+        mRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+        mc.classList.add('sel');
+        devState.model = m;
+      };
+      mRow.appendChild(mc);
+    });
+    const otherM = document.createElement('div');
+    otherM.className = 'chip chip-sub chip-none';
+    otherM.textContent = lang==='es'?'Otro':lang==='pt'?'Outro':'Other';
+    otherM.onclick = e => {
+      e.stopPropagation();
+      mRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
+      otherM.classList.add('sel'); devState.model='Other';
+    };
+    mRow.appendChild(otherM);
+
+    modelSec.appendChild(mRow);
+    modelSec.classList.remove('hidden');
+    scrollBot();
+  }
+
+  function buildLedSection() {
+    ledSec.innerHTML = '';
+    const ledTypes = DEVICES.ledTypes[lang] || DEVICES.ledTypes.en;
+    const specsLabels = DEVICES.ledSpecs[lang] || DEVICES.ledSpecs.en;
+
+    const typeLbl = document.createElement('div');
+    typeLbl.className = 'setup-equip-label';
+    typeLbl.textContent = ui.ledTypeLabel;
+    ledSec.appendChild(typeLbl);
+
+    const ledTypeRow = document.createElement('div');
+    ledTypeRow.className = 'chips';
+    const ledBrandSec = document.createElement('div');
+    ledBrandSec.className = 'setup-equip-group hidden';
+
+    ledTypes.forEach(lt => {
+      const c = document.createElement('div');
+      c.className = 'chip chip-sub';
+      c.textContent = lt;
+      c.onclick = e => {
+        e.stopPropagation();
+        ledTypeRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
+        c.classList.add('sel'); devState.ledType = lt;
+        buildLedBrands(lt, ledBrandSec);
+        ledBrandSec.classList.remove('hidden');
+      };
+      ledTypeRow.appendChild(c);
+    });
+    ledSec.appendChild(ledTypeRow);
+    ledSec.appendChild(ledBrandSec);
+
+    const specsLbl = document.createElement('div');
+    specsLbl.className = 'setup-equip-label';
+    specsLbl.style.marginTop = '8px';
+    specsLbl.textContent = ui.ledSpecsLabel;
+    ledSec.appendChild(specsLbl);
+
+    specsLabels.forEach((sp, i) => {
+      const f = document.createElement('input');
+      f.type = 'text'; f.className = 'chip-other-field';
+      f.placeholder = sp; f.style.marginTop = '4px';
+      f.oninput = () => { devState.ledSpecs[sp] = f.value.trim(); };
+      ledSec.appendChild(f);
+    });
+  }
+
+  function buildLedBrands(ledType, container) {
+    container.innerHTML = '';
+    const brands = DEVICES.ledBrands[ledType] || [];
+    const lbl = document.createElement('div');
+    lbl.className = 'setup-equip-label';
+    lbl.textContent = ui.ledBrandLabel;
+    container.appendChild(lbl);
+    const row = document.createElement('div');
+    row.className = 'chips';
+    brands.forEach(b => {
+      const c = document.createElement('div');
+      c.className = 'chip chip-sub';
+      c.textContent = b;
+      c.onclick = e => {
+        e.stopPropagation();
+        row.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
+        c.classList.add('sel'); devState.ledBrand = b;
+      };
+      row.appendChild(c);
+    });
+    const oth = document.createElement('div');
+    oth.className = 'chip chip-sub chip-none';
+    oth.textContent = lang==='es'?'Otro':lang==='pt'?'Outro':'Other';
+    oth.onclick = e => { e.stopPropagation(); row.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel')); oth.classList.add('sel'); devState.ledBrand='Other'; };
+    row.appendChild(oth);
+    container.appendChild(row);
+  }
+
+  wrap.appendChild(brandSec);
+  wrap.appendChild(modelSec);
+  wrap.appendChild(ledSec);
+
+  // ── WHAT DO YOU NEED ──
+  const needSep = document.createElement('div');
+  needSep.className = 'setup-separator';
+  needSep.innerHTML = `<div class="setup-separator-line"></div><span class="setup-separator-label">${ui.needLabel}</span><div class="setup-separator-line"></div>`;
+  wrap.appendChild(needSep);
+
+  const needRow = document.createElement('div');
+  needRow.className = 'chips';
+  needs.forEach(n => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = n;
+    c.onclick = () => {
+      needRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      c.classList.add('sel'); devState.need = n;
+    };
+    needRow.appendChild(c);
+  });
+  wrap.appendChild(needRow);
+
+  // Other free text
+  const otherFld = document.createElement('input');
+  otherFld.type = 'text';
+  otherFld.className = 'chip-other-field';
+  otherFld.placeholder = ui.otherPh;
+  otherFld.style.marginTop = '6px';
+  otherFld.oninput = () => { devState.custom = otherFld.value.trim(); };
+  wrap.appendChild(otherFld);
+
+  // ── BUTTON ──
+  const btn = document.createElement('button');
+  btn.className = 'proto-send-btn';
+  btn.textContent = ui.btn;
+  btn.onclick = sendDeviceSetup;
+  wrap.appendChild(btn);
+
+  msgs.appendChild(wrap);
+  scrollBot();
+}
+
+function buildDeviceMessage() {
+  const parts = [];
+  if (devState.type) {
+    let d = devState.type;
+    if (devState.wl) d += ` ${devState.wl}`;
+    if (devState.brand) d += ` — ${devState.brand}`;
+    if (devState.model && devState.model !== 'Other') d += ` ${devState.model}`;
+    parts.push(`Device: ${d}`);
+  }
+  if (devState.ledType) parts.push(`LED type: ${devState.ledType}`);
+  if (devState.ledBrand) parts.push(`Brand: ${devState.ledBrand}`);
+  const specs = Object.entries(devState.ledSpecs).filter(([,v])=>v).map(([k,v])=>`${k}: ${v}`).join(', ');
+  if (specs) parts.push(`Specs: ${specs}`);
+  if (devState.need) parts.push(`Need: ${devState.need}`);
+  if (devState.custom) parts.push(devState.custom);
+  return parts.join('. ') || '';
+}
+
+function sendDeviceSetup() {
+  const msg = buildDeviceMessage();
+  if (!msg.trim()) return;
+  removeChips('devices');
+  addUser('devices', msg);
+  hist.devices.push(`User: ${msg}`);
+  const history = hist.devices.slice(-12).join('\n');
+  showTyping('devices'); busy=true; $('sendBtn').disabled=true;
+  fetch(HOOKS.devices, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_email: EMAIL||'guest@laserrx.app', last_message: msg, history, language: lang })
+  })
+  .then(res => { if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;} return res.json(); })
+  .then(data => {
+    if(!data) return;
+    hideTyping('devices');
+    const reply = data.response||data.message||'—';
+    if(data.plan&&data.credits!==undefined) setPlanBar(data.plan,data.credits);
+    hist.devices.push(`Assistant: ${reply}`);
+    addAI('devices',reply);
+    addNextCard('devices');
+    addChips('devices');
+    done();
+  })
+  .catch(err=>{ hideTyping('devices'); addAI('devices',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.'); done(); console.error(err); });
+}
+
+// ── SIMPLE CHIPS (Calculator, subsequent Protocol/Device turns) ──
 function addChips(mod) {
   const msgs = msgEl(mod);
   const l = L[lang];
