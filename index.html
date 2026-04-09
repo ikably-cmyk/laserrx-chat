@@ -1302,6 +1302,42 @@ DEVICES.brandsByType = {
   'Nd:YAG':{ top:['PerioLase MVP-7','Fotona','Deka','Quanta System'], all:['PerioLase MVP-7','Fotona','Deka','Quanta System'] },
 };
 
+// Models filtered by brand + type (prevents Biolase Diode models showing under Erbium)
+DEVICES.modelsByBrandType = {
+  'Biolase-Erbium':  ['Waterlase Express','Waterlase iPlus','Waterlase iPlus 2.0','Waterlase MDX','Waterlase MD'],
+  'Biolase-Érbio':   ['Waterlase Express','Waterlase iPlus','Waterlase iPlus 2.0','Waterlase MDX','Waterlase MD'],
+  'Biolase-Erbio':   ['Waterlase Express','Waterlase iPlus','Waterlase iPlus 2.0','Waterlase MDX','Waterlase MD'],
+  'Biolase-Diode':   ['Epic X','Epic Q','Epic 10','Epic Pro','Epic Hygiene','iLase','ezlase 940'],
+  'Biolase-Diodo':   ['Epic X','Epic Q','Epic 10','Epic Pro','Epic Hygiene','iLase','ezlase 940'],
+  'Fotona-Erbium':   ['LightWalker AT','LightWalker AT-S','LightWalker TT'],
+  'Fotona-Érbio':    ['LightWalker AT','LightWalker AT-S','LightWalker TT'],
+  'Fotona-Erbio':    ['LightWalker AT','LightWalker AT-S','LightWalker TT'],
+  'Fotona-Diode':    ['Versa','Fidelis Plus III'],
+  'Fotona-Diodo':    ['Versa','Fidelis Plus III'],
+  'Fotona-Nd:YAG':   ['LightWalker TT','Fidelis Plus III'],
+  'Deka-Erbium':     ['Smart 2940D','Er:YAG Dental Pro'],
+  'Deka-Érbio':      ['Smart 2940D','Er:YAG Dental Pro'],
+  'Deka-Erbio':      ['Smart 2940D','Er:YAG Dental Pro'],
+  'Deka-CO₂':        ['SmartUS CO₂'],
+  'Deka-Nd:YAG':     ['Nd:YAG Dental'],
+  'Elexxion-Diode':  ['Claros Nano','Claros','Delos'],
+  'Elexxion-Diodo':  ['Claros Nano','Claros','Delos'],
+  'Elexxion-Erbium': ['Duros'],
+  'Elexxion-Érbio':  ['Duros'],
+  'Elexxion-Erbio':  ['Duros'],
+  'Elexxion-CO₂':    ['Arcus'],
+  'Soga-Diode':      ['I Laser I','I Laser I Plus','I Laser II','iLaser 1'],
+  'Soga-Diodo':      ['I Laser I','I Laser I Plus','I Laser II','iLaser 1'],
+  'Soga-Erbium':     ['H2O Laser'],
+  'Soga-Érbio':      ['H2O Laser'],
+  'Soga-Erbio':      ['H2O Laser'],
+  'KaVo-Diode':      ['MASTERlase'],
+  'KaVo-Diodo':      ['MASTERlase'],
+  'KaVo-Erbium':     ['KEY Laser 3+','KEY Laser 4'],
+  'KaVo-Érbio':      ['KEY Laser 3+','KEY Laser 4'],
+  'KaVo-Erbio':      ['KEY Laser 3+','KEY Laser 4'],
+};
+
 // Wavelengths per model (for last step)
 DEVICES.modelWavelengths = {
   'I Laser I':       ['980 nm'],
@@ -1469,7 +1505,9 @@ function addDeviceSetup() {
   function buildModelSection(brand) {
     modelSec.innerHTML = '';
     wlSec.innerHTML = ''; wlSec.classList.add('hidden');
-    const models = DEVICES.models[brand];
+    // Try type-filtered models first, fall back to all models
+    const key = `${brand}-${devState.type}`;
+    const models = DEVICES.modelsByBrandType[key] || DEVICES.models[brand];
     if (!models || !models.length) { modelSec.classList.add('hidden'); return; }
 
     const lbl = document.createElement('div');
