@@ -833,6 +833,7 @@ function initMod(mod) {
   addAI(mod, t('welcome')[mod]);
   if (mod === 'protocols') addProtocolSetup();
   else if (mod === 'devices') addDeviceSetup();
+  else if (mod === 'calculator') addCalculatorForm();
   else addChips(mod);
 }
 
@@ -1189,6 +1190,12 @@ function sendProtoSetup() {
     const reply = data.response || data.message || '—';
     if (data.plan && data.credits !== undefined) setPlanBar(data.plan, data.credits);
     hist.protocols.push(`Assistant: ${reply}`);
+    // Save context for Calculator pre-fill
+    const diodoSel = proState.selections['diodo'] || '';
+    const erbioSel = proState.selections['erbio'] || '';
+    lastProtocol.laserType = erbioSel || diodoSel || '';
+    lastProtocol.procedure = proState.procId ? (proState.procSub ? `${proState.procId} → ${proState.procSub}` : proState.procId) : '';
+    lastProtocol.power = ''; lastProtocol.frequency = ''; lastProtocol.tipDiameter = '';
     addAI('protocols', reply);
     addNextCard('protocols');
     addChips('protocols'); // subsequent turns use simple chips
@@ -1284,6 +1291,53 @@ const DEVICES = {
 // All brands flat list for search autocomplete
 const ALL_BRANDS_FLAT = [...new Set(Object.values(DEVICES.brands).flatMap(b => b.all))].sort();
 
+// Brands organized by type (for new Type→Brand→Model→Wavelength order)
+DEVICES.brandsByType = {
+  Diode:   { top:['Soga','Pion','Biolase','Fotona'], all:['Soga','Pion','Biolase','Fotona','AMD Lasers','Dentsply Sirona','Doctor Smile','Zolar','A.R.C. Laser','Elexxion','Gigaa Optronics','KaVo','Lasotronix','J. Morita','NV Microdent'] },
+  Diodo:   { top:['Soga','Pion','Biolase','Fotona'], all:['Soga','Pion','Biolase','Fotona','AMD Lasers','Dentsply Sirona','Doctor Smile','Zolar','A.R.C. Laser','Elexxion','Gigaa Optronics','KaVo','Lasotronix','J. Morita','NV Microdent'] },
+  Érbio:   { top:['Biolase','Fotona','KaVo','Deka'], all:['Biolase','Fotona','KaVo','Deka','Soga','Light Instruments','J. Morita','A.R.C. Laser','Alma Lasers','Quanta System','Elexxion'] },
+  Erbium:  { top:['Biolase','Fotona','KaVo','Deka'], all:['Biolase','Fotona','KaVo','Deka','Soga','Light Instruments','J. Morita','A.R.C. Laser','Alma Lasers','Quanta System','Elexxion'] },
+  Erbio:   { top:['Biolase','Fotona','KaVo','Deka'], all:['Biolase','Fotona','KaVo','Deka','Soga','Light Instruments','J. Morita','A.R.C. Laser','Alma Lasers','Quanta System','Elexxion'] },
+  'CO₂':   { top:['Deka','Elexxion','Aesculight','Convergent Dental (Solea)'], all:['Deka','Elexxion','Aesculight','Doctor Smile','Convergent Dental (Solea)'] },
+  'Nd:YAG':{ top:['PerioLase MVP-7','Fotona','Deka','Quanta System'], all:['PerioLase MVP-7','Fotona','Deka','Quanta System'] },
+};
+
+// Wavelengths per model (for last step)
+DEVICES.modelWavelengths = {
+  'I Laser I':       ['980 nm'],
+  'I Laser I Plus':  ['450 nm','980 nm'],
+  'I Laser II':      ['980 nm'],
+  'H2O Laser':       ['450 nm','980 nm','Er:YAG 2940 nm'],
+  'iLaser 1':        ['810 nm','980 nm','1064 nm (diodo)'],
+  'Mercury-Dual':    ['450 nm','810 nm','980 nm'],
+  'Mercury 3':       ['450 nm','650 nm (PDT)','980 nm'],
+  'S3':              ['450 nm','650 nm (PDT)','980 nm'],
+  'Helipen Blue':    ['450 nm','650 nm (PDT)'],
+  'Helipen Red':     ['980 nm','650 nm (PDT)'],
+  'H1':              ['980 nm'],
+  'Epic X':          ['940 nm'],
+  'Epic Q':          ['940 nm'],
+  'Epic 10':         ['940 nm'],
+  'Epic Pro':        ['940 nm'],
+  'Epic Hygiene':    ['940 nm'],
+  'iLase':           ['940 nm'],
+  'ezlase 940':      ['940 nm'],
+  'Waterlase Express':   ['Er,Cr:YSGG 2780 nm'],
+  'Waterlase iPlus':     ['Er,Cr:YSGG 2780 nm'],
+  'Waterlase iPlus 2.0': ['Er,Cr:YSGG 2780 nm'],
+  'Waterlase MDX':       ['Er,Cr:YSGG 2780 nm'],
+  'Waterlase MD':        ['Er,Cr:YSGG 2780 nm'],
+  'LightWalker AT':      ['Er:YAG 2940 nm'],
+  'LightWalker AT-S':    ['Er:YAG 2940 nm'],
+  'LightWalker TT':      ['Er:YAG 2940 nm','1064 nm free running pulse'],
+  'Versa':           ['980 nm'],
+  'Fidelis Plus III':['1064 nm free running pulse'],
+  'SIROLaser Blue':  ['450 nm','940 nm'],
+  'SIROLaser Advance':['940 nm','980 nm'],
+  'PerioLase MVP-7': ['1064 nm free running pulse'],
+  'Solea':           ['9300 nm'],
+};
+
 const devState = { type:null, wl:null, brand:null, model:null, ledType:null, ledBrand:null, ledSpecs:{}, need:null, custom:'' };
 
 // ── DEVICE SETUP ──
@@ -1297,88 +1351,36 @@ function addDeviceSetup() {
   wrap.className = 'chips-wrap proto-setup';
   wrap.id = 'chips-devices';
 
-  // Reset state
   Object.assign(devState, {type:null,wl:null,brand:null,model:null,ledType:null,ledBrand:null,ledSpecs:{},need:null,custom:''});
 
-  // ── TYPE ──
+  // ── 1. TYPE ──
   const typeSec = document.createElement('div');
   typeSec.className = 'setup-section';
   const typeRow = document.createElement('div');
   typeRow.className = 'chips';
 
-  // wavelength row (hidden)
-  const wlRow = document.createElement('div');
-  wlRow.className = 'sub-chips hidden';
-
-  // brand section (hidden)
   const brandSec = document.createElement('div');
   brandSec.className = 'setup-section hidden';
-  brandSec.id = 'dev-brand-sec';
 
-  // model row (hidden)
   const modelSec = document.createElement('div');
   modelSec.className = 'setup-section hidden';
-  modelSec.id = 'dev-model-sec';
 
-  // LED section (hidden)
+  const wlSec = document.createElement('div');
+  wlSec.className = 'setup-section hidden';
+
   const ledSec = document.createElement('div');
   ledSec.className = 'setup-equipment hidden';
-  ledSec.id = 'dev-led-sec';
 
-  types.forEach(tp => {
-    const c = document.createElement('div');
-    c.className = 'chip';
-    c.textContent = tp;
-    c.onclick = () => {
-      typeRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
-      c.classList.add('sel');
-      devState.type = tp; devState.wl = null; devState.brand = null; devState.model = null;
-
-      wlRow.innerHTML = ''; brandSec.innerHTML = ''; modelSec.innerHTML = '';
-      wlRow.classList.add('hidden'); brandSec.classList.add('hidden');
-      modelSec.classList.add('hidden'); ledSec.classList.add('hidden');
-
-      const isLED = tp.includes('LED') || tp.includes('PBM');
-      const isOther = tp === 'Other' || tp === 'Otro' || tp === 'Outro';
-
-      if (isLED) { buildLedSection(); ledSec.classList.remove('hidden'); return; }
-      if (isOther) return;
-
-      // wavelengths
-      const wls = DEVICES.wavelengths[tp] || [];
-      wls.forEach(wl => {
-        const w = document.createElement('div');
-        w.className = 'chip chip-sub';
-        w.textContent = wl;
-        w.onclick = e => {
-          e.stopPropagation();
-          wlRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
-          w.classList.add('sel');
-          devState.wl = wl; devState.brand = null; devState.model = null;
-          buildBrandSection(wl);
-        };
-        wlRow.appendChild(w);
-      });
-      wlRow.classList.remove('hidden');
-    };
-    typeRow.appendChild(c);
-  });
-
-  typeSec.appendChild(typeRow);
-  typeSec.appendChild(wlRow);
-  wrap.appendChild(typeSec);
-
-  // Brand section placeholder
-  function buildBrandSection(wl) {
+  function buildBrandSection(tp) {
     brandSec.innerHTML = '';
     brandSec.className = 'setup-section';
-    const data = DEVICES.brands[wl] || {top:[], all:[]};
+    const data = DEVICES.brandsByType[tp] || {top:[], all:[]};
     const top = data.top; const all = data.all;
     const extra = all.filter(b => !top.includes(b));
 
     const lbl = document.createElement('div');
     lbl.className = 'setup-section-title';
-    lbl.textContent = `${ui.brandLabel} — ${wl}`;
+    lbl.textContent = `${ui.brandLabel} — ${tp}`;
     brandSec.appendChild(lbl);
 
     const brandRow = document.createElement('div');
@@ -1386,15 +1388,13 @@ function addDeviceSetup() {
 
     const extraRow = document.createElement('div');
     extraRow.className = 'sub-chips hidden';
-    extraRow.style.borderLeft = 'none';
-    extraRow.style.paddingLeft = '0';
+    extraRow.style.cssText = 'border-left:none;padding-left:0';
 
+    let expanded = false;
     const toggleBtn = document.createElement('div');
     toggleBtn.className = 'chip chip-sub';
     toggleBtn.style.borderStyle = 'dashed';
-    toggleBtn.textContent = `${ui.showMore.replace('N', extra.length)} (${extra.length})`;
-    let expanded = false;
-
+    toggleBtn.textContent = `${ui.showMore} (${extra.length})`;
     if (extra.length > 0) {
       toggleBtn.onclick = e => {
         e.stopPropagation();
@@ -1410,23 +1410,21 @@ function addDeviceSetup() {
       b.textContent = brand;
       b.onclick = e => {
         e.stopPropagation();
-        brandRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
-        extraRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+        brandRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
+        extraRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
         b.classList.add('sel');
-        devState.brand = brand; devState.model = null;
+        devState.brand = brand; devState.model = null; devState.wl = null;
+        modelSec.innerHTML = ''; modelSec.classList.add('hidden');
+        wlSec.innerHTML = ''; wlSec.classList.add('hidden');
+        searchFld.value = ''; suggBox.style.display = 'none';
         buildModelSection(brand);
-        searchFld.value = '';
       };
       row.appendChild(b);
     };
 
     top.forEach(b => buildBrandChip(b, brandRow));
-    if (extra.length > 0) {
-      brandRow.appendChild(toggleBtn);
-      extra.forEach(b => buildBrandChip(b, extraRow));
-    }
+    if (extra.length > 0) { brandRow.appendChild(toggleBtn); extra.forEach(b => buildBrandChip(b, extraRow)); }
 
-    // Search field
     const searchFld = document.createElement('input');
     searchFld.type = 'text';
     searchFld.className = 'chip-other-field';
@@ -1441,17 +1439,15 @@ function addDeviceSetup() {
       suggBox.innerHTML = '';
       if (!q) { suggBox.style.display='none'; devState.custom=''; return; }
       devState.custom = searchFld.value.trim();
-      const matches = ALL_BRANDS_FLAT.filter(b => b.toLowerCase().includes(q)).slice(0,6);
+      const matches = ALL_BRANDS_FLAT.filter(b=>b.toLowerCase().includes(q)).slice(0,6);
       if (matches.length) {
         matches.forEach(m => {
           const s = document.createElement('div');
           s.className = 'chip chip-sub';
           s.textContent = m;
-          s.style.marginBottom = '2px';
           s.onclick = () => {
             devState.brand = m; devState.custom = '';
-            searchFld.value = m;
-            suggBox.style.display='none';
+            searchFld.value = m; suggBox.style.display='none';
             brandRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
             extraRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
             buildModelSection(m);
@@ -1472,7 +1468,7 @@ function addDeviceSetup() {
 
   function buildModelSection(brand) {
     modelSec.innerHTML = '';
-    modelSec.className = 'setup-section';
+    wlSec.innerHTML = ''; wlSec.classList.add('hidden');
     const models = DEVICES.models[brand];
     if (!models || !models.length) { modelSec.classList.add('hidden'); return; }
 
@@ -1489,9 +1485,10 @@ function addDeviceSetup() {
       mc.textContent = m;
       mc.onclick = e => {
         e.stopPropagation();
-        mRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+        mRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
         mc.classList.add('sel');
         devState.model = m;
+        buildWavelengthSection(m);
       };
       mRow.appendChild(mc);
     });
@@ -1502,11 +1499,40 @@ function addDeviceSetup() {
       e.stopPropagation();
       mRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
       otherM.classList.add('sel'); devState.model='Other';
+      wlSec.innerHTML=''; wlSec.classList.add('hidden');
     };
     mRow.appendChild(otherM);
-
     modelSec.appendChild(mRow);
     modelSec.classList.remove('hidden');
+    scrollBot();
+  }
+
+  function buildWavelengthSection(model) {
+    wlSec.innerHTML = '';
+    const wls = DEVICES.modelWavelengths[model];
+    if (!wls || wls.length <= 1) {
+      if (wls && wls.length === 1) devState.wl = wls[0];
+      wlSec.classList.add('hidden'); return;
+    }
+    const lbl = document.createElement('div');
+    lbl.className = 'setup-section-title';
+    lbl.textContent = lang==='es'?`Longitud de onda — ${model}`:lang==='pt'?`Comprimento de onda — ${model}`:`Wavelength — ${model}`;
+    wlSec.appendChild(lbl);
+    const wRow = document.createElement('div');
+    wRow.className = 'chips';
+    wls.forEach(wl => {
+      const w = document.createElement('div');
+      w.className = 'chip chip-sub';
+      w.textContent = wl;
+      w.onclick = e => {
+        e.stopPropagation();
+        wRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));
+        w.classList.add('sel'); devState.wl = wl;
+      };
+      wRow.appendChild(w);
+    });
+    wlSec.appendChild(wRow);
+    wlSec.classList.remove('hidden');
     scrollBot();
   }
 
@@ -1547,10 +1573,10 @@ function addDeviceSetup() {
     specsLbl.textContent = ui.ledSpecsLabel;
     ledSec.appendChild(specsLbl);
 
-    specsLabels.forEach((sp, i) => {
+    specsLabels.forEach(sp => {
       const f = document.createElement('input');
-      f.type = 'text'; f.className = 'chip-other-field';
-      f.placeholder = sp; f.style.marginTop = '4px';
+      f.type='text'; f.className='chip-other-field';
+      f.placeholder=sp; f.style.marginTop='4px';
       f.oninput = () => { devState.ledSpecs[sp] = f.value.trim(); };
       ledSec.appendChild(f);
     });
@@ -1584,8 +1610,32 @@ function addDeviceSetup() {
     container.appendChild(row);
   }
 
+  types.forEach(tp => {
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.textContent = tp;
+    c.onclick = () => {
+      typeRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      c.classList.add('sel');
+      devState.type=tp; devState.brand=null; devState.model=null; devState.wl=null;
+      brandSec.innerHTML=''; brandSec.classList.add('hidden');
+      modelSec.innerHTML=''; modelSec.classList.add('hidden');
+      wlSec.innerHTML=''; wlSec.classList.add('hidden');
+      ledSec.classList.add('hidden');
+      const isLED = tp.includes('LED')||tp.includes('PBM');
+      const isOther = tp==='Other'||tp==='Otro'||tp==='Outro';
+      if (isLED) { buildLedSection(); ledSec.classList.remove('hidden'); return; }
+      if (isOther) return;
+      buildBrandSection(tp);
+    };
+    typeRow.appendChild(c);
+  });
+
+  typeSec.appendChild(typeRow);
+  wrap.appendChild(typeSec);
   wrap.appendChild(brandSec);
   wrap.appendChild(modelSec);
+  wrap.appendChild(wlSec);
   wrap.appendChild(ledSec);
 
   // ── WHAT DO YOU NEED ──
@@ -1600,28 +1650,21 @@ function addDeviceSetup() {
     const c = document.createElement('div');
     c.className = 'chip';
     c.textContent = n;
-    c.onclick = () => {
-      needRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
-      c.classList.add('sel'); devState.need = n;
-    };
+    c.onclick = () => { needRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); devState.need=n; };
     needRow.appendChild(c);
   });
   wrap.appendChild(needRow);
 
-  // Other free text
   const otherFld = document.createElement('input');
-  otherFld.type = 'text';
-  otherFld.className = 'chip-other-field';
-  otherFld.placeholder = ui.otherPh;
-  otherFld.style.marginTop = '6px';
-  otherFld.oninput = () => { devState.custom = otherFld.value.trim(); };
+  otherFld.type='text'; otherFld.className='chip-other-field';
+  otherFld.placeholder=ui.otherPh; otherFld.style.marginTop='6px';
+  otherFld.oninput = () => { devState.custom=otherFld.value.trim(); };
   wrap.appendChild(otherFld);
 
-  // ── BUTTON ──
   const btn = document.createElement('button');
-  btn.className = 'proto-send-btn';
-  btn.textContent = ui.btn;
-  btn.onclick = sendDeviceSetup;
+  btn.className='proto-send-btn';
+  btn.textContent=ui.btn;
+  btn.onclick=sendDeviceSetup;
   wrap.appendChild(btn);
 
   msgs.appendChild(wrap);
@@ -1632,9 +1675,9 @@ function buildDeviceMessage() {
   const parts = [];
   if (devState.type) {
     let d = devState.type;
-    if (devState.wl) d += ` ${devState.wl}`;
     if (devState.brand) d += ` — ${devState.brand}`;
     if (devState.model && devState.model !== 'Other') d += ` ${devState.model}`;
+    if (devState.wl) d += ` (${devState.wl})`;
     parts.push(`Device: ${d}`);
   }
   if (devState.ledType) parts.push(`LED type: ${devState.ledType}`);
@@ -1673,7 +1716,197 @@ function sendDeviceSetup() {
   .catch(err=>{ hideTyping('devices'); addAI('devices',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.'); done(); console.error(err); });
 }
 
-// ── SIMPLE CHIPS (Calculator, subsequent Protocol/Device turns) ──
+// ── SHARED PROTOCOL CONTEXT (for Calculator pre-fill) ──
+const lastProtocol = { laserType:'', power:'', frequency:'', tipDiameter:'', procedure:'' };
+
+// ── CALCULATOR FORM ──
+const CAL_SUGGESTIONS = {
+  power:     ['0.25','0.5','1.0','1.25','1.5','2.0','3.0','4.0'],
+  frequency: ['10','20','25','30','50'],
+  tip:       ['200','320','400','600','800'],
+  pulse:     ['45','60','100','150','600','700','1000'],
+  exposure:  ['10','20','30','60','90','120'],
+};
+
+const CAL_UI = {
+  en: { fromProto:'From last protocol', clear:'✕ clear', laserLbl:'Laser type / wavelength', powerLbl:'Power', freqLbl:'Frequency', tipLbl:'Tip / spot diameter', pulseLbl:'Pulse width', exposureLbl:'Exposure time', contextLbl:'Additional context', contextPh:'e.g. endodontic disinfection phase 2, 3 cycles per canal, patient with diabetes...', pulsHint:'Check device panel — varies by mode', exposureHint:'optional (required for PBM)', btn:'Calculate parameters', req:'required' },
+  es: { fromProto:'Del último protocolo', clear:'✕ limpiar', laserLbl:'Tipo de láser / longitud de onda', powerLbl:'Potencia', freqLbl:'Frecuencia', tipLbl:'Diámetro de punta / spot', pulseLbl:'Ancho de pulso', exposureLbl:'Tiempo de exposición', contextLbl:'Contexto adicional', contextPh:'Ej: desinfección endodóntica fase 2, 3 ciclos por canal, paciente diabético...', pulsHint:'Verifica en el panel del equipo — varía por modo', exposureHint:'opcional (requerido para PBM)', btn:'Calcular parámetros', req:'requerido' },
+  pt: { fromProto:'Do último protocolo', clear:'✕ limpar', laserLbl:'Tipo de laser / comprimento de onda', powerLbl:'Potência', freqLbl:'Frequência', tipLbl:'Diâmetro da ponta / spot', pulseLbl:'Largura de pulso', exposureLbl:'Tempo de exposição', contextLbl:'Contexto adicional', contextPh:'Ex: desinfecção endodôntica fase 2, 3 ciclos por canal, paciente diabético...', pulsHint:'Verifique no painel do equipamento — varia por modo', exposureHint:'opcional (obrigatório para PBM)', btn:'Calcular parâmetros', req:'obrigatório' },
+};
+
+const calFields = {};
+
+function addCalculatorForm() {
+  const msgs = msgEl('calculator');
+  const ui = CAL_UI[lang] || CAL_UI.en;
+  const hasPrefill = lastProtocol.laserType || lastProtocol.power;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chips-wrap proto-setup';
+  wrap.id = 'chips-calculator';
+
+  // Pre-fill banner
+  if (hasPrefill) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
+    const lbl = document.createElement('span');
+    lbl.style.cssText = 'font-size:9px;font-family:"Space Mono",monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.07em;';
+    lbl.textContent = ui.fromProto;
+    const clr = document.createElement('span');
+    clr.style.cssText = 'font-size:9px;font-family:"Space Mono",monospace;color:var(--steel);border:0.5px solid var(--steel);padding:2px 7px;border-radius:10px;cursor:pointer;';
+    clr.textContent = ui.clear;
+    clr.onclick = () => {
+      ['laserType','power','frequency','tipDiameter'].forEach(k => {
+        if (calFields[k]) { calFields[k].value=''; calFields[k].style.borderColor=''; }
+      });
+    };
+    banner.appendChild(lbl);
+    banner.appendChild(clr);
+    wrap.appendChild(banner);
+  }
+
+  // Form card
+  const card = document.createElement('div');
+  card.className = 'setup-equipment';
+  card.style.cssText = 'background:var(--white);border:1px solid var(--light);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;';
+
+  const buildField = (key, label, unit, placeholder, suggestions, hint, prefillVal, required) => {
+    const sec = document.createElement('div');
+    sec.style.cssText = 'display:flex;flex-direction:column;gap:3px;';
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'font-size:10px;font-family:"Space Mono",monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.06em;';
+    lbl.textContent = label;
+    const unitSpan = document.createElement('span');
+    unitSpan.style.cssText = `font-size:9px;font-family:"Space Mono",monospace;color:${required?'var(--steel)':'var(--steel)'};font-style:${required?'normal':'italic'};`;
+    unitSpan.textContent = required ? unit : `${unit} · ${hint||''}`;
+    row.appendChild(lbl); row.appendChild(unitSpan);
+    sec.appendChild(row);
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'chip-other-field';
+    inp.placeholder = placeholder;
+    if (prefillVal) {
+      inp.value = prefillVal;
+      inp.style.borderColor = 'var(--navy)';
+    }
+    calFields[key] = inp;
+    sec.appendChild(inp);
+
+    // Suggestions
+    if (suggestions && suggestions.length) {
+      const suggRow = document.createElement('div');
+      suggRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:3px;';
+      suggestions.forEach(s => {
+        const pill = document.createElement('span');
+        pill.style.cssText = 'padding:2px 7px;background:var(--bg);border:0.5px solid var(--light);border-radius:6px;font-size:9px;font-family:"Space Mono",monospace;color:var(--steel);cursor:pointer;';
+        pill.textContent = s;
+        pill.onclick = () => { inp.value = s; inp.style.borderColor=''; };
+        suggRow.appendChild(pill);
+      });
+      sec.appendChild(suggRow);
+    }
+
+    if (hint && required) {
+      const h = document.createElement('div');
+      h.style.cssText = 'font-size:9px;color:var(--steel);font-family:"Space Mono",monospace;font-style:italic;';
+      h.textContent = hint;
+      sec.appendChild(h);
+    }
+
+    return sec;
+  };
+
+  // Laser type — full width
+  card.appendChild(buildField('laserType', ui.laserLbl, ui.req, 'e.g. Er,Cr:YSGG 2780 nm, Diode 980 nm...', [], '', lastProtocol.laserType, true));
+
+  // Grid 2 cols
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+  grid.appendChild(buildField('power',     ui.powerLbl, 'W',  '0.25, 1.0, 1.5...', CAL_SUGGESTIONS.power,     '', lastProtocol.power,     true));
+  grid.appendChild(buildField('frequency', ui.freqLbl,  'Hz', '10, 20, 25...',     CAL_SUGGESTIONS.frequency, '', lastProtocol.frequency, true));
+  grid.appendChild(buildField('tipDiameter', ui.tipLbl, 'µm', '200, 400, 600...',  CAL_SUGGESTIONS.tip,       '', lastProtocol.tipDiameter, true));
+  grid.appendChild(buildField('pulseWidth',  ui.pulseLbl,'µs', 'e.g. 60, 700...',  CAL_SUGGESTIONS.pulse,     ui.pulsHint, '', true));
+  card.appendChild(grid);
+
+  // Exposure time — full width, optional
+  card.appendChild(buildField('exposureTime', ui.exposureLbl, 's', '30, 60, 120...', CAL_SUGGESTIONS.exposure, ui.exposureHint, '', false));
+
+  // Context — textarea
+  const ctxSec = document.createElement('div');
+  ctxSec.style.cssText = 'display:flex;flex-direction:column;gap:3px;';
+  const ctxLbl = document.createElement('label');
+  ctxLbl.style.cssText = 'font-size:10px;font-family:"Space Mono",monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.06em;';
+  ctxLbl.textContent = ui.contextLbl;
+  const ctxTA = document.createElement('textarea');
+  ctxTA.className = 'chip-other-field notes-field';
+  ctxTA.placeholder = ui.contextPh;
+  ctxTA.rows = 3;
+  if (lastProtocol.procedure) {
+    ctxTA.value = lastProtocol.procedure;
+    ctxTA.style.borderColor = 'var(--navy)';
+  }
+  calFields['context'] = ctxTA;
+  ctxSec.appendChild(ctxLbl);
+  ctxSec.appendChild(ctxTA);
+  card.appendChild(ctxSec);
+
+  wrap.appendChild(card);
+
+  const btn = document.createElement('button');
+  btn.className = 'proto-send-btn';
+  btn.textContent = ui.btn;
+  btn.onclick = sendCalculatorForm;
+  wrap.appendChild(btn);
+
+  msgs.appendChild(wrap);
+  scrollBot();
+}
+
+function buildCalcMessage() {
+  const ui = CAL_UI[lang] || CAL_UI.en;
+  const parts = [];
+  if (calFields.laserType?.value)    parts.push(`Laser type: ${calFields.laserType.value}`);
+  if (calFields.power?.value)        parts.push(`Power: ${calFields.power.value} W`);
+  if (calFields.frequency?.value)    parts.push(`Frequency: ${calFields.frequency.value} Hz`);
+  if (calFields.tipDiameter?.value)  parts.push(`Tip diameter: ${calFields.tipDiameter.value} µm`);
+  if (calFields.pulseWidth?.value)   parts.push(`Pulse width: ${calFields.pulseWidth.value} µs`);
+  if (calFields.exposureTime?.value) parts.push(`Exposure time: ${calFields.exposureTime.value} s`);
+  if (calFields.context?.value)      parts.push(`Context: ${calFields.context.value}`);
+  return parts.join('. ');
+}
+
+function sendCalculatorForm() {
+  const msg = buildCalcMessage();
+  if (!msg.trim()) return;
+  removeChips('calculator');
+  addUser('calculator', msg);
+  hist.calculator.push(`User: ${msg}`);
+  const history = hist.calculator.slice(-12).join('\n');
+  showTyping('calculator'); busy=true; $('sendBtn').disabled=true;
+  fetch(HOOKS.calculator, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_email: EMAIL||'guest@laserrx.app', last_message: msg, history, language: lang })
+  })
+  .then(res=>{ if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;} return res.json(); })
+  .then(data=>{
+    if(!data) return;
+    hideTyping('calculator');
+    const reply = data.response||data.message||'—';
+    if(data.plan&&data.credits!==undefined) setPlanBar(data.plan,data.credits);
+    hist.calculator.push(`Assistant: ${reply}`);
+    addAI('calculator',reply);
+    addNextCard('calculator');
+    addChips('calculator');
+    done();
+  })
+  .catch(err=>{ hideTyping('calculator'); addAI('calculator',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.'); done(); console.error(err); });
+}
+
+// ── SIMPLE CHIPS (subsequent turns) ──
 function addChips(mod) {
   const msgs = msgEl(mod);
   const l = L[lang];
