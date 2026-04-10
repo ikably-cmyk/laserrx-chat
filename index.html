@@ -978,6 +978,11 @@ function addProtocolSetup() {
   const procSubRow = document.createElement('div');
   procSubRow.className = 'sub-chips hidden';
 
+  // Diode complement — appears after procedure selection
+  const diodeCmpContainer = document.createElement('div');
+  diodeCmpContainer.className = 'hidden';
+  diodeCmpContainer.style.marginTop = '10px';
+
   procs.forEach(proc => {
     const c = document.createElement('div');
     c.className = 'chip';
@@ -987,6 +992,8 @@ function addProtocolSetup() {
         c.classList.remove('sel');
         proState.procId = null; proState.procSub = null;
         procSubRow.innerHTML = ''; procSubRow.classList.add('hidden');
+        diodeCmpContainer.innerHTML = ''; diodeCmpContainer.classList.add('hidden');
+        delete proState.selections['diode_cmp'];
       } else {
         procRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
         c.classList.add('sel');
@@ -1001,10 +1008,21 @@ function addProtocolSetup() {
             procSubRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
             s.classList.add('sel');
             proState.procSub = sub;
+            // Show diode complement after sub-procedure selected
+            diodeCmpContainer.innerHTML = '';
+            diodeCmpContainer.appendChild(buildDiodeComplement(ui));
+            diodeCmpContainer.classList.remove('hidden');
+            delete proState.selections['diode_cmp'];
           };
           procSubRow.appendChild(s);
         });
         procSubRow.classList.remove('hidden');
+        // If no sub-chips, show diode complement right away
+        if (!proc.subs.length) {
+          diodeCmpContainer.innerHTML = '';
+          diodeCmpContainer.appendChild(buildDiodeComplement(ui));
+          diodeCmpContainer.classList.remove('hidden');
+        }
       }
     };
     procRow.appendChild(c);
@@ -1012,6 +1030,7 @@ function addProtocolSetup() {
 
   procSec.appendChild(procRow);
   procSec.appendChild(procSubRow);
+  procSec.appendChild(diodeCmpContainer);
 
   // Other free text for procedure
   const procOtherFld = document.createElement('input');
@@ -1041,18 +1060,6 @@ function addProtocolSetup() {
   notesFld.oninput = () => { proState.notes = notesFld.value.trim(); };
   notesSec.appendChild(notesFld);
   wrap.appendChild(notesSec);
-
-  // ── 2b. DIODE COMPLEMENT (shown when coming from Devices with erbium/CO₂) ──
-  const devLabel = (lastDeviceContext.active && lastDeviceContext.label) ? lastDeviceContext.label.toLowerCase() : '';
-  const devPreselect = devLabel.includes('erbium')||devLabel.includes('erbio')||devLabel.includes('érbio')||devLabel.includes('er,cr')||devLabel.includes('er:yag') ? 'erbio'
-    : devLabel.includes('co₂')||devLabel.includes('co2') ? 'otros'
-    : devLabel.includes('diode')||devLabel.includes('diodo')||devLabel.includes('940')||devLabel.includes('980')||devLabel.includes('810') ? 'diodo'
-    : null;
-
-  const needsDiodeCmp = devPreselect === 'erbio' || devPreselect === 'otros';
-  if (needsDiodeCmp) {
-    wrap.appendChild(buildDiodeComplement(ui));
-  }
 
   if (!devPreselect) {
     const sep = document.createElement('div');
@@ -1142,38 +1149,6 @@ function addProtocolSetup() {
         else delete proState.selections[grp.id + '_note'];
       };
       grpDiv.appendChild(otherFld);
-
-      // Show diode complement question when erbium or CO₂ selected
-      const diodeCmpId = `diode-cmp-${grp.id}`;
-      if (grp.id === 'erbio' || grp.id === 'otros') {
-        const diodeCmpWrap = document.createElement('div');
-        diodeCmpWrap.id = diodeCmpId;
-        diodeCmpWrap.className = 'hidden';
-        diodeCmpWrap.style.marginTop = '8px';
-
-        // Wire chip clicks to show/hide diode complement
-        chipRow.querySelectorAll('.chip:not(.chip-none)').forEach(c => {
-          const orig = c.onclick;
-          c.onclick = () => {
-            orig && orig();
-            diodeCmpWrap.innerHTML = '';
-            const cmp = buildDiodeComplement(ui);
-            diodeCmpWrap.appendChild(cmp);
-            diodeCmpWrap.classList.remove('hidden');
-          };
-        });
-        noChip.onclick = () => {
-          chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
-          noChip.classList.add('sel');
-          proState.selections[grp.id] = noLabel;
-          delete proState.subs[grp.id];
-          subRow.innerHTML = ''; subRow.classList.add('hidden');
-          diodeCmpWrap.classList.add('hidden');
-        };
-
-        grpDiv.appendChild(diodeCmpWrap);
-      }
-
       equipWrap.appendChild(grpDiv);
     });
 
