@@ -1055,12 +1055,24 @@ function addProtocolSetup() {
   const equipWrap = document.createElement('div');
   equipWrap.className = 'setup-equipment';
 
+  // Detect which group to pre-select from Devices context
+  const devLabel = lastDeviceContext.label.toLowerCase();
+  const devPreselect = devLabel.includes('erbium')||devLabel.includes('erbio')||devLabel.includes('érbio')||devLabel.includes('er,cr')||devLabel.includes('er:yag') ? 'erbio'
+    : devLabel.includes('diode')||devLabel.includes('diodo')||devLabel.includes('940')||devLabel.includes('980')||devLabel.includes('810') ? 'diodo'
+    : devLabel.includes('co₂')||devLabel.includes('co2')||devLabel.includes('nd:yag') ? 'otros'
+    : null;
+
   PROTO.groups.forEach(grp => {
     const grpLabel = typeof grp.label === 'string' ? grp.label : grp.label[lang] || grp.label.en;
     const noLabel  = typeof grp.noLabel === 'string' ? grp.noLabel : grp.noLabel[lang] || grp.noLabel.en;
 
     const grpDiv = document.createElement('div');
     grpDiv.className = 'setup-equip-group';
+
+    // If coming from Devices, hide non-matching groups
+    if (devPreselect && grp.id !== devPreselect) {
+      grpDiv.style.display = 'none';
+    }
 
     const lbl = document.createElement('div');
     lbl.className = 'setup-equip-label';
@@ -1126,6 +1138,22 @@ function addProtocolSetup() {
 
     grpDiv.appendChild(chipRow);
     grpDiv.appendChild(subRow);
+
+    // Auto-select first chip if this is the pre-selected group from Devices
+    if (devPreselect && grp.id === devPreselect && lastDeviceContext.active) {
+      // Find best matching chip from device label
+      const chips = chipRow.querySelectorAll('.chip:not(.chip-none)');
+      let matched = false;
+      chips.forEach(c => {
+        if (!matched && devLabel.includes(c.textContent.toLowerCase())) {
+          c.classList.add('sel');
+          proState.selections[grp.id] = c.textContent;
+          matched = true;
+        }
+      });
+      // If no chip matched, just store the device label directly
+      if (!matched) proState.selections[grp.id] = lastDeviceContext.label;
+    }
 
     // Other free field per group
     const otherFld = document.createElement('input');
