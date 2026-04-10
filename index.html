@@ -919,9 +919,9 @@ const PROTO = {
     ]
   },
   ui: {
-    en: { title:'Tell me about your setup', procTitle:'What procedure?', notesLbl:'Clinical notes (optional)', notesPh:'e.g. diabetic patient, anticoagulants, pregnancy, mucositis... any relevant clinical data', otherPh:'Describe...', btn:'Get protocol', noSel:'(none selected)', sepLabel:'personalize your protocol with your laser choices (optional)' },
-    es: { title:'Cuéntame tu equipo', procTitle:'¿Qué procedimiento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ej: paciente diabético, anticoagulantes, embarazo, mucositis... cualquier dato clínico relevante', otherPh:'Describe...', btn:'Consultar protocolo', noSel:'(ninguno)', sepLabel:'personaliza el protocolo con tus equipos (opcional)' },
-    pt: { title:'Me conte seu equipamento', procTitle:'Qual procedimento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ex: paciente diabético, anticoagulantes, gravidez, mucosite... qualquer dado clínico relevante', otherPh:'Descreva...', btn:'Consultar protocolo', noSel:'(nenhum)', sepLabel:'personalize o protocolo com seus equipamentos (opcional)' },
+    en: { title:'Tell me about your setup', procTitle:'What procedure?', notesLbl:'Clinical notes (optional)', notesPh:'e.g. diabetic patient, anticoagulants, pregnancy, mucositis... any relevant clinical data', otherPh:'Describe...', btn:'Get protocol', noSel:'(none selected)', sepLabel:'personalize your protocol with your laser choices (optional)', diodeCmpQ:'Want to complement your protocol with a diode laser? Which one do you have available?', noDiode:'No diode available' },
+    es: { title:'Cuéntame tu equipo', procTitle:'¿Qué procedimiento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ej: paciente diabético, anticoagulantes, embarazo, mucositis... cualquier dato clínico relevante', otherPh:'Describe...', btn:'Consultar protocolo', noSel:'(ninguno)', sepLabel:'personaliza el protocolo con tus equipos (opcional)', diodeCmpQ:'¿Quieres complementar tu protocolo con un láser de diodo? ¿Cuál tienes disponible?', noDiode:'No tengo diodo' },
+    pt: { title:'Me conte seu equipamento', procTitle:'Qual procedimento?', notesLbl:'Nota clínica (opcional)', notesPh:'Ex: paciente diabético, anticoagulantes, gravidez, mucosite... qualquer dado clínico relevante', otherPh:'Descreva...', btn:'Consultar protocolo', noSel:'(nenhum)', sepLabel:'personalize o protocolo com seus equipamentos (opcional)', diodeCmpQ:'Quer complementar seu protocolo com um laser de diodo? Qual você tem disponível?', noDiode:'Não tenho diodo' },
   }
 };
 
@@ -1042,13 +1042,17 @@ function addProtocolSetup() {
   notesSec.appendChild(notesFld);
   wrap.appendChild(notesSec);
 
-  // ── 3. SEPARATOR + EQUIPMENT ──
-  // Detect device context from Devices module
+  // ── 2b. DIODE COMPLEMENT (shown when coming from Devices with erbium/CO₂) ──
   const devLabel = (lastDeviceContext.active && lastDeviceContext.label) ? lastDeviceContext.label.toLowerCase() : '';
   const devPreselect = devLabel.includes('erbium')||devLabel.includes('erbio')||devLabel.includes('érbio')||devLabel.includes('er,cr')||devLabel.includes('er:yag') ? 'erbio'
+    : devLabel.includes('co₂')||devLabel.includes('co2') ? 'otros'
     : devLabel.includes('diode')||devLabel.includes('diodo')||devLabel.includes('940')||devLabel.includes('980')||devLabel.includes('810') ? 'diodo'
-    : devLabel.includes('co₂')||devLabel.includes('co2')||devLabel.includes('nd:yag') ? 'otros'
     : null;
+
+  const needsDiodeCmp = devPreselect === 'erbio' || devPreselect === 'otros';
+  if (needsDiodeCmp) {
+    wrap.appendChild(buildDiodeComplement(ui));
+  }
 
   if (!devPreselect) {
     const sep = document.createElement('div');
@@ -1138,6 +1142,38 @@ function addProtocolSetup() {
         else delete proState.selections[grp.id + '_note'];
       };
       grpDiv.appendChild(otherFld);
+
+      // Show diode complement question when erbium or CO₂ selected
+      const diodeCmpId = `diode-cmp-${grp.id}`;
+      if (grp.id === 'erbio' || grp.id === 'otros') {
+        const diodeCmpWrap = document.createElement('div');
+        diodeCmpWrap.id = diodeCmpId;
+        diodeCmpWrap.className = 'hidden';
+        diodeCmpWrap.style.marginTop = '8px';
+
+        // Wire chip clicks to show/hide diode complement
+        chipRow.querySelectorAll('.chip:not(.chip-none)').forEach(c => {
+          const orig = c.onclick;
+          c.onclick = () => {
+            orig && orig();
+            diodeCmpWrap.innerHTML = '';
+            const cmp = buildDiodeComplement(ui);
+            diodeCmpWrap.appendChild(cmp);
+            diodeCmpWrap.classList.remove('hidden');
+          };
+        });
+        noChip.onclick = () => {
+          chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+          noChip.classList.add('sel');
+          proState.selections[grp.id] = noLabel;
+          delete proState.subs[grp.id];
+          subRow.innerHTML = ''; subRow.classList.add('hidden');
+          diodeCmpWrap.classList.add('hidden');
+        };
+
+        grpDiv.appendChild(diodeCmpWrap);
+      }
+
       equipWrap.appendChild(grpDiv);
     });
 
@@ -1153,6 +1189,46 @@ function addProtocolSetup() {
 
   msgs.appendChild(wrap);
   scrollBot();
+}
+
+function buildDiodeComplement(ui) {
+  const DIODE_WLS = ['450 nm','650 nm (PDT)','810 nm','940 nm','980 nm','1064 nm frp','1064 nm (diodo)'];
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'background:var(--bg);border:1px solid var(--light);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;';
+
+  const q = document.createElement('div');
+  q.style.cssText = 'font-size:10px;font-family:"Space Mono",monospace;color:var(--navy);font-weight:700;line-height:1.4;';
+  q.textContent = ui.diodeCmpQ;
+  wrap.appendChild(q);
+
+  const row = document.createElement('div');
+  row.className = 'chips';
+
+  DIODE_WLS.forEach(wl => {
+    const c = document.createElement('div');
+    c.className = 'chip chip-sub';
+    c.textContent = wl;
+    c.onclick = e => {
+      e.stopPropagation();
+      row.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+      c.classList.add('sel');
+      proState.selections['diode_cmp'] = wl;
+    };
+    row.appendChild(c);
+  });
+
+  const noC = document.createElement('div');
+  noC.className = 'chip chip-sub chip-none';
+  noC.textContent = ui.noDiode;
+  noC.onclick = e => {
+    e.stopPropagation();
+    row.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+    noC.classList.add('sel');
+    proState.selections['diode_cmp'] = ui.noDiode;
+  };
+  row.appendChild(noC);
+  wrap.appendChild(row);
+  return wrap;
 }
 
 function buildProtoMessage() {
@@ -1183,8 +1259,8 @@ function buildProtoMessage() {
     parts.push(`${procTitle}: ${procStr}`);
   }
 
-  if (proState.notes) parts.push(`Nota clínica: ${proState.notes}`);
-
+  if (proState.notes) parts.push(`Clinical notes: ${proState.notes}`);
+  if (proState.selections['diode_cmp']) parts.push(`Complementary diode: ${proState.selections['diode_cmp']}`);
   return parts.join('. ');
 }
 
