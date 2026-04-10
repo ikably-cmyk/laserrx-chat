@@ -1061,6 +1061,13 @@ function addProtocolSetup() {
   notesSec.appendChild(notesFld);
   wrap.appendChild(notesSec);
 
+  // ── 3. SEPARATOR + EQUIPMENT ──
+  const devLabel = (lastDeviceContext.active && lastDeviceContext.label) ? lastDeviceContext.label.toLowerCase() : '';
+  const devPreselect = devLabel.includes('erbium')||devLabel.includes('erbio')||devLabel.includes('érbio')||devLabel.includes('er,cr')||devLabel.includes('er:yag') ? 'erbio'
+    : devLabel.includes('co₂')||devLabel.includes('co2') ? 'otros'
+    : devLabel.includes('diode')||devLabel.includes('diodo')||devLabel.includes('940')||devLabel.includes('980')||devLabel.includes('810') ? 'diodo'
+    : null;
+
   if (!devPreselect) {
     const sep = document.createElement('div');
     sep.className = 'setup-separator';
