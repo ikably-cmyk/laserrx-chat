@@ -1042,134 +1042,107 @@ function addProtocolSetup() {
   notesSec.appendChild(notesFld);
   wrap.appendChild(notesSec);
 
-  // ── 3. SEPARATOR ──
-  const sep = document.createElement('div');
-  sep.className = 'setup-separator';
-  sep.innerHTML = `
-    <div class="setup-separator-line"></div>
-    <span class="setup-separator-label">${ui.sepLabel}</span>
-    <div class="setup-separator-line"></div>`;
-  wrap.appendChild(sep);
-
-  // ── 4. EQUIPMENT (subdued) ──
-  const equipWrap = document.createElement('div');
-  equipWrap.className = 'setup-equipment';
-
-  // Detect which group to pre-select from Devices context
-  const devLabel = lastDeviceContext.label.toLowerCase();
+  // ── 3. SEPARATOR + EQUIPMENT ──
+  // Detect device context from Devices module
+  const devLabel = (lastDeviceContext.active && lastDeviceContext.label) ? lastDeviceContext.label.toLowerCase() : '';
   const devPreselect = devLabel.includes('erbium')||devLabel.includes('erbio')||devLabel.includes('érbio')||devLabel.includes('er,cr')||devLabel.includes('er:yag') ? 'erbio'
     : devLabel.includes('diode')||devLabel.includes('diodo')||devLabel.includes('940')||devLabel.includes('980')||devLabel.includes('810') ? 'diodo'
     : devLabel.includes('co₂')||devLabel.includes('co2')||devLabel.includes('nd:yag') ? 'otros'
     : null;
 
-  PROTO.groups.forEach(grp => {
-    const grpLabel = typeof grp.label === 'string' ? grp.label : grp.label[lang] || grp.label.en;
-    const noLabel  = typeof grp.noLabel === 'string' ? grp.noLabel : grp.noLabel[lang] || grp.noLabel.en;
+  if (!devPreselect) {
+    const sep = document.createElement('div');
+    sep.className = 'setup-separator';
+    sep.innerHTML = `<div class="setup-separator-line"></div><span class="setup-separator-label">${ui.sepLabel}</span><div class="setup-separator-line"></div>`;
+    wrap.appendChild(sep);
 
-    const grpDiv = document.createElement('div');
-    grpDiv.className = 'setup-equip-group';
+    const equipWrap = document.createElement('div');
+    equipWrap.className = 'setup-equipment';
 
-    // If coming from Devices, hide non-matching groups
-    if (devPreselect && grp.id !== devPreselect) {
-      grpDiv.style.display = 'none';
-    }
+    PROTO.groups.forEach(grp => {
+      const grpLabel = typeof grp.label === 'string' ? grp.label : grp.label[lang] || grp.label.en;
+      const noLabel  = typeof grp.noLabel === 'string' ? grp.noLabel : grp.noLabel[lang] || grp.noLabel.en;
 
-    const lbl = document.createElement('div');
-    lbl.className = 'setup-equip-label';
-    lbl.textContent = `${grp.icon} ${grpLabel}`;
-    grpDiv.appendChild(lbl);
+      const grpDiv = document.createElement('div');
+      grpDiv.className = 'setup-equip-group';
 
-    const chipRow = document.createElement('div');
-    chipRow.className = 'chips';
+      const lbl = document.createElement('div');
+      lbl.className = 'setup-equip-label';
+      lbl.textContent = `${grp.icon} ${grpLabel}`;
+      grpDiv.appendChild(lbl);
 
-    const subRow = document.createElement('div');
-    subRow.className = 'sub-chips hidden';
+      const chipRow = document.createElement('div');
+      chipRow.className = 'chips';
+      const subRow = document.createElement('div');
+      subRow.className = 'sub-chips hidden';
 
-    grp.chips.forEach(chip => {
-      const chipLabel = typeof chip.label === 'string' ? chip.label : chip.label[lang] || chip.label.en;
-      const c = document.createElement('div');
-      c.className = 'chip';
-      c.textContent = chipLabel;
-      c.onclick = () => {
-        if (c.classList.contains('sel')) {
-          c.classList.remove('sel');
-          delete proState.selections[grp.id];
-          delete proState.subs[grp.id];
-          subRow.innerHTML = ''; subRow.classList.add('hidden');
-        } else {
-          chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
-          c.classList.add('sel');
-          proState.selections[grp.id] = chipLabel;
-          delete proState.subs[grp.id];
-          subRow.innerHTML = '';
-          if (chip.subs && chip.subs.length) {
-            chip.subs.forEach(sub => {
-              const isOtherSub = ['Other','Otro','Outro'].includes(sub);
-              const s = document.createElement('div');
-              s.className = 'chip chip-sub';
-              s.textContent = isOtherSub ? (lang==='es'?'Otro':lang==='pt'?'Outro':'Other') : sub;
-              s.onclick = e => {
-                e.stopPropagation();
-                subRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
-                s.classList.add('sel');
-                proState.subs[grp.id] = s.textContent;
-              };
-              subRow.appendChild(s);
-            });
-            subRow.classList.remove('hidden');
+      grp.chips.forEach(chip => {
+        const chipLabel = typeof chip.label === 'string' ? chip.label : chip.label[lang] || chip.label.en;
+        const c = document.createElement('div');
+        c.className = 'chip';
+        c.textContent = chipLabel;
+        c.onclick = () => {
+          if (c.classList.contains('sel')) {
+            c.classList.remove('sel');
+            delete proState.selections[grp.id];
+            delete proState.subs[grp.id];
+            subRow.innerHTML = ''; subRow.classList.add('hidden');
+          } else {
+            chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+            c.classList.add('sel');
+            proState.selections[grp.id] = chipLabel;
+            delete proState.subs[grp.id];
+            subRow.innerHTML = '';
+            if (chip.subs && chip.subs.length) {
+              chip.subs.forEach(sub => {
+                const isOtherSub = ['Other','Otro','Outro'].includes(sub);
+                const s = document.createElement('div');
+                s.className = 'chip chip-sub';
+                s.textContent = isOtherSub ? (lang==='es'?'Otro':lang==='pt'?'Outro':'Other') : sub;
+                s.onclick = e => {
+                  e.stopPropagation();
+                  subRow.querySelectorAll('.chip-sub').forEach(x => x.classList.remove('sel'));
+                  s.classList.add('sel');
+                  proState.subs[grp.id] = s.textContent;
+                };
+                subRow.appendChild(s);
+              });
+              subRow.classList.remove('hidden');
+            }
           }
-        }
+        };
+        chipRow.appendChild(c);
+      });
+
+      const noChip = document.createElement('div');
+      noChip.className = 'chip chip-none';
+      noChip.textContent = noLabel;
+      noChip.onclick = () => {
+        chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
+        noChip.classList.add('sel');
+        proState.selections[grp.id] = noLabel;
+        delete proState.subs[grp.id];
+        subRow.innerHTML = ''; subRow.classList.add('hidden');
       };
-      chipRow.appendChild(c);
+      chipRow.appendChild(noChip);
+      grpDiv.appendChild(chipRow);
+      grpDiv.appendChild(subRow);
+
+      const otherFld = document.createElement('input');
+      otherFld.type = 'text';
+      otherFld.className = 'chip-other-field';
+      otherFld.placeholder = ui.otherPh;
+      otherFld.style.marginTop = '4px';
+      otherFld.oninput = () => {
+        if (otherFld.value.trim()) proState.selections[grp.id + '_note'] = otherFld.value.trim();
+        else delete proState.selections[grp.id + '_note'];
+      };
+      grpDiv.appendChild(otherFld);
+      equipWrap.appendChild(grpDiv);
     });
 
-    // None chip
-    const noChip = document.createElement('div');
-    noChip.className = 'chip chip-none';
-    noChip.textContent = noLabel;
-    noChip.onclick = () => {
-      chipRow.querySelectorAll('.chip').forEach(x => x.classList.remove('sel'));
-      noChip.classList.add('sel');
-      proState.selections[grp.id] = noLabel;
-      delete proState.subs[grp.id];
-      subRow.innerHTML = ''; subRow.classList.add('hidden');
-    };
-    chipRow.appendChild(noChip);
-
-    grpDiv.appendChild(chipRow);
-    grpDiv.appendChild(subRow);
-
-    // Auto-select first chip if this is the pre-selected group from Devices
-    if (devPreselect && grp.id === devPreselect && lastDeviceContext.active) {
-      // Find best matching chip from device label
-      const chips = chipRow.querySelectorAll('.chip:not(.chip-none)');
-      let matched = false;
-      chips.forEach(c => {
-        if (!matched && devLabel.includes(c.textContent.toLowerCase())) {
-          c.classList.add('sel');
-          proState.selections[grp.id] = c.textContent;
-          matched = true;
-        }
-      });
-      // If no chip matched, just store the device label directly
-      if (!matched) proState.selections[grp.id] = lastDeviceContext.label;
-    }
-
-    // Other free field per group
-    const otherFld = document.createElement('input');
-    otherFld.type = 'text';
-    otherFld.className = 'chip-other-field';
-    otherFld.placeholder = ui.otherPh;
-    otherFld.style.marginTop = '4px';
-    otherFld.oninput = () => {
-      if (otherFld.value.trim()) proState.selections[grp.id + '_note'] = otherFld.value.trim();
-      else delete proState.selections[grp.id + '_note'];
-    };
-    grpDiv.appendChild(otherFld);
-    equipWrap.appendChild(grpDiv);
-  });
-
-  wrap.appendChild(equipWrap);
+    wrap.appendChild(equipWrap);
+  }
 
   // ── 5. BUTTON ──
   const btn = document.createElement('button');
