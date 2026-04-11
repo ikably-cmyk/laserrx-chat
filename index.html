@@ -492,7 +492,9 @@
 
     /* Add device modal overlay */
     .add-device-overlay {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      bottom: 0;
       background: rgba(27,38,59,0.55);
       display: flex; align-items: flex-end;
       z-index: 100;
@@ -1370,7 +1372,10 @@ function addProtocolSetup() {
     : devLabel.includes('diode')||devLabel.includes('diodo')||devLabel.includes('940')||devLabel.includes('980')||devLabel.includes('810') ? 'diodo'
     : null;
 
-  if (!devPreselect) {
+  // Hide equipment section if coming from Devices OR if user has My Devices configured
+  const hideEquipment = devPreselect || savedDevices.length > 0;
+
+  if (!hideEquipment) {
     const sep = document.createElement('div');
     sep.className = 'setup-separator';
     sep.innerHTML = `<div class="setup-separator-line"></div><span class="setup-separator-label">${ui.sepLabel}</span><div class="setup-separator-line"></div>`;
