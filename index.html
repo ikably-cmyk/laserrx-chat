@@ -1067,6 +1067,11 @@ function scrollBot() {
   setTimeout(()=>{ c.scrollTop = c.scrollHeight; }, 60);
 }
 
+function scrollToMsg(el) {
+  const c = $('content');
+  setTimeout(()=>{ c.scrollTop = el.offsetTop - 12; }, 60);
+}
+
 function autoH(el) {
   el.style.height='auto';
   el.style.height = Math.min(el.scrollHeight,96)+'px';
@@ -1148,7 +1153,7 @@ function addAI(mod, html) {
   d.className = 'msg msg-ai';
   d.innerHTML = fmt(html);
   msgs.appendChild(d);
-  scrollBot();
+  scrollToMsg(d);
 }
 
 function addUser(mod, text) {
@@ -2335,6 +2340,8 @@ function buildCalcMessage() {
   if (calFields.pulseWidth?.value)   parts.push(`Pulse width: ${calFields.pulseWidth.value} µs`);
   if (calFields.exposureTime?.value) parts.push(`Exposure time: ${calFields.exposureTime.value} s`);
   if (calFields.context?.value)      parts.push(`Context: ${calFields.context.value}`);
+  const devCtx = buildMyDevicesContext();
+  if (devCtx) parts.push(devCtx);
   return parts.join('. ');
 }
 
