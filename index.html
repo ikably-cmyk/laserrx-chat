@@ -423,7 +423,92 @@
     }
     .proto-send-btn:hover { opacity: 0.85; }
 
-    /* ── MARKDOWN RENDERING ── */
+    /* ── MY DEVICES ── */
+    .my-devices-section {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--light);
+    }
+    .my-devices-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+    .my-devices-label {
+      font-size: 10px; font-weight: 700;
+      font-family: 'Space Mono', monospace;
+      color: var(--steel); text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .my-devices-toggle {
+      display: flex; gap: 5px;
+    }
+    .my-devices-toggle-btn {
+      font-size: 9px; font-family: 'Space Mono', monospace;
+      padding: 2px 8px; border-radius: 10px; cursor: pointer;
+      border: 1.5px solid var(--light); color: var(--steel);
+      background: var(--white); transition: all 0.15s;
+    }
+    .my-devices-toggle-btn.active {
+      background: var(--navy); color: var(--white); border-color: var(--navy);
+    }
+    .my-devices-empty {
+      background: var(--bg);
+      border: 1px dashed var(--light);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .my-devices-empty-txt {
+      font-size: 11px; color: var(--steel); line-height: 1.45;
+    }
+    .my-devices-chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 8px;
+    }
+    .my-device-chip {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 9px;
+      background: var(--navy); border-radius: 20px;
+      cursor: default;
+    }
+    .my-device-chip-label {
+      font-size: 10px; font-family: 'Space Mono', monospace; color: var(--white);
+    }
+    .my-device-chip-remove {
+      font-size: 11px; color: var(--steel); cursor: pointer;
+      line-height: 1; padding: 0 1px;
+      transition: color 0.15s;
+    }
+    .my-device-chip-remove:hover { color: var(--white); }
+    .my-devices-add-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 11px;
+      background: var(--navy); border-radius: 8px;
+      cursor: pointer; border: none;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px; color: var(--white); font-weight: 700;
+      transition: opacity 0.18s;
+    }
+    .my-devices-add-btn:hover { opacity: 0.85; }
+
+    /* Add device modal overlay */
+    .add-device-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(27,38,59,0.55);
+      display: flex; align-items: flex-end;
+      z-index: 100;
+    }
+    .add-device-sheet {
+      width: 100%; background: var(--white);
+      border-radius: 16px 16px 0 0;
+      padding: 16px;
+      max-height: 80vh;
+      overflow-y: auto;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .add-device-sheet-title {
+      font-size: 14px; font-weight: 700; color: var(--navy);
+      font-family: 'Space Mono', monospace;
+    }
     .msg-ai h1, .msg-ai h2, .msg-ai h3 {
       font-family: 'Instrument Sans', sans-serif;
       color: var(--navy);
@@ -578,6 +663,29 @@
       </div>
       <div class="module-arrow">›</div>
     </div>
+
+    <!-- MY DEVICES -->
+    <div class="my-devices-section" id="myDevSection">
+      <div class="my-devices-header">
+        <span class="my-devices-label" id="myDevLabel">My devices</span>
+        <div class="my-devices-toggle" id="myDevToggle" style="display:none">
+          <div class="my-devices-toggle-btn active" id="myDevBtnMy" onclick="setDevMode('my')">My devices</div>
+          <div class="my-devices-toggle-btn" id="myDevBtnAll" onclick="setDevMode('all')">All devices</div>
+        </div>
+      </div>
+      <div id="myDevContent"></div>
+    </div>
+  </div>
+
+  <!-- ADD DEVICE MODAL -->
+  <div class="add-device-overlay hidden" id="addDevOverlay" onclick="closeAddDevice(event)">
+    <div class="add-device-sheet" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="add-device-sheet-title" id="addDevTitle">Add a device</span>
+        <span style="font-size:18px;cursor:pointer;color:var(--steel)" onclick="closeAddDevice()">✕</span>
+      </div>
+      <div id="addDevBody"></div>
+    </div>
   </div>
 
   <!-- DEVICES -->
@@ -674,7 +782,8 @@ const L = {
       protocols:['Whitening','Periodontics','Endodontics','Surgery','Pain relief','Other'],
       calculator:['Power (W)','Time (s)','Fluence','Spot size','Frequency','Other']
     },
-    other:'Other'
+    other:'Other',
+    myDev:{ label:'My devices', empty:'Save your lasers once — every module uses them automatically.', add:'+ Add device', myBtn:'My devices', allBtn:'All devices', addTitle:'Add a device', saveBtn:'Save device', proDesc:'With my devices · ready' }
   },
   es: {
     status:'listo', homeTitle:'¿Con qué quieres\nempezar?',
@@ -707,7 +816,8 @@ const L = {
       protocols:['Blanqueamiento','Periodoncia','Endodoncia','Cirugía','Analgesia','Otro'],
       calculator:['Potencia (W)','Tiempo (s)','Fluencia','Tamaño spot','Frecuencia','Otro']
     },
-    other:'Otro'
+    other:'Otro',
+    myDev:{ label:'Mis equipos', empty:'Guarda tus equipos una vez — todos los módulos los usan automáticamente.', add:'+ Agregar equipo', myBtn:'Mis equipos', allBtn:'Todos', addTitle:'Agregar equipo', saveBtn:'Guardar equipo', proDesc:'Con mis equipos · listo' }
   },
   pt: {
     status:'pronto', homeTitle:'Por onde você quer\ncomeçar?',
@@ -740,11 +850,184 @@ const L = {
       protocols:['Clareamento','Periodontia','Endodontia','Cirurgia','Analgesia','Outro'],
       calculator:['Potência (W)','Tempo (s)','Fluência','Tamanho spot','Frequência','Outro']
     },
-    other:'Outro'
+    other:'Outro',
+    myDev:{ label:'Meus equipamentos', empty:'Salve seus lasers uma vez — todos os módulos os usam automaticamente.', add:'+ Adicionar equipamento', myBtn:'Meus equipamentos', allBtn:'Todos', addTitle:'Adicionar equipamento', saveBtn:'Salvar equipamento', proDesc:'Com meus equipamentos · pronto' }
   }
 };
 
-// ── HELPERS ──
+// ── MY DEVICES ──
+const STORAGE_KEY = () => `laserrx_devices_${EMAIL || 'guest'}`;
+let savedDevices = [];
+let devMode = 'my'; // 'my' or 'all'
+
+function loadSavedDevices() {
+  try { savedDevices = JSON.parse(localStorage.getItem(STORAGE_KEY()) || '[]'); } catch { savedDevices = []; }
+}
+
+function saveSavedDevices() {
+  try { localStorage.setItem(STORAGE_KEY(), JSON.stringify(savedDevices)); } catch {}
+}
+
+function renderMyDevices() {
+  const md = L[lang].myDev;
+  $('myDevLabel').textContent = md.label;
+  const toggle = $('myDevToggle');
+  const content = $('myDevContent');
+
+  if (savedDevices.length === 0) {
+    toggle.style.display = 'none';
+    content.innerHTML = `
+      <div class="my-devices-empty">
+        <div class="my-devices-empty-txt">${md.empty}</div>
+        <button class="my-devices-add-btn" onclick="openAddDevice()">${md.add}</button>
+      </div>`;
+  } else {
+    toggle.style.display = 'flex';
+    $('myDevBtnMy').textContent = md.myBtn;
+    $('myDevBtnAll').textContent = md.allBtn;
+    $('myDevBtnMy').classList.toggle('active', devMode==='my');
+    $('myDevBtnAll').classList.toggle('active', devMode==='all');
+
+    let html = '<div class="my-devices-chips">';
+    savedDevices.forEach((dev, i) => {
+      const label = [dev.brand, dev.model, dev.wl].filter(Boolean).join(' · ');
+      html += `<div class="my-device-chip">
+        <span class="my-device-chip-label">${label}</span>
+        <span class="my-device-chip-remove" onclick="removeDevice(${i})">✕</span>
+      </div>`;
+    });
+    html += `<button class="my-devices-add-btn" onclick="openAddDevice()" style="padding:4px 9px;font-size:10px">+ Add</button>`;
+    html += '</div>';
+    content.innerHTML = html;
+
+    // Update Protocols card subtitle if has devices
+    const proDesc = $('cProDesc');
+    if (proDesc && savedDevices.length > 0) proDesc.textContent = md.proDesc;
+  }
+}
+
+function setDevMode(mode) {
+  devMode = mode;
+  if (mode === 'all') { hist.devices=[]; $('devMsgs').innerHTML=''; goTab('devices'); }
+  else renderMyDevices();
+}
+
+function removeDevice(i) {
+  savedDevices.splice(i, 1);
+  saveSavedDevices();
+  renderMyDevices();
+}
+
+// Add Device Modal
+const addDevState = { type:null, brand:null, model:null, wl:null };
+
+function openAddDevice() {
+  Object.assign(addDevState, {type:null,brand:null,model:null,wl:null});
+  $('addDevTitle').textContent = L[lang].myDev.addTitle;
+  renderAddDevBody();
+  $('addDevOverlay').classList.remove('hidden');
+}
+
+function closeAddDevice(e) {
+  if (!e || e.target === $('addDevOverlay')) $('addDevOverlay').classList.add('hidden');
+}
+
+function renderAddDevBody() {
+  const body = $('addDevBody');
+  const types = DEVICES.types[lang] || DEVICES.types.en;
+  const md = L[lang].myDev;
+  let html = '<div style="display:flex;flex-direction:column;gap:10px">';
+
+  // Type chips
+  html += `<div style="display:flex;flex-direction:column;gap:5px">
+    <div style="font-size:9px;font-family:'Space Mono',monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.07em">Type</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">`;
+  types.forEach(tp => {
+    const sel = addDevState.type === tp;
+    html += `<div class="chip${sel?' sel':''}" onclick="addDevSelectType('${tp}')">${tp}</div>`;
+  });
+  html += '</div></div>';
+
+  // Brand (if type selected and not LED/Other)
+  if (addDevState.type && !addDevState.type.includes('LED') && !['Other','Otro','Outro'].includes(addDevState.type)) {
+    const brandData = DEVICES.brandsByType[addDevState.type] || {top:[],all:[]};
+    html += `<div style="display:flex;flex-direction:column;gap:5px">
+      <div style="font-size:9px;font-family:'Space Mono',monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.07em">Brand</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">`;
+    brandData.top.forEach(b => {
+      const sel = addDevState.brand === b;
+      html += `<div class="chip chip-sub${sel?' sel':''}" onclick="addDevSelectBrand('${b}')">${b}</div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // Model (if brand selected)
+  if (addDevState.brand) {
+    const key = `${addDevState.brand}-${addDevState.type}`;
+    const models = DEVICES.modelsByBrandType[key] || DEVICES.models[addDevState.brand] || [];
+    if (models.length) {
+      html += `<div style="display:flex;flex-direction:column;gap:5px">
+        <div style="font-size:9px;font-family:'Space Mono',monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.07em">Model</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">`;
+      models.forEach(m => {
+        const sel = addDevState.model === m;
+        html += `<div class="chip chip-sub${sel?' sel':''}" onclick="addDevSelectModel('${m}')">${m}</div>`;
+      });
+      html += '</div></div>';
+    }
+  }
+
+  // Wavelength (if model selected and has multiple)
+  if (addDevState.model) {
+    const wls = DEVICES.modelWavelengths[addDevState.model];
+    if (wls && wls.length > 1) {
+      html += `<div style="display:flex;flex-direction:column;gap:5px">
+        <div style="font-size:9px;font-family:'Space Mono',monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.07em">Wavelength</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">`;
+      wls.forEach(wl => {
+        const sel = addDevState.wl === wl;
+        html += `<div class="chip chip-sub${sel?' sel':''}" onclick="addDevSelectWl('${wl}')">${wl}</div>`;
+      });
+      html += '</div></div>';
+    } else if (wls && wls.length === 1) {
+      addDevState.wl = wls[0];
+    }
+  }
+
+  // Save button
+  const canSave = addDevState.type && (addDevState.model || addDevState.brand || addDevState.type.includes('LED'));
+  html += `<button class="proto-send-btn" style="opacity:${canSave?1:0.4}" ${canSave?'onclick="saveDevice()"':'disabled'}>${md.saveBtn}</button>`;
+
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+function addDevSelectType(tp) { addDevState.type=tp; addDevState.brand=null; addDevState.model=null; addDevState.wl=null; renderAddDevBody(); }
+function addDevSelectBrand(b) { addDevState.brand=b; addDevState.model=null; addDevState.wl=null; renderAddDevBody(); }
+function addDevSelectModel(m) { addDevState.model=m; addDevState.wl=null; renderAddDevBody(); }
+function addDevSelectWl(wl) { addDevState.wl=wl; renderAddDevBody(); }
+
+function saveDevice() {
+  const dev = {
+    type: addDevState.type,
+    brand: addDevState.brand || '',
+    model: addDevState.model || '',
+    wl: addDevState.wl || (DEVICES.modelWavelengths[addDevState.model]?.[0] || '')
+  };
+  // Avoid duplicates
+  const exists = savedDevices.some(d => d.brand===dev.brand && d.model===dev.model && d.wl===dev.wl);
+  if (!exists) { savedDevices.push(dev); saveSavedDevices(); }
+  $('addDevOverlay').classList.add('hidden');
+  renderMyDevices();
+}
+
+// Build saved devices context string for agents
+function buildMyDevicesContext() {
+  if (!savedDevices.length) return '';
+  return 'My available devices: ' + savedDevices.map(d =>
+    [d.type, d.brand, d.model, d.wl].filter(Boolean).join(' ')
+  ).join(', ');
+}
 const $ = id => document.getElementById(id);
 const t = k  => L[lang][k];
 
@@ -801,6 +1084,7 @@ function applyLang() {
   $('proTitle').textContent  = l.proTitle; $('proSub').textContent   = l.proSub;
   $('calTitle').textContent  = l.calTitle; $('calSub').textContent   = l.calSub;
   $('inputField').placeholder = l.ph;
+  renderMyDevices();
 }
 
 // ── TABS ──
@@ -1243,6 +1527,8 @@ function buildProtoMessage() {
 
   if (proState.notes) parts.push(`Clinical notes: ${proState.notes}`);
   if (proState.selections['diode_cmp']) parts.push(`Complementary diode: ${proState.selections['diode_cmp']}`);
+  const devCtx = buildMyDevicesContext();
+  if (devCtx && !proState.notes.includes('devices')) parts.push(devCtx);
   return parts.join('. ');
 }
 
@@ -2218,6 +2504,7 @@ function onKey(e) {
 }
 
 // ── INIT ──
+loadSavedDevices();
 applyLang();
 if (MOD && ['devices','protocols','calculator'].includes(MOD)) {
   goTab(MOD);
