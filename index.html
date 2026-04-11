@@ -856,16 +856,35 @@ const L = {
 };
 
 // ── MY DEVICES ──
-const STORAGE_KEY = () => `laserrx_devices_${EMAIL || 'guest'}`;
+const HOOKS_DEVFAV = {
+  get:  'https://laserai.app.n8n.cloud/webhook/laserrx-get-devices',
+  save: 'https://laserai.app.n8n.cloud/webhook/laserrx-save-devices',
+};
 let savedDevices = [];
-let devMode = 'my'; // 'my' or 'all'
+let devMode = 'my';
 
-function loadSavedDevices() {
-  try { savedDevices = JSON.parse(localStorage.getItem(STORAGE_KEY()) || '[]'); } catch { savedDevices = []; }
+async function loadSavedDevices() {
+  if (!EMAIL) { renderMyDevices(); return; }
+  try {
+    const res = await fetch(`${HOOKS_DEVFAV.get}?email=${encodeURIComponent(EMAIL)}`);
+    const data = await res.json();
+    savedDevices = JSON.parse(data.saved_devices || '[]');
+  } catch { savedDevices = []; }
+  renderMyDevices();
 }
 
-function saveSavedDevices() {
-  try { localStorage.setItem(STORAGE_KEY(), JSON.stringify(savedDevices)); } catch {}
+async function saveSavedDevices() {
+  if (!EMAIL) return;
+  try {
+    await fetch(HOOKS_DEVFAV.save, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        email: EMAIL,
+        saved_devices: JSON.stringify(savedDevices)
+      })
+    });
+  } catch(e) { console.error('Save devices error:', e); }
 }
 
 function renderMyDevices() {
@@ -1007,16 +1026,15 @@ function addDevSelectBrand(b) { addDevState.brand=b; addDevState.model=null; add
 function addDevSelectModel(m) { addDevState.model=m; addDevState.wl=null; renderAddDevBody(); }
 function addDevSelectWl(wl) { addDevState.wl=wl; renderAddDevBody(); }
 
-function saveDevice() {
+async function saveDevice() {
   const dev = {
     type: addDevState.type,
     brand: addDevState.brand || '',
     model: addDevState.model || '',
     wl: addDevState.wl || (DEVICES.modelWavelengths[addDevState.model]?.[0] || '')
   };
-  // Avoid duplicates
   const exists = savedDevices.some(d => d.brand===dev.brand && d.model===dev.model && d.wl===dev.wl);
-  if (!exists) { savedDevices.push(dev); saveSavedDevices(); }
+  if (!exists) { savedDevices.push(dev); await saveSavedDevices(); }
   $('addDevOverlay').classList.add('hidden');
   renderMyDevices();
 }
@@ -2504,8 +2522,8 @@ function onKey(e) {
 }
 
 // ── INIT ──
-loadSavedDevices();
 applyLang();
+loadSavedDevices(); // async — renders My Devices when ready
 if (MOD && ['devices','protocols','calculator'].includes(MOD)) {
   goTab(MOD);
 }
