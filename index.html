@@ -1574,7 +1574,8 @@ function sendProtoSetup() {
       user_email: EMAIL || 'guest@laserrx.app',
       last_message: msg,
       history: history,
-      language: lang
+      language: lang,
+      is_first_message: true
     })
   })
   .then(res => {
@@ -2157,7 +2158,7 @@ function sendDeviceSetup() {
   showTyping('devices'); busy=true; $('sendBtn').disabled=true;
   fetch(HOOKS.devices, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ user_email: EMAIL||'guest@laserrx.app', last_message: msg, history, language: lang })
+    body: JSON.stringify({ user_email: EMAIL||'guest@laserrx.app', last_message: msg, history, language: lang, is_first_message: true })
   })
   .then(res => { if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;} return res.json(); })
   .then(data => {
@@ -2347,7 +2348,7 @@ function sendCalculatorForm() {
   showTyping('calculator'); busy=true; $('sendBtn').disabled=true;
   fetch(HOOKS.calculator, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ user_email: EMAIL||'guest@laserrx.app', last_message: msg, history, language: lang })
+    body: JSON.stringify({ user_email: EMAIL||'guest@laserrx.app', last_message: msg, history, language: lang, is_first_message: true })
   })
   .then(res=>{ if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;} return res.json(); })
   .then(data=>{
@@ -2490,7 +2491,8 @@ function send() {
       user_email: EMAIL || 'guest@laserrx.app',
       last_message: text,
       history: history,
-      language: lang
+      language: lang,
+      is_first_message: false
     })
   })
   .then(res => {
