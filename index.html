@@ -2171,7 +2171,9 @@ function sendDeviceSetup() {
   showTyping('devices'); busy=true; $('sendBtn').disabled=true;
   fetch(HOOKS.devices, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ user_email: EMAIL||'guest@laserrx.app', last_message: msg, history, language: lang, is_first_message: isFirstMessage() })addUpgradeCard('devices');done();return null;} return res.json(); })
+    body: JSON.stringify({ user_email: EMAIL||'guest@laserrx.app', last_message: msg, history, language: lang, is_first_message: isFirstMessage() })
+  })
+  .then(res => { if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;} return res.json(); })
   .then(data => {
     if(!data) return;
     hideTyping('devices');
