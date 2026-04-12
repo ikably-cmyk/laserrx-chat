@@ -1089,6 +1089,161 @@ function fmt(text) {
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
 }
 
+
+// ── TABLE → CARDS RENDERER ──
+function postProcessTables(el) {
+  const tableWraps = Array.from(el.querySelectorAll('.table-wrap'));
+  tableWraps.forEach(wrap => {
+    const table = wrap.querySelector('table');
+    if (!table) return;
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim().toLowerCase());
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+    // Detect table type
+    const isParamSummary = headers.some(h => /phase|fase|fases/.test(h)) && headers.some(h => /power|potencia/.test(h));
+    const isCalcResults = headers.some(h => /parameter|parámetro|parâmetro/.test(h)) && headers.some(h => /value|valor/.test(h));
+    const isPhaseDetail = headers[0] === 'parameter' || headers[0] === 'parámetro' || headers[0] === 'parâmetro';
+
+    if (isParamSummary) {
+      const cards = buildParamSummaryCards(headers, rows);
+      wrap.replaceWith(cards);
+    } else if (isCalcResults) {
+      const cards = buildCalcResultCards(headers, rows);
+      wrap.replaceWith(cards);
+    } else if (isPhaseDetail) {
+      const cards = buildPhaseDetailCard(headers, rows);
+      wrap.replaceWith(cards);
+    }
+  });
+}
+
+function wlBadge(text) {
+  const t = (text || '').toLowerCase();
+  const isErbio = t.includes('2780') || t.includes('2940') || t.includes('er,cr') || t.includes('er:yag');
+  const isDiode = t.includes('940') || t.includes('980') || t.includes('810') || t.includes('450') || t.includes('diod');
+  const isNdYag = t.includes('1064') || t.includes('nd:yag');
+  const bg = isErbio ? '#1B263B' : isDiode ? '#778DA9' : isNdYag ? '#4A6741' : '#888780';
+  const nm = (text || '').match(/\d{3,4}\s*nm/i);
+  const label = nm ? nm[0] : (text || '').split('·')[0].trim();
+  return `<span style="display:inline-block;background:${bg};color:#fff;font-size:8px;padding:1px 7px;border-radius:10px;margin-left:5px;font-family:var(--font-mono,monospace);vertical-align:middle">${label}</span>`;
+}
+
+function buildParamSummaryCards(headers, rows) {
+  const frag = document.createDocumentFragment();
+  rows.forEach(row => {
+    const cells = Array.from(row.querySelectorAll('td'));
+    const rowData = {};
+    headers.forEach((h, i) => { rowData[h] = cells[i] ? cells[i].textContent.trim() : ''; });
+
+    // Key fields
+    const phase = rowData['phase'] || rowData['fase'] || rowData['fases'] || '';
+    const wl = rowData['wavelength'] || rowData['longitud de onda'] || rowData['comprimento de onda'] || '';
+    const power = rowData['power'] || rowData['potencia'] || rowData['potência'] || '';
+    const freq = rowData['frequency'] || rowData['frecuencia'] || rowData['frequência'] || '';
+    const pulse = rowData['pulse'] || rowData['pulso'] || '';
+    const tip = rowData['tip'] || rowData['punta'] || rowData['ponteira'] || '';
+    const dist = rowData['distance'] || rowData['distancia'] || '';
+    const time = rowData['time'] || rowData['tiempo'] || rowData['tempo'] || '';
+    const water = rowData['water · air'] || rowData['water·air'] || rowData['agua · aire'] || rowData['agua·aire'] || rowData['água · ar'] || '';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--white,#fff);border:0.5px solid var(--light,#E0E1DD);border-radius:10px;margin-bottom:8px;overflow:hidden;';
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'background:#1B263B;padding:8px 12px;';
+    hdr.innerHTML = `<div style="font-size:10px;font-weight:700;color:#E0E1DD;font-family:var(--font-mono,monospace);letter-spacing:0.03em">${phase}${wl ? wlBadge(wl) : ''}</div>`;
+
+    // Body grid
+    const body = document.createElement('div');
+    body.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
+    const params = [
+      ['Power','Potencia','Potência', power],
+      ['Frequency','Frecuencia','Frequência', freq],
+      ['Pulse','Pulso','Pulso', pulse],
+      ['Tip','Punta','Ponteira', tip],
+      ['Distance','Distancia','Distância', dist],
+      ['Time','Tiempo','Tempo', time],
+    ].filter(p => p[3]);
+
+    params.forEach(([en,es,pt,val], i) => {
+      const lbl = lang==='es'?es:lang==='pt'?pt:en;
+      const isLast = i === params.length - 1;
+      const needsFull = params.length % 2 !== 0 && isLast;
+      const cell = document.createElement('div');
+      cell.style.cssText = `padding:7px 12px;border-bottom:0.5px solid var(--light,#E0E1DD);${needsFull?'grid-column:1/-1;border-right:none;':i%2===0?'border-right:0.5px solid var(--light,#E0E1DD);':''}`;
+      cell.innerHTML = `<div style="font-size:9px;color:var(--steel,#778DA9);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono,monospace);margin-bottom:2px">${lbl}</div><div style="font-size:11px;color:var(--navy,#1B263B);font-weight:700;font-family:var(--font-mono,monospace)">${val}</div>`;
+      body.appendChild(cell);
+    });
+
+    // Water/Air — full width, last
+    if (water) {
+      const wCell = document.createElement('div');
+      wCell.style.cssText = 'padding:7px 12px;grid-column:1/-1;';
+      const lbl = lang==='es'?'Agua · Aire':lang==='pt'?'Água · Ar':'Water · Air';
+      const isZero = water === '0% / 0%' || water === '0%/0%';
+      wCell.innerHTML = `<div style="font-size:9px;color:var(--steel,#778DA9);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono,monospace);margin-bottom:2px">${lbl}</div><div style="font-size:13px;color:${isZero?'#3B6D11':'var(--navy,#1B263B)'};font-weight:700;font-family:var(--font-mono,monospace)">${water}</div>`;
+      body.appendChild(wCell);
+    }
+
+    card.appendChild(hdr);
+    card.appendChild(body);
+    frag.appendChild(card);
+  });
+  return frag;
+}
+
+function buildCalcResultCards(headers, rows) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0;';
+
+  const flagTerms = /peak power|potencia pico|potência pico/i;
+  const missingTerms = /^—$|^-$|^n\/a$/i;
+
+  rows.forEach(row => {
+    const cells = Array.from(row.querySelectorAll('td'));
+    const param = cells[0] ? cells[0].textContent.trim() : '';
+    const value = cells[1] ? cells[1].textContent.trim() : '';
+    const unit  = cells[2] ? cells[2].textContent.trim() : '';
+
+    const isMissing = missingTerms.test(value);
+    const isFlag = flagTerms.test(param);
+    const isFull = isMissing || /fluence|fluencia|fluência|total energy|energía total|energia total|duty cycle/i.test(param);
+
+    const card = document.createElement('div');
+    card.style.cssText = `padding:10px 12px;border-radius:8px;background:${isFlag?'#FAEEDA':isMissing?'var(--bg,#F4F5F2)':'var(--bg,#F4F5F2)'};${isFull?'grid-column:1/-1;':''}`; 
+
+    const valColor = isFlag ? '#412402' : isMissing ? 'var(--steel,#778DA9)' : 'var(--navy,#1B263B)';
+    const lblColor = isFlag ? '#854F0B' : 'var(--steel,#778DA9)';
+    const valSize = isMissing ? '12px' : '18px';
+    const valStyle = isMissing ? 'font-style:italic;' : 'font-weight:500;';
+
+    card.innerHTML = `<div style="font-size:9px;color:${lblColor};text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono,monospace);margin-bottom:3px">${param}</div><div style="font-size:${valSize};${valStyle}color:${valColor};font-family:var(--font-mono,monospace);line-height:1.1">${value}</div>${unit?`<div style="font-size:9px;color:${lblColor};margin-top:2px;font-family:var(--font-mono,monospace)">${unit}</div>`:''}`;
+
+    wrap.appendChild(card);
+  });
+  return wrap;
+}
+
+function buildPhaseDetailCard(headers, rows) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'background:var(--bg,#F4F5F2);border-radius:8px;padding:10px 12px;margin:6px 0;display:grid;grid-template-columns:1fr 1fr;gap:0;';
+
+  rows.forEach((row, i) => {
+    const cells = Array.from(row.querySelectorAll('td'));
+    const param = cells[0] ? cells[0].textContent.trim() : '';
+    const value = cells[1] ? cells[1].textContent.trim() : '';
+    if (!param || !value) return;
+
+    const isWater = /water|agua|água/i.test(param);
+    const cell = document.createElement('div');
+    cell.style.cssText = `padding:5px 10px;${isWater?'grid-column:1/-1;':''}border-bottom:0.5px solid var(--light,#E0E1DD);${i%2===0&&!isWater?'border-right:0.5px solid var(--light,#E0E1DD);':''}`;
+    cell.innerHTML = `<div style="font-size:9px;color:var(--steel,#778DA9);font-family:var(--font-mono,monospace);margin-bottom:1px">${param}</div><div style="font-size:11px;font-weight:700;color:var(--navy,#1B263B);font-family:var(--font-mono,monospace)">${value}</div>`;
+    wrap.appendChild(cell);
+  });
+  return wrap;
+}
+
 // ── COLLAPSIBLE SECTIONS ──
 function postProcessCollapsible(el) {
   const lbl = {
@@ -1297,9 +1452,12 @@ function addAI(mod, html) {
   d.className = 'msg msg-ai';
   d.innerHTML = fmt(html);
   msgs.appendChild(d);
-  // Apply collapsible sections for protocols and calculator
+  // Convert tables to cards + apply collapsible sections
   if (mod === 'protocols' || mod === 'calculator') {
-    setTimeout(() => postProcessCollapsible(d), 50);
+    setTimeout(() => {
+      postProcessTables(d);
+      postProcessCollapsible(d);
+    }, 50);
   }
   scrollToMsg(d);
 }
