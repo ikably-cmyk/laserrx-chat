@@ -1077,12 +1077,7 @@ function isFirstMessage() {
 }
 
 function scrollToMsg(el) {
-  const c = $('content');
-  setTimeout(()=>{
-    const elTop = el.getBoundingClientRect().top;
-    const cTop = c.getBoundingClientRect().top;
-    c.scrollTop = c.scrollTop + (elTop - cTop) - 12;
-  }, 80);
+  setTimeout(()=>{ el.scrollIntoView({ block: 'start', behavior: 'auto' }); }, 80);
 }
 
 function autoH(el) {
@@ -2295,8 +2290,14 @@ function addCalculatorForm() {
     return sec;
   };
 
-  // Laser type — full width
-  card.appendChild(buildField('laserType', ui.laserLbl, ui.req, 'e.g. Er,Cr:YSGG 2780 nm, Diode 980 nm...', [], '', lastProtocol.laserType, true));
+  // Laser type — full width, auto-fill from My Devices or last protocol
+  const laserTypePrefill = (() => {
+    if (savedDevices.length > 0) {
+      return savedDevices.map(d => [d.brand, d.model, d.wl].filter(Boolean).join(' ')).join(' + ');
+    }
+    return lastProtocol.laserType || '';
+  })();
+  card.appendChild(buildField('laserType', ui.laserLbl, ui.req, 'e.g. Er,Cr:YSGG 2780 nm, Diode 980 nm...', [], '', laserTypePrefill, true));
 
   // Grid 2 cols
   const grid = document.createElement('div');
