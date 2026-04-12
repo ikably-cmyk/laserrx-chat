@@ -891,15 +891,24 @@ const HOOKS_DEVFAV = {
 };
 let savedDevices = [];
 let devMode = 'my';
+let devicesLoading = false;
+let devicesLoadedCallback = null;
 
 async function loadSavedDevices() {
   if (!EMAIL) { renderMyDevices(); return; }
+  devicesLoading = true;
   try {
     const res = await fetch(`${HOOKS_DEVFAV.get}?email=${encodeURIComponent(EMAIL)}`);
     const data = await res.json();
     savedDevices = JSON.parse(data.saved_devices || '[]');
   } catch { savedDevices = []; }
+  devicesLoading = false;
   renderMyDevices();
+  // If protocols was waiting for devices to load, initialize it now
+  if (devicesLoadedCallback) {
+    devicesLoadedCallback();
+    devicesLoadedCallback = null;
+  }
 }
 
 async function saveSavedDevices() {
@@ -1452,7 +1461,14 @@ function goTab(tab) {
 
   if (tab !== 'home') {
     const msgs = msgEl(tab);
-    if (msgs.children.length === 0) initMod(tab);
+    if (msgs.children.length === 0) {
+      // If devices haven't loaded yet and going to protocols, wait for them
+      if (tab === 'protocols' && devicesLoading) {
+        devicesLoadedCallback = () => initMod(tab);
+      } else {
+        initMod(tab);
+      }
+    }
     scrollBot();
   }
 }
