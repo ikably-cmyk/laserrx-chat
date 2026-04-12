@@ -511,6 +511,31 @@
       font-size: 14px; font-weight: 700; color: var(--navy);
       font-family: 'Space Mono', monospace;
     }
+    /* ── COLLAPSIBLE SECTIONS ── */
+    .collapse-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 10px; background: var(--bg);
+      border: 0.5px solid var(--light); border-radius: 8px;
+      cursor: pointer; font-size: 10px;
+      font-family: 'Space Mono', monospace;
+      color: var(--navy); font-weight: 700;
+      margin: 6px 0; transition: background 0.15s; user-select: none;
+    }
+    .collapse-bar:hover { background: var(--light); }
+    .collapse-bar .c-arrow { font-size: 10px; color: var(--steel); transition: transform 0.2s; }
+    .collapse-bar.open .c-arrow { transform: rotate(90deg); }
+    .collapse-body { display: none; margin: 0 0 4px 0; }
+    .collapse-body.open { display: block; }
+    .expand-all-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; margin-bottom: 10px;
+      background: var(--white); border: 1px solid var(--light);
+      border-radius: 8px; cursor: pointer;
+      font-size: 9px; font-family: 'Space Mono', monospace;
+      color: var(--steel); font-weight: 700; transition: all 0.15s;
+    }
+    .expand-all-btn:hover { border-color: var(--navy); color: var(--navy); }
+
     .msg-ai h1, .msg-ai h2, .msg-ai h3 {
       font-family: 'Instrument Sans', sans-serif;
       color: var(--navy);
@@ -1062,6 +1087,115 @@ function fmt(text) {
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
 }
 
+// ── COLLAPSIBLE SECTIONS ──
+function postProcessCollapsible(el) {
+  const lbl = {
+    en: { phases:'View detailed phase parameters', rationale:'Clinical rationale', math:'View calculation breakdown', expandAll:'⊞ Expand all', collapseAll:'⊟ Collapse all' },
+    es: { phases:'Ver parámetros detallados por fase', rationale:'Justificación clínica', math:'Ver desglose de cálculos', expandAll:'⊞ Expandir todo', collapseAll:'⊟ Colapsar todo' },
+    pt: { phases:'Ver parâmetros detalhados por fase', rationale:'Justificativa clínica', math:'Ver detalhamento dos cálculos', expandAll:'⊞ Expandir tudo', collapseAll:'⊟ Recolher tudo' },
+  }[lang] || {phases:'View detailed phase parameters',rationale:'Clinical rationale',math:'View calculation breakdown',expandAll:'⊞ Expand all',collapseAll:'⊟ Collapse all'};
+
+  function makeCollapse(labelText, nodes) {
+    const wrap = document.createElement('div');
+    const bar = document.createElement('div');
+    bar.className = 'collapse-bar';
+    bar.innerHTML = '<span>' + labelText + '</span><span class="c-arrow">▶</span>';
+    const body = document.createElement('div');
+    body.className = 'collapse-body';
+    nodes.forEach(n => body.appendChild(n.cloneNode(true)));
+    bar.onclick = () => { bar.classList.toggle('open'); body.classList.toggle('open'); };
+    wrap.appendChild(bar); wrap.appendChild(body);
+    return { wrap, bar, body };
+  }
+
+  const allNodes = Array.from(el.childNodes);
+  const newEl = document.createElement('div');
+  let phaseNodes = [], rationaleNodes = [], mathNodes = [];
+  let inPhase = false, inRationale = false, inMath = false;
+  let bars = [];
+
+  // Classify nodes
+  allNodes.forEach(node => {
+    const tag = node.nodeName;
+    const text = node.textContent || '';
+    const isPhaseHeader = (tag==='H2'||tag==='H3') && /[1-9]️⃣|^Phase [1-9]|^Fase [1-9]/.test(text.trim());
+    const isRationale = (tag==='H2'||tag==='H3'||tag==='P') && /🧠|Clinical Rationale|Justificación Clínica|Justificativa Clínica/.test(text);
+    const isMath = (tag==='H3'||tag==='P'||tag==='UL') && /Calculation notes|Math notes|Notas de cálculo|Desglose de cálculo|Math trail/.test(text);
+
+    if (isPhaseHeader) { inPhase=true; inRationale=false; inMath=false; phaseNodes.push(node); return; }
+    if (isRationale) { inRationale=true; inPhase=false; inMath=false; rationaleNodes.push(node); return; }
+    if (isMath) { inMath=true; inPhase=false; inRationale=false; mathNodes.push(node); return; }
+
+    if (inPhase) {
+      if (tag==='H2'||tag==='H3') { inPhase=false; }
+      else { phaseNodes.push(node); return; }
+    }
+    if (inRationale) { rationaleNodes.push(node); return; }
+    if (inMath) {
+      if (/⚠️|💡|Clinical Interp|Interpretación/.test(text) && (tag==='P'||tag==='BLOCKQUOTE')) { inMath=false; }
+      else { mathNodes.push(node); return; }
+    }
+
+    newEl.appendChild(node.cloneNode(true));
+  });
+
+  // No collapsibles found
+  if (!phaseNodes.length && !rationaleNodes.length && !mathNodes.length) return;
+
+  // Build expand-all button
+  const expandBtn = document.createElement('div');
+  expandBtn.className = 'expand-all-btn';
+  expandBtn.innerHTML = '<span class="ea-txt">' + lbl.expandAll + '</span>';
+  expandBtn.dataset.expanded = 'false';
+
+  // Insert expand-all before first child
+  newEl.insertBefore(expandBtn, newEl.firstChild);
+
+  // Add phase collapse after parameter summary table (first table-wrap or after first h2)
+  if (phaseNodes.length) {
+    const { wrap, bar, body } = makeCollapse(lbl.phases, phaseNodes);
+    // Find position after first table-wrap div
+    let insertAfter = null;
+    Array.from(newEl.childNodes).forEach(n => {
+      if (n.className && n.className.includes && n.className.includes('table-wrap')) insertAfter = n;
+    });
+    if (insertAfter) newEl.insertBefore(wrap, insertAfter.nextSibling);
+    else newEl.appendChild(wrap);
+    bars.push({ bar, body });
+  }
+
+  if (rationaleNodes.length) {
+    const { wrap, bar, body } = makeCollapse(lbl.rationale, rationaleNodes);
+    newEl.appendChild(wrap);
+    bars.push({ bar, body });
+  }
+
+  if (mathNodes.length) {
+    const { wrap, bar, body } = makeCollapse(lbl.math, mathNodes);
+    // Insert math before clinical interpretation if present
+    newEl.appendChild(wrap);
+    bars.push({ bar, body });
+  }
+
+  // Wire expand-all
+  expandBtn.onclick = () => {
+    const isExp = expandBtn.dataset.expanded === 'true';
+    bars.forEach(({ bar, body }) => {
+      if (isExp) { bar.classList.remove('open'); body.classList.remove('open'); }
+      else { bar.classList.add('open'); body.classList.add('open'); }
+    });
+    expandBtn.dataset.expanded = isExp ? 'false' : 'true';
+    expandBtn.querySelector('.ea-txt').textContent = isExp ? lbl.expandAll : lbl.collapseAll;
+  };
+
+  if (!bars.length) expandBtn.style.display = 'none';
+
+  // Replace content
+  el.innerHTML = '';
+  Array.from(newEl.childNodes).forEach(n => el.appendChild(n));
+}
+
+
 function scrollBot() {
   const c = $('content');
   setTimeout(()=>{ c.scrollTop = c.scrollHeight; }, 60);
@@ -1161,6 +1295,10 @@ function addAI(mod, html) {
   d.className = 'msg msg-ai';
   d.innerHTML = fmt(html);
   msgs.appendChild(d);
+  // Apply collapsible sections for protocols and calculator
+  if (mod === 'protocols' || mod === 'calculator') {
+    setTimeout(() => postProcessCollapsible(d), 50);
+  }
   scrollToMsg(d);
 }
 
