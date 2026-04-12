@@ -1080,10 +1080,19 @@ const t = k  => L[lang][k];
 
 function fmt(text) {
   if (typeof marked !== 'undefined') {
-    // Wrap tables in scrollable container
-    const renderer = new marked.Renderer();
-    renderer.table = (header, body) =>
-      `<div class="table-wrap"><table><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
+    const renderer = {
+      table(token) {
+        const headerHtml = token.header.map(cell =>
+          `<th>${cell.tokens ? marked.parseInline(cell.tokens.map(t=>t.raw||'').join('')) : cell.text}</th>`
+        ).join('');
+        const bodyHtml = token.rows.map(row =>
+          '<tr>' + row.map(cell =>
+            `<td>${cell.tokens ? marked.parseInline(cell.tokens.map(t=>t.raw||'').join('')) : cell.text}</td>`
+          ).join('') + '</tr>'
+        ).join('');
+        return `<div class="table-wrap"><table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`;
+      }
+    };
     return marked.parse(text, { breaks: true, gfm: true, renderer });
   }
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
