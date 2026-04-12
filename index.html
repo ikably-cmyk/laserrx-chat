@@ -596,8 +596,8 @@
       border-radius: 6px;
     }
     .msg-ai table {
-      width: 100%;
-      min-width: 420px;
+      width: max-content;
+      min-width: 100%;
       border-collapse: collapse;
       font-size: 11.5px;
       font-family: 'Space Mono', monospace;
@@ -609,12 +609,14 @@
       text-align: left;
       font-weight: 700;
       font-size: 11px;
+      white-space: nowrap;
     }
     .msg-ai td {
       padding: 6px 10px;
       border-bottom: 1px solid var(--light);
       color: var(--navy);
       vertical-align: top;
+      white-space: nowrap;
     }
     .msg-ai tr:nth-child(even) td { background: var(--bg); }
     .msg-ai tr:last-child td { border-bottom: none; }
