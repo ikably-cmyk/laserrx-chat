@@ -1080,20 +1080,25 @@ const t = k  => L[lang][k];
 
 function fmt(text) {
   if (typeof marked !== 'undefined') {
-    const renderer = {
-      table(token) {
-        const headerHtml = token.header.map(cell =>
-          `<th>${cell.tokens ? marked.parseInline(cell.tokens.map(t=>t.raw||'').join('')) : cell.text}</th>`
-        ).join('');
-        const bodyHtml = token.rows.map(row =>
-          '<tr>' + row.map(cell =>
-            `<td>${cell.tokens ? marked.parseInline(cell.tokens.map(t=>t.raw||'').join('')) : cell.text}</td>`
-          ).join('') + '</tr>'
-        ).join('');
-        return `<div class="table-wrap"><table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`;
-      }
-    };
-    return marked.parse(text, { breaks: true, gfm: true, renderer });
+    try {
+      const renderer = new marked.Renderer();
+      const origTable = renderer.table.bind(renderer);
+      renderer.table = function(token) {
+        // marked v9+ passes token object; v4-v8 passes (header, body) strings
+        if (typeof token === 'object' && token.header) {
+          const headerHtml = token.header.map(c => `<th>${c.text||''}</th>`).join('');
+          const bodyHtml = token.rows.map(r =>
+            '<tr>' + r.map(c => `<td>${c.text||''}</td>`).join('') + '</tr>'
+          ).join('');
+          return `<div class="table-wrap"><table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`;
+        }
+        // fallback for older marked versions (header and body are strings)
+        return `<div class="table-wrap"><table><thead>${token}</thead><tbody>${arguments[1]||''}</tbody></table></div>`;
+      };
+      return marked.parse(text, { breaks: true, gfm: true, renderer });
+    } catch(e) {
+      return marked.parse(text, { breaks: true, gfm: true });
+    }
   }
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
 }
