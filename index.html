@@ -1149,29 +1149,44 @@ function buildParamSummaryCards(headers, rows) {
     const rowData = {};
     headers.forEach((h, i) => { rowData[h] = cells[i] ? cells[i].textContent.trim() : ''; });
 
-    // Key fields
     const phase = rowData['phase'] || rowData['fase'] || rowData['fases'] || '';
-    const wl = rowData['wavelength'] || rowData['longitud de onda'] || rowData['comprimento de onda'] || '';
+    const wl    = rowData['wavelength'] || rowData['longitud de onda'] || rowData['comprimento de onda'] || '';
     const power = rowData['power'] || rowData['potencia'] || rowData['potência'] || '';
-    const freq = rowData['frequency'] || rowData['frecuencia'] || rowData['frequência'] || '';
+    const freq  = rowData['frequency'] || rowData['frecuencia'] || rowData['frequência'] || '';
     const pulse = rowData['pulse'] || rowData['pulso'] || '';
-    const tip = rowData['tip'] || rowData['punta'] || rowData['ponteira'] || '';
-    const dist = rowData['distance'] || rowData['distancia'] || '';
-    const time = rowData['time'] || rowData['tiempo'] || rowData['tempo'] || '';
+    const tip   = rowData['tip'] || rowData['punta'] || rowData['ponteira'] || '';
+    const dist  = rowData['distance'] || rowData['distancia'] || '';
+    const time  = rowData['time'] || rowData['tiempo'] || rowData['tempo'] || '';
     const water = rowData['water · air'] || rowData['water·air'] || rowData['agua · aire'] || rowData['agua·aire'] || rowData['água · ar'] || '';
 
-    const card = document.createElement('div');
-    card.style.cssText = 'background:var(--white,#fff);border:0.5px solid var(--light,#E0E1DD);border-radius:10px;margin-bottom:8px;overflow:hidden;';
+    // Wrapper per phase
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:14px;';
 
-    // Header
-    const hdr = document.createElement('div');
-    hdr.style.cssText = 'background:#1B263B;padding:8px 12px;';
-    hdr.innerHTML = `<div style="font-size:10px;font-weight:700;color:#E0E1DD;font-family:var(--font-mono,monospace);letter-spacing:0.03em">${phase}${wl ? wlBadge(wl) : ''}</div>`;
+    // Phase label row
+    const phaseRow = document.createElement('div');
+    phaseRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:8px;';
+    const phaseLabel = document.createElement('span');
+    phaseLabel.style.cssText = 'font-size:11px;font-weight:700;color:var(--navy,#1B263B);font-family:var(--font-mono,monospace);';
+    phaseLabel.textContent = phase;
+    phaseRow.appendChild(phaseLabel);
+    if (wl) {
+      const isErbio = /2780|2940|er,cr|er:yag/i.test(wl);
+      const isDiode = /940|980|810|450|diod/i.test(wl);
+      const isNdYag = /1064|nd:yag/i.test(wl);
+      const bg = isErbio ? '#1B263B' : isDiode ? '#778DA9' : isNdYag ? '#4A6741' : '#888780';
+      const badge = document.createElement('span');
+      badge.style.cssText = `background:${bg};color:#fff;font-size:8px;padding:2px 8px;border-radius:10px;font-family:var(--font-mono,monospace);white-space:nowrap;`;
+      badge.textContent = wl;
+      phaseRow.appendChild(badge);
+    }
+    wrap.appendChild(phaseRow);
 
-    // Body grid
-    const body = document.createElement('div');
-    body.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
-    const params = [
+    // Params grid
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:6px;';
+
+    const paramDefs = [
       ['Power','Potencia','Potência', power],
       ['Frequency','Frecuencia','Frequência', freq],
       ['Pulse','Pulso','Pulso', pulse],
@@ -1180,29 +1195,28 @@ function buildParamSummaryCards(headers, rows) {
       ['Time','Tiempo','Tempo', time],
     ].filter(p => p[3]);
 
-    params.forEach(([en,es,pt,val], i) => {
+    paramDefs.forEach(([en,es,pt,val], i) => {
       const lbl = lang==='es'?es:lang==='pt'?pt:en;
-      const isLast = i === params.length - 1;
-      const needsFull = params.length % 2 !== 0 && isLast;
-      const cell = document.createElement('div');
-      cell.style.cssText = `padding:7px 12px;border-bottom:0.5px solid var(--light,#E0E1DD);${needsFull?'grid-column:1/-1;border-right:none;':i%2===0?'border-right:0.5px solid var(--light,#E0E1DD);':''}`;
-      cell.innerHTML = `<div style="font-size:9px;color:var(--steel,#778DA9);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono,monospace);margin-bottom:2px">${lbl}</div><div style="font-size:11px;color:var(--navy,#1B263B);font-weight:700;font-family:var(--font-mono,monospace)">${val}</div>`;
-      body.appendChild(cell);
+      const isLast = i === paramDefs.length - 1;
+      const needsFull = paramDefs.length % 2 !== 0 && isLast;
+      const card = document.createElement('div');
+      card.style.cssText = `background:var(--bg,#F4F5F2);border-radius:8px;padding:9px 12px;${needsFull?'grid-column:1/-1;':''}`;
+      card.innerHTML = `<div style="font-size:9px;color:var(--steel,#778DA9);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono,monospace);margin-bottom:3px">${lbl}</div><div style="font-size:13px;font-weight:700;color:var(--navy,#1B263B);font-family:var(--font-mono,monospace);line-height:1.3">${val}</div>`;
+      grid.appendChild(card);
     });
 
-    // Water/Air — full width, last
+    // Water/Air — full width, colored
     if (water) {
-      const wCell = document.createElement('div');
-      wCell.style.cssText = 'padding:7px 12px;grid-column:1/-1;';
       const lbl = lang==='es'?'Agua · Aire':lang==='pt'?'Água · Ar':'Water · Air';
-      const isZero = water === '0% / 0%' || water === '0%/0%';
-      wCell.innerHTML = `<div style="font-size:9px;color:var(--steel,#778DA9);text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono,monospace);margin-bottom:2px">${lbl}</div><div style="font-size:13px;color:${isZero?'#3B6D11':'var(--navy,#1B263B)'};font-weight:700;font-family:var(--font-mono,monospace)">${water}</div>`;
-      body.appendChild(wCell);
+      const isZero = /^0%\s*[\/·]\s*0%/.test(water);
+      const wCard = document.createElement('div');
+      wCard.style.cssText = `grid-column:1/-1;background:${isZero?'#EAF3DE':'var(--bg,#F4F5F2)'};border-radius:8px;padding:9px 12px;`;
+      wCard.innerHTML = `<div style="font-size:9px;color:${isZero?'#3B6D11':'var(--steel,#778DA9)'};text-transform:uppercase;letter-spacing:0.06em;font-family:var(--font-mono,monospace);margin-bottom:3px">${lbl}</div><div style="font-size:15px;font-weight:700;color:${isZero?'#27500A':'var(--navy,#1B263B)'};font-family:var(--font-mono,monospace)">${water}</div>`;
+      grid.appendChild(wCard);
     }
 
-    card.appendChild(hdr);
-    card.appendChild(body);
-    frag.appendChild(card);
+    wrap.appendChild(grid);
+    frag.appendChild(wrap);
   });
   return frag;
 }
