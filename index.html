@@ -471,8 +471,10 @@ const L = {
     val:{
       tipLbl:'Which tip / handpiece are you using?',
       tipBadge:'required for energy density',
-      tipPh:'e.g. MZ6, RFT2, 400µm fiber, RFTP5...',
-      tipChips:['MZ6 (600µm)','MZ8 (800µm)','RFT2 (200µm)','RFTP5 (radial)','400µm fiber','600µm fiber','G4','G6','Other'],
+      tipPh:'e.g. 400µm, 600µm fiber, radial tip...',
+      wlLbl:'Laser wavelength',
+      wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
+      tipChips:['200µm fiber','320µm fiber','400µm fiber','600µm fiber','800µm fiber','Radial tip','Other'],
       powerLbl:'Power (W)', freqLbl:'Frequency (Hz)',
       pulseLbl:'Pulse mode', waterLbl:'Water / Air (%)',
       pulsePh:'e.g. CW, H Mode, 60µs', waterPh:'e.g. 70% / 30%',
@@ -525,8 +527,10 @@ const L = {
     val:{
       tipLbl:'¿Qué punta / handpiece vas a usar?',
       tipBadge:'clave para densidad de energía',
-      tipPh:'Ej: MZ6, RFT2, fibra 400µm, RFTP5...',
-      tipChips:['MZ6 (600µm)','MZ8 (800µm)','RFT2 (200µm)','RFTP5 (radial)','Fibra 400µm','Fibra 600µm','G4','G6','Otro'],
+      tipPh:'Ej: fibra 400µm, 600µm, punta radial...',
+      wlLbl:'Longitud de onda del láser',
+      wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
+      tipChips:['Fibra 200µm','Fibra 320µm','Fibra 400µm','Fibra 600µm','Fibra 800µm','Punta radial','Otro'],
       powerLbl:'Potencia (W)', freqLbl:'Frecuencia (Hz)',
       pulseLbl:'Modo de pulso', waterLbl:'Agua / Aire (%)',
       pulsePh:'Ej: CW, H Mode, 60µs', waterPh:'Ej: 70% / 30%',
@@ -579,8 +583,10 @@ const L = {
     val:{
       tipLbl:'Qual ponta / handpiece você vai usar?',
       tipBadge:'essencial para densidade de energia',
-      tipPh:'Ex: MZ6, RFT2, fibra 400µm, RFTP5...',
-      tipChips:['MZ6 (600µm)','MZ8 (800µm)','RFT2 (200µm)','RFTP5 (radial)','Fibra 400µm','Fibra 600µm','G4','G6','Outro'],
+      tipPh:'Ex: fibra 400µm, 600µm, ponta radial...',
+      wlLbl:'Comprimento de onda do laser',
+      wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
+      tipChips:['Fibra 200µm','Fibra 320µm','Fibra 400µm','Fibra 600µm','Fibra 800µm','Ponta radial','Outro'],
       powerLbl:'Potência (W)', freqLbl:'Frequência (Hz)',
       pulseLbl:'Modo de pulso', waterLbl:'Água / Ar (%)',
       pulsePh:'Ex: CW, H Mode, 60µs', waterPh:'Ex: 70% / 30%',
@@ -633,8 +639,10 @@ const L = {
     val:{
       tipLbl:'使用するチップ/ハンドピースは？',
       tipBadge:'エネルギー密度に必須',
-      tipPh:'例: MZ6、RFT2、400µmファイバー...',
-      tipChips:['MZ6 (600µm)','MZ8 (800µm)','RFT2 (200µm)','RFTP5 (ラジアル)','400µmファイバー','600µmファイバー','G4','G6','その他'],
+      tipPh:'例: 400µmファイバー、600µm、ラジアルチップ...',
+      wlLbl:'レーザー波長',
+      wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
+      tipChips:['200µmファイバー','320µmファイバー','400µmファイバー','600µmファイバー','800µmファイバー','ラジアルチップ','その他'],
       powerLbl:'出力 (W)', freqLbl:'周波数 (Hz)',
       pulseLbl:'パルスモード', waterLbl:'水 / 空気 (%)',
       pulsePh:'例: CW、H Mode、60µs', waterPh:'例: 70% / 30%',
@@ -687,8 +695,10 @@ const L = {
     val:{
       tipLbl:'사용할 팁/핸드피스는?',
       tipBadge:'에너지 밀도에 필수',
-      tipPh:'예: MZ6, RFT2, 400µm 파이버...',
-      tipChips:['MZ6 (600µm)','MZ8 (800µm)','RFT2 (200µm)','RFTP5 (방사형)','400µm 파이버','600µm 파이버','G4','G6','기타'],
+      tipPh:'예: 400µm 파이버, 600µm, 방사형 팁...',
+      wlLbl:'레이저 파장',
+      wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
+      tipChips:['200µm 파이버','320µm 파이버','400µm 파이버','600µm 파이버','800µm 파이버','방사형 팁','기타'],
       powerLbl:'출력 (W)', freqLbl:'주파수 (Hz)',
       pulseLbl:'펄스 모드', waterLbl:'물 / 공기 (%)',
       pulsePh:'예: CW, H Mode, 60µs', waterPh:'예: 70% / 30%',
@@ -1039,14 +1049,14 @@ function addAI(mod,html){
 function addUser(mod,text){const msgs=msgEl(mod);const d=document.createElement('div');d.className='msg msg-user';d.textContent=text;msgs.appendChild(d);scrollBot();}
 
 // ── VALIDATE SETUP ──
-const valState={procId:null,procSub:null,tip:'',power:'',freq:'',pulse:'',water:'',notes:'',imageB64:''};
+const valState={procId:null,procSub:null,tip:'',wavelength:'',power:'',freq:'',pulse:'',water:'',notes:'',imageB64:''};
 
 function addValidateSetup(){
   const msgs=msgEl('validate');
   const ui=L[lang].val;
   const procs=PROTO.procedures[lang]||PROTO.procedures.en;
   const wrap=document.createElement('div');wrap.className='chips-wrap proto-setup';wrap.id='chips-validate';
-  Object.assign(valState,{procId:null,procSub:null,tip:'',power:'',freq:'',pulse:'',water:'',notes:'',imageB64:''});
+  Object.assign(valState,{procId:null,procSub:null,tip:'',wavelength:'',power:'',freq:'',pulse:'',water:'',notes:'',imageB64:''});
 
   // ── TIP (prominent, first) ──
   const tipSec=document.createElement('div');tipSec.className='validate-tip-section';
@@ -1058,6 +1068,35 @@ function addValidateSetup(){
   tipSec.appendChild(tipChipRow);
   const tipFld=document.createElement('input');tipFld.type='text';tipFld.className='chip-other-field';tipFld.placeholder=ui.tipPh;tipFld.style.marginTop='6px';tipFld.oninput=()=>{valState.tip=tipFld.value.trim();tipChipRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));};
   tipSec.appendChild(tipFld);wrap.appendChild(tipSec);
+
+  // ── WAVELENGTH ──
+  const wlSec=document.createElement('div');wlSec.className='setup-section';
+  const wlTitle=document.createElement('div');wlTitle.className='setup-section-title';
+  wlTitle.textContent='🔵 '+(L[lang].val.wlLbl||'Laser wavelength');wlSec.appendChild(wlTitle);
+  // Auto-fill from My Devices if available
+  const devWl=savedDevices.length>0?savedDevices[0].wl||'':'';
+  if(devWl){
+    const wlPrefill=document.createElement('div');
+    wlPrefill.style.cssText='font-size:11px;font-family:"Space Mono",monospace;color:var(--navy);background:var(--bg);border:1px solid var(--light);border-radius:8px;padding:6px 10px;';
+    wlPrefill.textContent='✅ '+devWl;wlSec.appendChild(wlPrefill);
+    valState.wavelength=devWl;
+  } else {
+    const wlChips=L[lang].val.wlChips||['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'];
+    const wlRow=document.createElement('div');wlRow.className='chips';
+    wlChips.forEach(wl=>{
+      const c=document.createElement('div');c.className='chip chip-sub';c.textContent=wl;
+      c.onclick=e=>{e.stopPropagation();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.wavelength=wl;};
+      wlRow.appendChild(c);
+    });
+    wlSec.appendChild(wlRow);
+    const wlOther=document.createElement('input');wlOther.type='text';wlOther.className='chip-other-field';
+    const lang2=lang;
+    wlOther.placeholder=lang2==='es'?'Ej: 980 nm, 2780 nm...':lang2==='pt'?'Ex: 980 nm, 2780 nm...':'e.g. 980 nm, 2780 nm...';
+    wlOther.style.marginTop='6px';
+    wlOther.oninput=()=>{valState.wavelength=wlOther.value.trim();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));};
+    wlSec.appendChild(wlOther);
+  }
+  wrap.appendChild(wlSec);
 
   // ── PROCEDURE ──
   const procSec=document.createElement('div');procSec.className='setup-section';
@@ -1109,6 +1148,7 @@ function buildValidateMessage(){
   const parts=['VALIDATE SETTINGS REQUEST'];
   if(valState.procId){let p=valState.procId;if(valState.procSub)p+=` → ${valState.procSub}`;parts.push(`Procedure: ${p}`);}
   if(valState.tip)parts.push(`Tip/handpiece: ${valState.tip}`);
+  if(valState.wavelength)parts.push(`Laser wavelength: ${valState.wavelength}`);
   const params=[];
   if(valState.power)params.push(`Power: ${valState.power} W`);
   if(valState.freq)params.push(`Frequency: ${valState.freq} Hz`);
