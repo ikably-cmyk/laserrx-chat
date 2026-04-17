@@ -1126,7 +1126,7 @@ function sendValidateSetup(){
   removeChips('validate');addUser('validate',msg);
   hist.validate.push(`User: ${msg}`);const history=hist.validate.slice(-12).join('\n');
   showTyping('validate');busy=true;$('sendBtn').disabled=true;
-  fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage()})})
+  fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||''})})
   .then(res=>{if(res.status===403){hideTyping('validate');addUpgradeCard('validate');done();return null;}return res.json();})
   .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
   .catch(err=>{hideTyping('validate');addAI('validate',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
