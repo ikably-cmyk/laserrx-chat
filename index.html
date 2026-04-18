@@ -1163,7 +1163,16 @@ function buildValidateMessage(){
   const parts=['VALIDATE SETTINGS REQUEST'];
   if(valState.procId){let p=valState.procId;if(valState.procSub)p+=` → ${valState.procSub}`;parts.push(`Procedure: ${p}`);}
   if(valState.tip)parts.push(`Tip/handpiece: ${valState.tip}`);
-  if(valState.wavelength)parts.push(`Laser wavelength: ${valState.wavelength}`);
+  if(valState.wavelength){
+    parts.push(`Laser wavelength: ${valState.wavelength}`);
+    // If selected wavelength differs from My Devices, add explicit override instruction
+    const myDevWl=savedDevices.length>0?savedDevices[0].wl||'':'';
+    const selNm=valState.wavelength.match(/\d+/)?.[0]||'';
+    const devNm=myDevWl.match(/\d+/)?.[0]||'';
+    if(selNm && devNm && selNm!==devNm){
+      parts.push(`IMPORTANT: Validate EXCLUSIVELY against the ${valState.wavelength} protocol. The user is intentionally validating a different device than their default. Do NOT use My Devices wavelength (${myDevWl}) for this validation.`);
+    }
+  }
   const params=[];
   if(valState.power)params.push(`Power: ${valState.power} W`);
   if(valState.freq)params.push(`Frequency: ${valState.freq} Hz`);
