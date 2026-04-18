@@ -169,6 +169,9 @@
     .input-field:focus { border-color: var(--steel); }
     .input-field::placeholder { color: var(--steel); }
     .send-btn { width: 38px; height: 38px; flex-shrink: 0; background: var(--navy); border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.18s; }
+    .chat-camera-btn { width: 32px; height: 32px; flex-shrink: 0; background: none; border: 0.5px solid var(--light); border-radius: 50%; display: none; align-items: center; justify-content: center; cursor: pointer; color: var(--steel); transition: all 0.15s; }
+    .chat-camera-btn:hover { background: var(--light); color: var(--navy); }
+    .chat-camera-btn.active { background: var(--light); color: var(--navy); border-color: var(--steel); }
     .camera-btn { width: 34px; height: 34px; flex-shrink: 0; background: none; border: 1px solid var(--light); border-radius: 50%; display: none; align-items: center; justify-content: center; cursor: pointer; color: var(--steel); transition: all 0.15s; }
     .camera-btn:hover { background: var(--light); color: var(--navy); }
     .camera-btn.active { background: var(--light); color: var(--navy); border-color: var(--steel); }
@@ -411,6 +414,10 @@
     placeholder="Write your question..."
     onkeydown="onKey(event)"
     oninput="autoH(this)"></textarea>
+  <input type="file" id="chatPhotoInput" accept="image/*" style="display:none" onchange="handleChatPhoto(event)">
+  <button class="chat-camera-btn" id="chatCameraBtn" onclick="document.getElementById('chatPhotoInput').click()" title="Attach device photo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+  </button>
   <button class="send-btn" id="sendBtn" onclick="send()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <line x1="22" y1="2" x2="11" y2="13"/>
@@ -1026,7 +1033,7 @@ function goTab(tab){
   ['home','devices','protocols','validate','calculator'].forEach(t=>{$(`tab-${t}`).classList.toggle('hidden',t!==tab);});
   curTab=tab;
   $('inputBar').classList.toggle('hidden',tab==='home');
-  const cam=$('btnCamera');if(cam)cam.style.display=tab==='devices'?'flex':'none';
+  const cam=$('chatCameraBtn');if(cam)cam.style.display=tab==='devices'?'flex':'none';
   if(tab!=='home'){
     const msgs=msgEl(tab);
     if(msgs.children.length===0){
@@ -1416,6 +1423,20 @@ function clearDevPhoto(){
   $('devPhotoBar').classList.remove('visible');
   $('btnCamera').classList.remove('active');
 }
+function handleChatPhoto(e){
+  const file=e.target.files[0];if(!file)return;
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{
+    const MAX=800;let w=img.width,h=img.height;
+    if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    canvas.getContext('2d').drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(url);
+    devImageB64=canvas.toDataURL('image/jpeg',0.7).split(',')[1];
+    $('chatCameraBtn').classList.add('active');
+    $('chatPhotoInput').value='';
+  };img.src=url;
+}
 function send(){
   if(curTab==='home'||busy)return;const field=$('inputField');const text=field.value.trim();if(!text)return;
   const mod=curTab;removeChips(mod);addUser(mod,mod==='devices'&&devImageB64?text+'\n[Device photo attached]':text);field.value='';autoH(field);
@@ -1429,7 +1450,7 @@ function send(){
   .then(data=>{if(!data)return;hideTyping(mod);const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);hist[mod].push(`Assistant: ${reply}`);addAI(mod,reply);addNextCard(mod);addChips(mod);done();})
   .catch(err=>{hideTyping(mod);const errMsg=lang==='es'?'Error de conexión. Intenta de nuevo.':lang==='pt'?'Erro de conexão. Tente novamente.':'Connection error. Please try again.';addAI(mod,errMsg);done();console.error(err);});
 }
-function done(){busy=false;$('sendBtn').disabled=false;}
+function done(){busy=false;$('sendBtn').disabled=false;if($('chatCameraBtn'))$('chatCameraBtn').classList.remove('active');}
 function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
 
 applyLang();
