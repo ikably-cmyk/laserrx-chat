@@ -1074,28 +1074,26 @@ function addValidateSetup(){
   const wlTitle=document.createElement('div');wlTitle.className='setup-section-title';
   wlTitle.textContent='🔵 '+(L[lang].val.wlLbl||'Laser wavelength');wlSec.appendChild(wlTitle);
   // Auto-fill from My Devices if available
+  // Pre-select wavelength from My Devices if available, but always show chips so user can change
   const devWl=savedDevices.length>0?savedDevices[0].wl||'':'';
-  if(devWl){
-    const wlPrefill=document.createElement('div');
-    wlPrefill.style.cssText='font-size:11px;font-family:"Space Mono",monospace;color:var(--navy);background:var(--bg);border:1px solid var(--light);border-radius:8px;padding:6px 10px;';
-    wlPrefill.textContent='✅ '+devWl;wlSec.appendChild(wlPrefill);
-    valState.wavelength=devWl;
-  } else {
-    const wlChips=L[lang].val.wlChips||['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'];
-    const wlRow=document.createElement('div');wlRow.className='chips';
-    wlChips.forEach(wl=>{
-      const c=document.createElement('div');c.className='chip chip-sub';c.textContent=wl;
-      c.onclick=e=>{e.stopPropagation();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.wavelength=wl;};
-      wlRow.appendChild(c);
-    });
-    wlSec.appendChild(wlRow);
-    const wlOther=document.createElement('input');wlOther.type='text';wlOther.className='chip-other-field';
-    const lang2=lang;
-    wlOther.placeholder=lang2==='es'?'Ej: 980 nm, 2780 nm...':lang2==='pt'?'Ex: 980 nm, 2780 nm...':'e.g. 980 nm, 2780 nm...';
-    wlOther.style.marginTop='6px';
-    wlOther.oninput=()=>{valState.wavelength=wlOther.value.trim();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));};
-    wlSec.appendChild(wlOther);
-  }
+  if(devWl) valState.wavelength=devWl;
+  const wlChips=L[lang].val.wlChips||['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'];
+  const wlRow=document.createElement('div');wlRow.className='chips';
+  wlChips.forEach(wl=>{
+    const c=document.createElement('div');c.className='chip chip-sub';c.textContent=wl;
+    // Pre-select if matches My Devices wavelength
+    if(devWl && (devWl.includes(wl.split(' ')[0]) || wl.includes(devWl.split(' ')[0]))) c.classList.add('sel');
+    c.onclick=e=>{e.stopPropagation();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.wavelength=wl;wlOther.value='';};
+    wlRow.appendChild(c);
+  });
+  wlSec.appendChild(wlRow);
+  const wlOther=document.createElement('input');wlOther.type='text';wlOther.className='chip-other-field';
+  const lang2=lang;
+  wlOther.placeholder=lang2==='es'?'Ej: 980 nm, 2780 nm...':lang2==='pt'?'Ex: 980 nm, 2780 nm...':'e.g. 980 nm, 2780 nm...';
+  wlOther.style.marginTop='6px';
+  if(devWl && !wlChips.some(wl=>devWl.includes(wl.split(' ')[0])||wl.includes(devWl.split(' ')[0]))) wlOther.value=devWl;
+  wlOther.oninput=()=>{valState.wavelength=wlOther.value.trim();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));};
+  wlSec.appendChild(wlOther);
   wrap.appendChild(wlSec);
 
   // ── PROCEDURE ──
