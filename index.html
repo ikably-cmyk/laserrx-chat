@@ -29,6 +29,10 @@
       margin: 0 auto;
       overflow: hidden;
     }
+    body.in-iframe {
+      height: calc(100dvh - 60px);
+      max-height: calc(100dvh - 60px);
+    }
 
     .header {
       background: var(--navy);
@@ -1476,6 +1480,10 @@ applyLang();
 loadSavedDevices();
 if(MOD&&['devices','protocols','validate','calculator'].includes(MOD)){goTab(MOD);}
 registerUser();
+// Detect Glide iframe and adjust height
+if(window.self !== window.top){
+  document.body.classList.add('in-iframe');
+}
 </script>
 </body>
 </html>
