@@ -1034,6 +1034,7 @@ function goTab(tab){
   curTab=tab;
   $('inputBar').classList.toggle('hidden',tab==='home');
   const cam=$('chatCameraBtn');if(cam)cam.style.display=tab==='devices'?'flex':'none';
+  window.scrollTo(0,0);
   if(tab!=='home'){
     const msgs=msgEl(tab);
     if(msgs.children.length===0){
