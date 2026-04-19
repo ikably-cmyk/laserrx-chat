@@ -1453,9 +1453,24 @@ function send(){
 function done(){busy=false;$('sendBtn').disabled=false;if($('chatCameraBtn'))$('chatCameraBtn').classList.remove('active');}
 function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
 
+
+function registerUser(){
+  if(!EMAIL)return;
+  const name=encodeURIComponent('');
+  fetch('https://laserai.app.n8n.cloud/webhook/laserrx-register?email='+encodeURIComponent(EMAIL)+'&name='+name)
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.plan&&data.credits!==undefined){
+        setPlanBar(data.plan, data.credits);
+      }
+    })
+    .catch(()=>{});
+}
+
 applyLang();
 loadSavedDevices();
 if(MOD&&['devices','protocols','validate','calculator'].includes(MOD)){goTab(MOD);}
+registerUser();
 </script>
 </body>
 </html>
