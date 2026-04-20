@@ -44,6 +44,10 @@
       align-items: center;
       gap: 10px;
       flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 51;
+      width: 100%;
     }
     .header-logo {
       width: 34px; height: 34px;
@@ -68,8 +72,14 @@
       border-bottom: 1px solid var(--light);
       overflow-x: auto;
       scrollbar-width: none;
+      -ms-overflow-style: none;
       flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      width: 100%;
     }
+    .tabs::-webkit-scrollbar { display: none; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab {
       padding: 10px 15px;
@@ -92,14 +102,21 @@
       font-family: 'Space Mono', monospace;
       border-bottom: 1px solid var(--light);
       flex-shrink: 0;
+    
+      position: sticky;
+      top: 0;
+      z-index: 49;
     }
     .plan-bar strong { color: var(--navy); }
 
     .content {
       flex: 1;
       overflow-y: auto;
+      overflow-x: hidden;
       padding: 18px 16px 90px;
       -webkit-overflow-scrolling: touch;
+      position: relative;
+      z-index: 1;
     }
 
     .home-title { font-size: 22px; font-weight: 700; line-height: 1.2; color: var(--navy); margin-bottom: 3px; }
