@@ -452,7 +452,8 @@
 
 <script>
 const QS    = new URLSearchParams(location.search);
-const EMAIL = QS.get('email') || '';
+const EMAIL_RAW = QS.get('email') || '';
+const EMAIL = (EMAIL_RAW && !EMAIL_RAW.includes('{{') && !EMAIL_RAW.includes('}}')) ? EMAIL_RAW : '';
 const MOD   = QS.get('module') || '';
 
 let lang    = 'en';
@@ -1427,7 +1428,7 @@ function addNextCard(mod){
 
 function addUpgradeCard(mod){
   const u=t('upg');const msgs=msgEl(mod);const d=document.createElement('div');d.className='upgrade-card';
-  d.innerHTML=`<div class="upg-title">${u.title}</div><div class="upg-desc">${u.desc}</div><div class="upg-btns"><a class="upg-btn upg-pro" href="https://buy.stripe.com/14A4grgZN2QGfaqevtdIA0v" target="_blank">${u.pro}</a><a class="upg-btn upg-elite" href="https://buy.stripe.com/bJe6oz24TfDs9Q6bjhdIA0w" target="_blank">${u.elite}</a></div>`;
+  d.innerHTML=`<div class="upg-title">${u.title}</div><div class="upg-desc">${u.desc}</div><div class="upg-btns"><a class="upg-btn upg-pro" href="https://buy.stripe.com/dRm3cngZNdvk6DU1IHdIA0D" target="_blank">${u.pro}</a><a class="upg-btn upg-elite" href="https://buy.stripe.com/bJe9ALbFt3UK2nEfzxdIA0E" target="_blank">${u.elite}</a></div>`;
   msgs.appendChild(d);scrollBot();
 }
 
@@ -1484,7 +1485,18 @@ function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
 
 
 function registerUser(){
-  if(!EMAIL)return;
+  if(!EMAIL){
+    // Show sign-in prompt when no valid email
+    setPlanBar('—', '—');
+    const homeTitle = document.getElementById('homeTitle');
+    if(homeTitle){
+      const notice = document.createElement('div');
+      notice.style.cssText = 'background:var(--navy);color:#fff;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.6;margin-bottom:16px;';
+      notice.innerHTML = '🔐 <strong>Sign in required</strong><br>Please open this app through the LaserRx portal to access your account.';
+      homeTitle.parentNode.insertBefore(notice, homeTitle);
+    }
+    return;
+  }
   const name=encodeURIComponent('');
   fetch('https://laserai.app.n8n.cloud/webhook/laserrx-register?email='+encodeURIComponent(EMAIL)+'&name='+name)
     .then(r=>r.json())
