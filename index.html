@@ -30,8 +30,8 @@
       overflow: hidden;
     }
     body.in-iframe {
-      height: calc(100dvh - 60px);
-      max-height: calc(100dvh - 60px);
+      height: calc(var(--vh, 100dvh));
+      max-height: calc(var(--vh, 100dvh));
     }
 
     .header {
@@ -1480,9 +1480,19 @@ applyLang();
 loadSavedDevices();
 if(MOD&&['devices','protocols','validate','calculator'].includes(MOD)){goTab(MOD);}
 registerUser();
-// Detect Glide iframe and adjust height
+// Detect iframe (Glide) and adjust to real visible height
+function setRealVH(){
+  var vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  document.documentElement.style.setProperty('--vh', vh + 'px');
+}
 if(window.self !== window.top){
   document.body.classList.add('in-iframe');
+  setRealVH();
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', setRealVH);
+    window.visualViewport.addEventListener('scroll', setRealVH);
+  }
+  window.addEventListener('resize', setRealVH);
 }
 </script>
 </body>
