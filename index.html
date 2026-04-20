@@ -30,8 +30,11 @@
       overflow: hidden;
     }
     body.in-iframe {
-      height: calc(var(--vh, 100dvh));
-      max-height: calc(var(--vh, 100dvh));
+      height: calc(var(--vh, 100dvh) - var(--glide-bar, 0px));
+      max-height: calc(var(--vh, 100dvh) - var(--glide-bar, 0px));
+    }
+    body.in-iframe .content {
+      padding-bottom: 100px;
     }
 
     .header {
@@ -1254,11 +1257,11 @@ function addProtocolSetup(){
   proState.selections={};proState.subs={};proState.procId=null;proState.procSub=null;proState.procOther='';proState.notes='';
   if(lastDeviceContext.active&&lastDeviceContext.label){const banner=document.createElement('div');banner.style.cssText='display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--light);border-radius:8px;padding:7px 10px;';const info=document.createElement('div');info.style.cssText='display:flex;flex-direction:column;gap:2px;';const lbl=document.createElement('span');lbl.style.cssText="font-size:9px;font-family:'Space Mono',monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.07em;";lbl.textContent=lang==='es'?'Desde Devices':lang==='pt'?'De Devices':'From Devices';const dev=document.createElement('span');dev.style.cssText="font-size:11px;font-family:'Space Mono',monospace;color:var(--navy);font-weight:700;";dev.textContent=lastDeviceContext.label;info.appendChild(lbl);info.appendChild(dev);const clr=document.createElement('span');clr.style.cssText="font-size:9px;font-family:'Space Mono',monospace;color:var(--steel);border:0.5px solid var(--steel);padding:2px 7px;border-radius:10px;cursor:pointer;";clr.textContent='✕';clr.onclick=()=>{lastDeviceContext.active=false;lastDeviceContext.label='';banner.remove();};banner.appendChild(info);banner.appendChild(clr);wrap.appendChild(banner);proState.notes=lastDeviceContext.label;}
   const procSec=document.createElement('div');procSec.className='setup-section';const procRow=document.createElement('div');procRow.className='chips';const procSubRow=document.createElement('div');procSubRow.className='sub-chips hidden';const diodeCmpContainer=document.createElement('div');diodeCmpContainer.className='hidden';diodeCmpContainer.style.marginTop='10px';
-  procs.forEach(proc=>{const c=document.createElement('div');c.className='chip';c.textContent=proc.label;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');proState.procId=null;proState.procSub=null;procSubRow.innerHTML='';procSubRow.classList.add('hidden');diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');delete proState.selections['diode_cmp'];}else{procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.procId=proc.label;proState.procSub=null;procSubRow.innerHTML='';proc.subs.forEach(sub=>{const s=document.createElement('div');s.className='chip chip-sub';s.textContent=sub;s.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.procSub=sub;subOtherFld.style.display='none';subOtherFld.value='';diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');delete proState.selections['diode_cmp'];};procSubRow.appendChild(s);});
+  procs.forEach(proc=>{const c=document.createElement('div');c.className='chip';c.textContent=proc.label;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');proState.procId=null;proState.procSub=null;procSubRow.innerHTML='';procSubRow.classList.add('hidden');diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');delete proState.selections['diode_cmp'];}else{procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.procId=proc.label;proState.procSub=null;procSubRow.innerHTML='';proc.subs.forEach(sub=>{const s=document.createElement('div');s.className='chip chip-sub';s.textContent=sub;s.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.procSub=sub;subOtherFld.style.display='none';subOtherFld.value='';if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){ diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}delete proState.selections['diode_cmp'];};procSubRow.appendChild(s);});
 // Always add "Other" chip to sub-chips
 const subOtherFld=document.createElement('input');subOtherFld.type='text';subOtherFld.className='chip-other-field';subOtherFld.placeholder=lang==='es'?'Describe el procedimiento (opcional)':lang==='pt'?'Descreva o procedimento (opcional)':lang==='ja'?'処置を説明してください（任意）':lang==='ko'?'시술을 설명해 주세요（선택）':'Describe the procedure (optional)';subOtherFld.style.cssText='display:none;margin-top:6px;width:100%;box-sizing:border-box;';subOtherFld.oninput=()=>{proState.procSub=subOtherFld.value.trim()||'other';};
-const sOther=document.createElement('div');sOther.className='chip chip-sub';sOther.textContent=lang==='es'?'Otro':lang==='pt'?'Outro':lang==='ja'?'その他':lang==='ko'?'기타':'Other';sOther.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));sOther.classList.add('sel');proState.procSub='';subOtherFld.style.display='block';subOtherFld.focus();diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');delete proState.selections['diode_cmp'];};procSubRow.appendChild(sOther);procSubRow.appendChild(subOtherFld);
-procSubRow.classList.remove('hidden');if(!proc.subs.length){diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}}};procRow.appendChild(c);});
+const sOther=document.createElement('div');sOther.className='chip chip-sub';sOther.textContent=lang==='es'?'Otro':lang==='pt'?'Outro':lang==='ja'?'その他':lang==='ko'?'기타':'Other';sOther.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));sOther.classList.add('sel');proState.procSub='';subOtherFld.style.display='block';subOtherFld.focus();if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){ diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}delete proState.selections['diode_cmp'];};procSubRow.appendChild(sOther);procSubRow.appendChild(subOtherFld);
+procSubRow.classList.remove('hidden');if(!proc.subs.length){if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}}}};procRow.appendChild(c);});
   procSec.appendChild(procRow);procSec.appendChild(procSubRow);procSec.appendChild(diodeCmpContainer);
   const procOtherFld=document.createElement('input');procOtherFld.type='text';procOtherFld.className='chip-other-field';procOtherFld.placeholder=ui.otherPh;procOtherFld.style.marginTop='6px';procOtherFld.oninput=()=>{proState.procOther=procOtherFld.value.trim();};procSec.appendChild(procOtherFld);wrap.appendChild(procSec);
   const notesSec=document.createElement('div');notesSec.className='setup-section';const notesLbl=document.createElement('div');notesLbl.className='setup-section-title';notesLbl.textContent=`📋 ${ui.notesLbl}`;notesSec.appendChild(notesLbl);const notesFld=document.createElement('textarea');notesFld.className='chip-other-field notes-field';notesFld.placeholder=ui.notesPh;notesFld.rows=2;if(proState.notes){notesFld.value=proState.notes;notesFld.style.borderColor='var(--navy)';}notesFld.oninput=()=>{proState.notes=notesFld.value.trim();};notesSec.appendChild(notesFld);wrap.appendChild(notesSec);
@@ -1482,15 +1485,18 @@ if(MOD&&['devices','protocols','validate','calculator'].includes(MOD)){goTab(MOD
 registerUser();
 // Detect iframe (Glide) and adjust to real visible height
 function setRealVH(){
-  var vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-  document.documentElement.style.setProperty('--vh', vh + 'px');
+  var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--vh', h + 'px');
+  // Detect Glide nav bar height (typically 56-60px on iOS)
+  document.documentElement.style.setProperty('--glide-bar', '60px');
 }
 if(window.self !== window.top){
   document.body.classList.add('in-iframe');
-  setRealVH();
+  // Wait for layout to settle before measuring
+  setTimeout(setRealVH, 100);
+  setTimeout(setRealVH, 500);
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize', setRealVH);
-    window.visualViewport.addEventListener('scroll', setRealVH);
   }
   window.addEventListener('resize', setRealVH);
 }
