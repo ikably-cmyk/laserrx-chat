@@ -1492,7 +1492,7 @@ function registerUser(){
     if(homeTitle){
       const notice = document.createElement('div');
       notice.style.cssText = 'background:var(--navy);color:#fff;padding:12px 16px;border-radius:10px;font-size:13px;line-height:1.6;margin-bottom:16px;';
-      notice.innerHTML = '🔐 <strong>Sign in required</strong><br>Please open this app through the LaserRx portal to access your account.';
+      notice.innerHTML = `🔐 <strong>Sign in required</strong><br>Please sign in to access your account.<br><br><a href="https://app.laserapp.ai" style="display:inline-block;background:#fff;color:#1B263B;padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;margin-top:4px;">Sign in with Google →</a>`;
       homeTitle.parentNode.insertBefore(notice, homeTitle);
     }
     return;
@@ -1503,6 +1503,19 @@ function registerUser(){
     .then(data=>{
       if(data.plan&&data.credits!==undefined){
         setPlanBar(data.plan, data.credits);
+        // If user has 0 credits, show upgrade card on home immediately
+        if(Number(data.credits)===0){
+          const homeEl=document.getElementById('tab-home');
+          if(homeEl){
+            const upg=document.createElement('div');
+            upg.style.cssText='margin-top:16px;';
+            const u=t('upg');
+            upg.innerHTML=`<div class="upgrade-card"><div class="upg-title">${u.title}</div><div class="upg-desc">${u.desc}</div><div class="upg-btns"><a class="upg-btn upg-pro" href="https://buy.stripe.com/dRm3cngZNdvk6DU1IHdIA0D" target="_blank">${u.pro}</a><a class="upg-btn upg-elite" href="https://buy.stripe.com/bJe9ALbFt3UK2nEfzxdIA0E" target="_blank">${u.elite}</a></div></div>`;
+            const firstCard=homeEl.querySelector('.module-card');
+            if(firstCard) homeEl.insertBefore(upg, firstCard);
+            else homeEl.appendChild(upg);
+          }
+        }
       }
     })
     .catch(()=>{});
