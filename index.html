@@ -34,7 +34,7 @@
       max-height: calc(var(--vh, 100dvh) - var(--glide-bar, 0px));
     }
     body.in-iframe .content {
-      padding-bottom: 160px;
+      padding-bottom: calc(var(--glide-bar, 80px) + 80px);
     }
 
     .header {
@@ -1530,8 +1530,11 @@ registerUser();
 function setRealVH(){
   var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   document.documentElement.style.setProperty('--vh', h + 'px');
-  // Detect Glide nav bar height (typically 56-60px on iOS)
-  document.documentElement.style.setProperty('--glide-bar', '80px');
+  // Detect actual bottom inset (Glide nav + iOS home indicator)
+  // iOS needs more space due to Safari home indicator + Glide nav
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  var bottomInset = isIOS ? 120 : 80;
+  document.documentElement.style.setProperty('--glide-bar', bottomInset + 'px');
 }
 if(window.self !== window.top){
   document.body.classList.add('in-iframe');
