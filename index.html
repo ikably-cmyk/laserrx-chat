@@ -190,6 +190,8 @@
 
     .input-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg); border-top: 1px solid var(--light); padding: 8px 12px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: flex-end; z-index: 60; }
     body.in-iframe .input-bar { bottom: var(--glide-bar, 80px); }
+    body.ios-safari .input-bar { bottom: 90px; padding-bottom: 8px; }
+    body.ios-safari .content { padding-bottom: 170px; }
     .input-field { flex: 1; padding: 9px 13px; border: 1.5px solid var(--light); border-radius: 20px; font-family: 'Instrument Sans', sans-serif; font-size: 14px; color: var(--navy); background: var(--white); outline: none; resize: none; min-height: 38px; max-height: 96px; line-height: 1.4; transition: border-color 0.18s; }
     .input-field:focus { border-color: var(--steel); }
     .input-field::placeholder { color: var(--steel); }
@@ -1536,6 +1538,14 @@ function setRealVH(){
   var bottomInset = isIOS ? 120 : 80;
   document.documentElement.style.setProperty('--glide-bar', bottomInset + 'px');
 }
+// iOS Safari (not iframe) needs the input bar lifted above the Safari URL bar
+(function detectIOSSafari(){
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  var notInIframe = (window.self === window.top);
+  if (isIOS && notInIframe) {
+    document.body.classList.add('ios-safari');
+  }
+})();
 if(window.self !== window.top){
   document.body.classList.add('in-iframe');
   // Wait for layout to settle before measuring
