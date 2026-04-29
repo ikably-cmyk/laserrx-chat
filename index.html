@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>LaserRx AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -34,7 +34,7 @@
       max-height: calc(var(--vh, 100dvh) - var(--glide-bar, 0px));
     }
     body.in-iframe .content {
-      padding-bottom: 120px;
+      padding-bottom: 160px;
     }
 
     .header {
@@ -188,7 +188,8 @@
     .upg-pro { background: var(--steel); color: var(--white); }
     .upg-elite { background: var(--white); color: var(--navy); }
 
-    .input-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg); border-top: 1px solid var(--light); padding: 8px 12px; display: flex; gap: 8px; align-items: flex-end; }
+    .input-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg); border-top: 1px solid var(--light); padding: 8px 12px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: flex-end; z-index: 60; }
+    body.in-iframe .input-bar { bottom: var(--glide-bar, 80px); }
     .input-field { flex: 1; padding: 9px 13px; border: 1.5px solid var(--light); border-radius: 20px; font-family: 'Instrument Sans', sans-serif; font-size: 14px; color: var(--navy); background: var(--white); outline: none; resize: none; min-height: 38px; max-height: 96px; line-height: 1.4; transition: border-color 0.18s; }
     .input-field:focus { border-color: var(--steel); }
     .input-field::placeholder { color: var(--steel); }
@@ -1530,7 +1531,7 @@ function setRealVH(){
   var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   document.documentElement.style.setProperty('--vh', h + 'px');
   // Detect Glide nav bar height (typically 56-60px on iOS)
-  document.documentElement.style.setProperty('--glide-bar', '60px');
+  document.documentElement.style.setProperty('--glide-bar', '80px');
 }
 if(window.self !== window.top){
   document.body.classList.add('in-iframe');
