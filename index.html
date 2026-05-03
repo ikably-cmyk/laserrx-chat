@@ -53,7 +53,7 @@
       height: calc(var(--vh, 100dvh) - var(--glide-bar, 0px));
       max-height: calc(var(--vh, 100dvh) - var(--glide-bar, 0px));
     }
-    /* body.in-iframe .content padding now managed by adjustContentPadding() in JS */
+    /* body.in-iframe .content padding hack removed — flex layout handles it */
 
     /* ─── HEADER (global, panel-style) ─── */
     .header {
@@ -263,8 +263,7 @@
 
     .content {
       flex: 1; overflow-y: auto; overflow-x: hidden;
-      padding: 18px 16px 24px;
-      /* padding-bottom is dynamically managed by adjustContentPadding() */
+      padding: 18px 16px 90px;
       -webkit-overflow-scrolling: touch;
       position: relative; z-index: 1;
     }
@@ -633,16 +632,17 @@
     .upg-elite { background: var(--cream); color: var(--navy); }
 
     /* ─── INPUT BAR ─── */
+    /* ARCHITECTURE A: input-bar is now a flex child of body (not position:fixed).
+       Body has display:flex; flex-direction:column; height:100dvh, so input-bar
+       naturally pins to bottom while .content (flex:1) fills the space above. */
     .input-bar {
-      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 480px;
+      width: 100%;
+      flex-shrink: 0;
       background: var(--paper); border-top: 1px solid var(--hairline);
       padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      display: flex; gap: 8px; align-items: flex-end; z-index: 60;
+      display: flex; gap: 8px; align-items: flex-end;
     }
-    body.in-iframe .input-bar { bottom: var(--glide-bar, 80px); }
-    body.ios-safari .input-bar { bottom: 90px; padding-bottom: 8px; }
-    /* body.ios-safari .content padding now managed by adjustContentPadding() in JS */
+    /* iOS Safari and iframe overrides no longer needed — flex handles it universally */
     .input-field {
       flex: 1; padding: 9px 13px;
       border: 1px solid var(--hairline); border-radius: 22px;
@@ -2008,7 +2008,6 @@ function goTab(tab){
   document.body.dataset.tab=tab;
   updateBreadcrumb(tab);
   $('inputBar').classList.toggle('hidden',tab==='home');
-  setTimeout(adjustContentPadding, 30);
   const cam=$('chatCameraBtn');if(cam)cam.style.display=tab==='devices'?'flex':'none';
   window.scrollTo(0,0);
   if(tab!=='home'){
@@ -2710,68 +2709,6 @@ window.addEventListener('message', (ev)=>{
   else if(d.type === '__deactivate_edit_mode') tweaksPanel.classList.remove('open');
 });
 try { window.parent.postMessage({type:'__edit_mode_available'}, '*'); } catch(e){}
-
-
-// ── UNIVERSAL DYNAMIC PADDING ──
-// Measures the real input bar height (including safe-area-inset-bottom from CSS env())
-// and applies that + buffer as content's padding-bottom. This works on any device:
-// iPhone SE/15/Pro Max, iPad portrait/landscape, Android phones/tablets, desktop,
-// inside iframe Glide, in Safari standalone PWA, with/without notch, with/without
-// home indicator. No device-specific magic numbers.
-function adjustContentPadding(){
-  try {
-    var inputBar = document.getElementById('inputBar');
-    var contents = document.querySelectorAll('.content');
-    if (!inputBar || !contents.length) return;
-
-    // If input bar is hidden (Home tab), use minimal padding
-    if (inputBar.classList.contains('hidden')) {
-      contents.forEach(function(c){ c.style.paddingBottom = '24px'; });
-      return;
-    }
-
-    // Measure real rendered height of input bar (CSS env() insets included)
-    var barHeight = inputBar.offsetHeight;
-
-    // Account for input bar's "bottom" offset (e.g. 90px on iOS Safari, glide-bar in iframe)
-    var barStyle = window.getComputedStyle(inputBar);
-    var barBottom = parseFloat(barStyle.bottom) || 0;
-
-    // Buffer so last element isn't flush against the bar
-    var buffer = 28;
-
-    var totalPadding = barHeight + barBottom + buffer;
-    contents.forEach(function(c){ c.style.paddingBottom = totalPadding + 'px'; });
-  } catch(e){
-    // Fail silently — base CSS padding will keep things usable
-    console && console.warn && console.warn('adjustContentPadding error:', e);
-  }
-}
-
-// Run on load + every relevant viewport change
-window.addEventListener('load', adjustContentPadding);
-window.addEventListener('resize', adjustContentPadding);
-window.addEventListener('orientationchange', function(){
-  setTimeout(adjustContentPadding, 100);
-  setTimeout(adjustContentPadding, 500);
-});
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', adjustContentPadding);
-}
-// Re-measure shortly after load in case fonts/layout settle late
-setTimeout(adjustContentPadding, 300);
-setTimeout(adjustContentPadding, 1000);
-
-// Observe DOM mutations on input bar (camera button toggles change height)
-if (typeof MutationObserver !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', function(){
-    var ib = document.getElementById('inputBar');
-    if (ib) {
-      var mo = new MutationObserver(function(){ adjustContentPadding(); });
-      mo.observe(ib, { attributes: true, childList: true, subtree: true, attributeFilter: ['class','style'] });
-    }
-  });
-}
 
 // Detect iframe (Glide) and adjust to real visible height
 function setRealVH(){
