@@ -44,16 +44,18 @@
       font-family: var(--sans);
       background: var(--bg);
       color: var(--navy);
-      height: 100dvh;
+      /* --vh is set by JS to window.visualViewport.height (truthful viewport).
+         Fallback chain: var(--vh) → 100svh (small viewport, iOS-friendly) → 100vh */
+      height: 100vh;
+      height: 100svh;
+      height: var(--vh, 100svh);
       display: flex; flex-direction: column;
       max-width: 480px; margin: 0 auto;
       overflow: hidden;
     }
-    body.in-iframe {
-      height: calc(var(--vh, 100dvh) - var(--glide-bar, 0px));
-      max-height: calc(var(--vh, 100dvh) - var(--glide-bar, 0px));
-    }
-    /* body.in-iframe .content padding hack removed — flex layout handles it */
+    /* in-iframe class still applied by JS but no longer needs height override
+       — body uses --vh universally now */
+    body.in-iframe .content { padding-bottom: calc(var(--glide-bar, 80px) + 80px); }
 
     /* ─── HEADER (global, panel-style) ─── */
     .header {
@@ -632,17 +634,16 @@
     .upg-elite { background: var(--cream); color: var(--navy); }
 
     /* ─── INPUT BAR ─── */
-    /* ARCHITECTURE A: input-bar is now a flex child of body (not position:fixed).
-       Body has display:flex; flex-direction:column; height:100dvh, so input-bar
-       naturally pins to bottom while .content (flex:1) fills the space above. */
     .input-bar {
-      width: 100%;
-      flex-shrink: 0;
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
       background: var(--paper); border-top: 1px solid var(--hairline);
       padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      display: flex; gap: 8px; align-items: flex-end;
+      display: flex; gap: 8px; align-items: flex-end; z-index: 60;
     }
-    /* iOS Safari and iframe overrides no longer needed — flex handles it universally */
+    body.in-iframe .input-bar { bottom: var(--glide-bar, 80px); }
+    body.ios-safari .input-bar { bottom: 90px; padding-bottom: 8px; }
+    body.ios-safari .content { padding-bottom: 170px; }
     .input-field {
       flex: 1; padding: 9px 13px;
       border: 1px solid var(--hairline); border-radius: 22px;
@@ -2710,15 +2711,17 @@ window.addEventListener('message', (ev)=>{
 });
 try { window.parent.postMessage({type:'__edit_mode_available'}, '*'); } catch(e){}
 
-// Detect iframe (Glide) and adjust to real visible height
+// Real viewport height — works universally (iframe, PWA, Safari standalone, desktop)
 function setRealVH(){
+  // window.visualViewport.height is the truthful visible viewport,
+  // already excluding Safari URL bar, keyboard, etc.
   var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   document.documentElement.style.setProperty('--vh', h + 'px');
-  // Detect actual bottom inset (Glide nav + iOS home indicator)
-  // iOS needs more space due to Safari home indicator + Glide nav
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  var bottomInset = isIOS ? 120 : 80;
-  document.documentElement.style.setProperty('--glide-bar', bottomInset + 'px');
+  // --glide-bar kept for compatibility with .input-bar positioning (line ~642)
+  // Set to a small safe value that allows the iframe nav bar to remain visible
+  // without subtracting too much from the body height.
+  var inIframe = (window.self !== window.top);
+  document.documentElement.style.setProperty('--glide-bar', inIframe ? '80px' : '0px');
 }
 // iOS Safari (not iframe) needs the input bar lifted above the Safari URL bar
 (function detectIOSSafari(){
@@ -2728,15 +2731,21 @@ function setRealVH(){
     document.body.classList.add('ios-safari');
   }
 })();
+// Mark iframe context (used by .input-bar bottom override)
 if(window.self !== window.top){
   document.body.classList.add('in-iframe');
-  // Wait for layout to settle before measuring
+}
+// Run setRealVH ALWAYS — not just in iframe
+setRealVH();
+setTimeout(setRealVH, 100);
+setTimeout(setRealVH, 500);
+window.addEventListener('resize', setRealVH);
+window.addEventListener('orientationchange', function(){
   setTimeout(setRealVH, 100);
   setTimeout(setRealVH, 500);
-  if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', setRealVH);
-  }
-  window.addEventListener('resize', setRealVH);
+});
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', setRealVH);
 }
 function toggleNight(){
   const on=document.body.classList.toggle('night');
