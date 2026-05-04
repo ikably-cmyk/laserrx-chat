@@ -2764,8 +2764,59 @@ function toggleNight(){
   }catch(e){}
 })();
 </script>
-<div id="cacheTestBar" style="position:fixed;top:0;left:0;right:0;height:30px;background:#ff00ff;color:#fff;font-family:monospace;font-size:14px;font-weight:700;text-align:center;line-height:30px;z-index:99999;letter-spacing:0.1em;">
-  ✓ HTML LOADED v=TEST · 1777927656
+<div id="diagBar" style="position:fixed;top:0;left:0;right:0;background:#ff00ff;color:#fff;font-family:monospace;font-size:11px;font-weight:700;z-index:99999;padding:6px 10px;line-height:1.4;min-height:30px;border-bottom:2px solid #fff;">
+  Touch the screen to diagnose
 </div>
+<script>
+(function(){
+  var bar = document.getElementById('diagBar');
+  if (!bar) return;
+  
+  var lastY = 0;
+  var moved = 0;
+  var capturedBy = '';
+  var scrollTopBefore = 0;
+  
+  function showElement(el){
+    if (!el) return 'NULL';
+    var tag = el.tagName || '?';
+    var id = el.id ? '#' + el.id : '';
+    var cls = el.className && typeof el.className === 'string' 
+      ? '.' + el.className.split(' ').slice(0, 2).join('.')
+      : '';
+    return tag + id + cls;
+  }
+  
+  document.addEventListener('touchstart', function(e){
+    var t = e.touches[0];
+    lastY = t.clientY;
+    moved = 0;
+    capturedBy = showElement(e.target);
+    var content = document.querySelector('.content');
+    scrollTopBefore = content ? content.scrollTop : 0;
+    bar.innerText = 'START y=' + Math.round(t.clientY) + ' x=' + Math.round(t.clientX) 
+                  + ' | TARGET: ' + capturedBy;
+  }, {passive:true, capture:true});
+  
+  document.addEventListener('touchmove', function(e){
+    var t = e.touches[0];
+    moved = Math.abs(t.clientY - lastY);
+    var content = document.querySelector('.content');
+    var scrollTopNow = content ? content.scrollTop : 0;
+    var didScroll = scrollTopNow !== scrollTopBefore;
+    bar.innerText = 'MOVE Δy=' + Math.round(moved) 
+                  + ' | TARGET: ' + capturedBy
+                  + ' | SCROLLED: ' + (didScroll ? 'YES (' + scrollTopBefore + '→' + scrollTopNow + ')' : 'NO');
+  }, {passive:true, capture:true});
+  
+  document.addEventListener('touchend', function(e){
+    var content = document.querySelector('.content');
+    var scrollTopAfter = content ? content.scrollTop : 0;
+    var didScroll = scrollTopAfter !== scrollTopBefore;
+    bar.innerText = 'END Δ=' + Math.round(moved) + ' | ' + capturedBy 
+                  + ' | SCROLL ' + (didScroll ? '✓ ' + scrollTopBefore + '→' + scrollTopAfter : '✗ NO');
+  }, {passive:true, capture:true});
+})();
+</script>
 </body>
 </html>
