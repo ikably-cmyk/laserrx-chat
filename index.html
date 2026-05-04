@@ -1118,17 +1118,7 @@
       </div>
     </div>
 
-    <div class="lang-row">
-      <span class="lang-label" id="langLbl">Language</span>
-      <select class="lang-select" id="langSel" onchange="setLang(this.value)">
-        <option value="en">EN  ·  English</option>
-        <option value="es">ES  ·  Español</option>
-        <option value="pt">PT  ·  Português</option>
-        <option value="ja">JA  ·  日本語</option>
-        <option value="ko">KO  ·  한국어</option>
-      </select>
-    </div>
-    <div class="lang-note" id="langNote">The assistant will respond in this language throughout your consultation.</div>
+    <!-- Duplicate language selector removed — header lang selector handles this -->
 
     <!-- MY DEVICES -->
     <div class="my-devices-section" id="myDevSection">
@@ -1978,8 +1968,9 @@ function applyLang(){
   $('statusTxt').textContent=(l.status||'ready').toUpperCase();
   $('homeTitle').innerHTML=l.homeTitle.replace('\n','<br>');
   $('homeSub').innerHTML=l.homeSub;
-  $('langLbl').textContent=l.langLbl;
-  $('langNote').textContent=l.langNote;
+  // langLbl/langNote no longer in DOM (lang selector moved to header) — safe-guard
+  var lLbl=$('langLbl');if(lLbl)lLbl.textContent=l.langLbl;
+  var lNote=$('langNote');if(lNote)lNote.textContent=l.langNote;
   const hCode=$('hdrLangCode'); if(hCode) hCode.textContent=lang.toUpperCase();
   const hSel=$('hdrLangSel'); if(hSel) hSel.value=lang;
   $('cDevName').textContent=l.cDevName;$('cDevDesc').textContent=l.cDevDesc;
@@ -2703,12 +2694,40 @@ window.addEventListener('message', (ev)=>{
 });
 try { window.parent.postMessage({type:'__edit_mode_available'}, '*'); } catch(e){}
 
-// Real viewport height — works universally (iframe, PWA, Safari standalone, desktop)
+// Real viewport height + dynamic bottom inset measurement
+// Works universally on iPhone/iPad/Android/desktop, in/out of iframe, with/without Glide chrome
 function setRealVH(){
-  var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  document.documentElement.style.setProperty('--vh', h + 'px');
+  // 1. Real visible viewport height
+  var visualH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  document.documentElement.style.setProperty('--vh', visualH + 'px');
+
+  // 2. Dynamic bottom inset for input bar
+  // Goal: keep input bar above any browser/PWA/iframe chrome bar at bottom
   var inIframe = (window.self !== window.top);
-  document.documentElement.style.setProperty('--glide-bar', inIframe ? '80px' : '0px');
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  var bottomInset;
+
+  if (inIframe) {
+    // Inside Glide PWA: measure how much bottom chrome is hiding the viewport
+    // window.innerHeight gives total iframe height; visualViewport.height gives visible part
+    // The difference plus Glide's own bottom nav (~60-90px) is what we need to clear
+    var innerH = window.innerHeight;
+    var hiddenBottom = Math.max(0, innerH - visualH);
+    // Add a base buffer for the Glide nav bar (which is OUTSIDE the iframe but still visible to user)
+    // iOS needs more buffer due to home indicator + Glide nav stacking
+    var baseBuffer = isIOS ? 100 : 70;
+    bottomInset = hiddenBottom + baseBuffer;
+    // Cap to avoid extreme values if measurement is off
+    bottomInset = Math.min(bottomInset, 160);
+  } else if (isIOS) {
+    // iOS Safari standalone (PWA outside iframe): clear Safari URL bar area
+    bottomInset = 90;
+  } else {
+    // Desktop or Android Chrome — no chrome at bottom typically
+    bottomInset = 0;
+  }
+
+  document.documentElement.style.setProperty('--glide-bar', bottomInset + 'px');
 }
 (function detectIOSSafari(){
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
