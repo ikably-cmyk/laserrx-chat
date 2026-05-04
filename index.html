@@ -1169,10 +1169,6 @@
     </div>
     <div class="messages" id="devMsgs"></div>
   </div>
-      <div class="mod-subtitle" id="devSub">Identify your laser device</div>
-    </div>
-    <div class="messages" id="devMsgs"></div>
-  </div>
 
   <!-- PROTOCOLS -->
   <div id="tab-protocols" class="hidden">
@@ -1186,10 +1182,6 @@
         <div class="mod-header-led-row"><span class="d"></span>READY</div>
         <div class="mod-header-session">SESSION · B2-12</div>
       </div>
-    </div>
-    <div class="messages" id="proMsgs"></div>
-  </div>
-      <div class="mod-subtitle" id="proSub">Find the right protocol</div>
     </div>
     <div class="messages" id="proMsgs"></div>
   </div>
@@ -2713,17 +2705,11 @@ try { window.parent.postMessage({type:'__edit_mode_available'}, '*'); } catch(e)
 
 // Real viewport height — works universally (iframe, PWA, Safari standalone, desktop)
 function setRealVH(){
-  // window.visualViewport.height is the truthful visible viewport,
-  // already excluding Safari URL bar, keyboard, etc.
   var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   document.documentElement.style.setProperty('--vh', h + 'px');
-  // --glide-bar kept for compatibility with .input-bar positioning (line ~642)
-  // Set to a small safe value that allows the iframe nav bar to remain visible
-  // without subtracting too much from the body height.
   var inIframe = (window.self !== window.top);
   document.documentElement.style.setProperty('--glide-bar', inIframe ? '80px' : '0px');
 }
-// iOS Safari (not iframe) needs the input bar lifted above the Safari URL bar
 (function detectIOSSafari(){
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   var notInIframe = (window.self === window.top);
@@ -2731,11 +2717,9 @@ function setRealVH(){
     document.body.classList.add('ios-safari');
   }
 })();
-// Mark iframe context (used by .input-bar bottom override)
 if(window.self !== window.top){
   document.body.classList.add('in-iframe');
 }
-// Run setRealVH ALWAYS — not just in iframe
 setRealVH();
 setTimeout(setRealVH, 100);
 setTimeout(setRealVH, 500);
