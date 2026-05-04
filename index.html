@@ -262,12 +262,18 @@
     .plan-bar strong { color: var(--navy); font-weight: 700; }
 
     .content {
-      flex: 1; overflow-y: auto; overflow-x: hidden;
+      flex: 1 1 auto;
+      min-height: 0;          /* CRITICAL: lets flex child shrink and scroll */
+      overflow-y: auto;
+      overflow-x: hidden;
       padding: 18px 16px 24px;
       -webkit-overflow-scrolling: touch;
-      position: relative; z-index: 1;
+      position: relative;
+      z-index: 1;
       touch-action: pan-y;
       overscroll-behavior-y: contain;
+      isolation: isolate;     /* new stacking context = scroll isolated */
+      contain: layout style;  /* tells browser scroll is independent */
     }
     /* iOS scroll fix: interactive children should not steal vertical pan gestures */
     .content .chip,
