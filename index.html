@@ -44,17 +44,15 @@
       font-family: var(--sans);
       background: var(--bg);
       color: var(--navy);
-      /* --vh is set by JS to window.visualViewport.height (truthful viewport).
-         Fallback chain: var(--vh) → 100svh (small viewport, iOS-friendly) → 100vh */
-      height: 100vh;
-      height: 100svh;
-      height: var(--vh, 100svh);
+      /* Use 100svh directly. iOS Safari modern handles this correctly.
+         100svh = "small viewport height" = the smallest possible visible area,
+         excluding any browser chrome that may appear/disappear (like URL bar). */
+      height: 100vh;       /* fallback for old browsers */
+      height: 100svh;      /* main: works on iOS 15.4+ and modern browsers */
       display: flex; flex-direction: column;
       max-width: 480px; margin: 0 auto;
       overflow: hidden;
     }
-    /* in-iframe class still applied by JS but no longer needs height override
-       — body uses --vh universally now */
     body.in-iframe .content { padding-bottom: calc(var(--glide-bar, 80px) + 80px); }
 
     /* ─── HEADER (global, panel-style) ─── */
@@ -265,10 +263,9 @@
 
     .content {
       flex: 1; overflow-y: auto; overflow-x: hidden;
-      padding: 18px 16px 90px;
+      padding: 18px 16px 24px;
       -webkit-overflow-scrolling: touch;
       position: relative; z-index: 1;
-      /* iOS scroll fix: explicitly allow vertical pan from anywhere within */
       touch-action: pan-y;
       overscroll-behavior-y: contain;
     }
@@ -646,16 +643,17 @@
     .upg-elite { background: var(--cream); color: var(--navy); }
 
     /* ─── INPUT BAR ─── */
+    /* Flex child of body (NOT fixed). Body is exactly 100svh, so input-bar
+       sits at the bottom of the visible viewport naturally via flexbox. */
     .input-bar {
-      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 480px;
-      background: var(--paper); border-top: 1px solid var(--hairline);
-      padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      display: flex; gap: 8px; align-items: flex-end; z-index: 60;
+      width: 100%;
+      flex-shrink: 0;
+      background: var(--paper);
+      border-top: 1px solid var(--hairline);
+      padding: 10px 12px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      display: flex; gap: 8px; align-items: flex-end;
     }
-    body.in-iframe .input-bar { bottom: var(--glide-bar, 80px); }
-    body.ios-safari .input-bar { bottom: 90px; padding-bottom: 8px; }
-    body.ios-safari .content { padding-bottom: 170px; }
     .input-field {
       flex: 1; padding: 9px 13px;
       border: 1px solid var(--hairline); border-radius: 22px;
@@ -2762,60 +2760,6 @@ function toggleNight(){
       document.body.classList.add('night');
     }
   }catch(e){}
-})();
-</script>
-<div id="diagBar" style="position:fixed;top:0;left:0;right:0;background:#ff00ff;color:#fff;font-family:monospace;font-size:11px;font-weight:700;z-index:99999;padding:6px 10px;line-height:1.4;min-height:30px;border-bottom:2px solid #fff;">
-  Touch the screen to diagnose
-</div>
-<script>
-(function(){
-  var bar = document.getElementById('diagBar');
-  if (!bar) return;
-  
-  var lastY = 0;
-  var moved = 0;
-  var capturedBy = '';
-  var scrollTopBefore = 0;
-  
-  function showElement(el){
-    if (!el) return 'NULL';
-    var tag = el.tagName || '?';
-    var id = el.id ? '#' + el.id : '';
-    var cls = el.className && typeof el.className === 'string' 
-      ? '.' + el.className.split(' ').slice(0, 2).join('.')
-      : '';
-    return tag + id + cls;
-  }
-  
-  document.addEventListener('touchstart', function(e){
-    var t = e.touches[0];
-    lastY = t.clientY;
-    moved = 0;
-    capturedBy = showElement(e.target);
-    var content = document.querySelector('.content');
-    scrollTopBefore = content ? content.scrollTop : 0;
-    bar.innerText = 'START y=' + Math.round(t.clientY) + ' x=' + Math.round(t.clientX) 
-                  + ' | TARGET: ' + capturedBy;
-  }, {passive:true, capture:true});
-  
-  document.addEventListener('touchmove', function(e){
-    var t = e.touches[0];
-    moved = Math.abs(t.clientY - lastY);
-    var content = document.querySelector('.content');
-    var scrollTopNow = content ? content.scrollTop : 0;
-    var didScroll = scrollTopNow !== scrollTopBefore;
-    bar.innerText = 'MOVE Δy=' + Math.round(moved) 
-                  + ' | TARGET: ' + capturedBy
-                  + ' | SCROLLED: ' + (didScroll ? 'YES (' + scrollTopBefore + '→' + scrollTopNow + ')' : 'NO');
-  }, {passive:true, capture:true});
-  
-  document.addEventListener('touchend', function(e){
-    var content = document.querySelector('.content');
-    var scrollTopAfter = content ? content.scrollTop : 0;
-    var didScroll = scrollTopAfter !== scrollTopBefore;
-    bar.innerText = 'END Δ=' + Math.round(moved) + ' | ' + capturedBy 
-                  + ' | SCROLL ' + (didScroll ? '✓ ' + scrollTopBefore + '→' + scrollTopAfter : '✗ NO');
-  }, {passive:true, capture:true});
 })();
 </script>
 </body>
