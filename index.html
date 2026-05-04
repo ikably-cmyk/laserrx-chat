@@ -265,10 +265,9 @@
 
     .content {
       flex: 1; overflow-y: auto; overflow-x: hidden;
-      padding: 18px 16px 90px;
+      padding: 18px 16px 24px;
       -webkit-overflow-scrolling: touch;
       position: relative; z-index: 1;
-      /* iOS scroll fix: explicitly allow vertical pan from anywhere within */
       touch-action: pan-y;
       overscroll-behavior-y: contain;
     }
@@ -646,16 +645,21 @@
     .upg-elite { background: var(--cream); color: var(--navy); }
 
     /* ─── INPUT BAR ─── */
+    /* Input bar is a flex child of body (NOT position:fixed).
+       Body has display:flex; flex-direction:column; height:var(--vh).
+       So input-bar naturally sits at bottom while .content (flex:1) takes the rest.
+       This avoids iOS extended-hit-area issue where fixed inputs steal touches
+       from the scroll container in the middle of the screen. */
     .input-bar {
-      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 480px;
-      background: var(--paper); border-top: 1px solid var(--hairline);
-      padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      display: flex; gap: 8px; align-items: flex-end; z-index: 60;
+      width: 100%;
+      flex-shrink: 0;
+      background: var(--paper);
+      border-top: 1px solid var(--hairline);
+      padding: 10px 12px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      display: flex; gap: 8px; align-items: flex-end;
     }
-    body.in-iframe .input-bar { bottom: var(--glide-bar, 80px); }
-    body.ios-safari .input-bar { bottom: 90px; padding-bottom: 8px; }
-    body.ios-safari .content { padding-bottom: 170px; }
+    /* iframe and ios-safari overrides removed — flex layout works universally */
     .input-field {
       flex: 1; padding: 9px 13px;
       border: 1px solid var(--hairline); border-radius: 22px;
