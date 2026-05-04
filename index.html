@@ -1031,68 +1031,6 @@
     body.night .msg-user { background: #2C3A52; color: #E0E1DD; }
 
   </style>
-
-<style id="visualDebugCSS">
-/* VISUAL DEBUG — Remove before launch */
-.input-bar {
-  outline: 3px solid red !important;
-  background: rgba(255, 0, 0, 0.05) !important;
-}
-.input-bar textarea,
-.input-bar input,
-.input-bar #inputField {
-  outline: 3px dashed purple !important;
-  background: rgba(255, 0, 255, 0.08) !important;
-}
-.content {
-  outline: 3px solid green !important;
-}
-.messages {
-  outline: 2px dotted blue !important;
-}
-/* Show pseudo hit-area expansion of input bar (iOS extends touches around inputs) */
-.input-bar::before {
-  content: "↑ INPUT BAR — captures touches in this whole area" !important;
-  position: absolute;
-  top: -22px; left: 50%;
-  transform: translateX(-50%);
-  background: red;
-  color: white;
-  padding: 2px 8px;
-  font-size: 9px;
-  font-family: monospace;
-  white-space: nowrap;
-  border-radius: 3px;
-  z-index: 9999;
-}
-.content::before {
-  content: "GREEN = .content (should scroll)" !important;
-  position: fixed;
-  top: 50px; left: 8px;
-  background: green;
-  color: white;
-  padding: 4px 8px;
-  font-size: 10px;
-  font-family: monospace;
-  z-index: 9999;
-  border-radius: 3px;
-}
-/* Marker for "right margin" zone that DOES scroll */
-body::after {
-  content: "← scroll funciona AQUÍ" !important;
-  position: fixed;
-  top: 50%; right: 4px;
-  background: yellow;
-  color: black;
-  padding: 6px 4px;
-  font-size: 9px;
-  font-family: monospace;
-  writing-mode: vertical-rl;
-  z-index: 9999;
-  border-radius: 3px;
-  font-weight: bold;
-}
-</style>
 </head>
 <body data-tab="home">
 
@@ -2826,5 +2764,8 @@ function toggleNight(){
   }catch(e){}
 })();
 </script>
+<div id="cacheTestBar" style="position:fixed;top:0;left:0;right:0;height:30px;background:#ff00ff;color:#fff;font-family:monospace;font-size:14px;font-weight:700;text-align:center;line-height:30px;z-index:99999;letter-spacing:0.1em;">
+  ✓ HTML LOADED v=TEST · 1777927656
+</div>
 </body>
 </html>
