@@ -268,6 +268,18 @@
       padding: 18px 16px 90px;
       -webkit-overflow-scrolling: touch;
       position: relative; z-index: 1;
+      /* iOS scroll fix: explicitly allow vertical pan from anywhere within */
+      touch-action: pan-y;
+      overscroll-behavior-y: contain;
+    }
+    /* iOS scroll fix: interactive children should not steal vertical pan gestures */
+    .content .chip,
+    .content .chip-sub,
+    .content button,
+    .content .tile,
+    .content .module-tile,
+    .content .my-device-chip {
+      touch-action: manipulation;
     }
 
     /* ─── HOME ─── */
