@@ -1028,6 +1028,28 @@
   </style>
 </head>
 <body data-tab="home">
+<div id="emailCaptureOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;padding:20px;overflow-y:auto;font-family:var(--sans);">
+  <div style="background:var(--white);border:1px solid var(--hairline);border-radius:6px;padding:36px 32px;max-width:420px;width:100%;box-shadow:0 4px 20px rgba(27,38,59,0.08);">
+    <div id="captureEyebrow" style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--protocols);margin-bottom:12px;">Free Demo · No credit card</div>
+    <h1 id="captureTitle" style="font-family:var(--sans);font-size:22px;font-weight:600;color:var(--navy);letter-spacing:-0.01em;margin:0 0 8px;line-height:1.2;">Try LaserRx — 1 free consultation</h1>
+    <p id="captureSub" style="font-size:13.5px;color:var(--steel);line-height:1.5;margin:0 0 24px;">Get a clinical laser protocol from our expert AI assistant. We'll save your email so you can come back without signing in.</p>
+    <div style="margin-bottom:14px;">
+      <label id="captureLabelEmail" for="captureEmail" style="display:block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);margin-bottom:6px;">Email</label>
+      <input type="email" id="captureEmail" autocomplete="email" required style="width:100%;padding:10px 12px;font-family:var(--sans);font-size:14px;color:var(--navy);background:var(--paper);border:1px solid var(--hairline);border-radius:3px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--navy)'" onblur="this.style.borderColor='var(--hairline)'">
+    </div>
+    <div style="margin-bottom:14px;">
+      <label id="captureLabelName" for="captureName" style="display:block;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);margin-bottom:6px;">Name</label>
+      <input type="text" id="captureName" autocomplete="name" required style="width:100%;padding:10px 12px;font-family:var(--sans);font-size:14px;color:var(--navy);background:var(--paper);border:1px solid var(--hairline);border-radius:3px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--navy)'" onblur="this.style.borderColor='var(--hairline)'">
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:8px;margin:18px 0 22px;cursor:pointer;">
+      <input type="checkbox" id="captureOptIn" checked style="margin-top:3px;cursor:pointer;flex-shrink:0;">
+      <span id="captureOptInLabel" style="font-size:12.5px;color:var(--steel);line-height:1.5;">I'd like updates about LaserRx (you can unsubscribe anytime).</span>
+    </label>
+    <div id="captureError" style="font-size:12px;color:#c0392b;margin-bottom:10px;display:none;"></div>
+    <button id="captureSubmit" type="button" onclick="submitEmailCapture()" style="display:block;width:100%;background:var(--navy);color:var(--white);border:0;padding:12px 16px;font-family:var(--sans);font-size:14px;font-weight:600;letter-spacing:-0.005em;border-radius:3px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='var(--navy2)'" onmouseout="this.style.background='var(--navy)'">Start my free demo</button>
+    <div id="captureFooter" style="font-family:var(--mono);font-size:9.5px;color:var(--steelMute);letter-spacing:.05em;text-transform:uppercase;text-align:center;margin-top:18px;padding-top:16px;border-top:1px solid var(--hairline);">Your email is safe with us. We don't share or sell it.</div>
+  </div>
+</div>
 
 <!-- Day/Night toggle removed: it was floating with z-index:200 over the header on iPhone, hiding the language selector and status. The day mode is now the default and only mode. -->
 
@@ -1226,7 +1248,11 @@
 
 <script>
 const QS    = new URLSearchParams(location.search);
-const EMAIL_RAW = QS.get('email') || '';
+let EMAIL_RAW = QS.get('email') || '';
+// If no valid email in URL, try localStorage (returning lead capture)
+if(!EMAIL_RAW || EMAIL_RAW.includes('{{') || EMAIL_RAW.includes('}}')){
+  try { EMAIL_RAW = localStorage.getItem('laserrx_email') || ''; } catch(e){}
+}
 const EMAIL = (EMAIL_RAW && !EMAIL_RAW.includes('{{') && !EMAIL_RAW.includes('}}')) ? EMAIL_RAW : '';
 const MOD   = QS.get('module') || '';
 
@@ -2566,6 +2592,81 @@ function done(){busy=false;$('sendBtn').disabled=false;if($('chatCameraBtn'))$('
 function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
 
 
+function showEmailCapture(){
+  const overlay = document.getElementById('emailCaptureOverlay');
+  if(!overlay) return;
+  overlay.style.display = 'flex';
+  // Localize copy based on current language
+  const copy = {
+    en:{eyebrow:'Free Demo · No credit card',title:'Try LaserRx — 1 free consultation',sub:'Get a clinical laser protocol from our expert AI assistant. We\u2019ll save your email so you can come back without signing in.',emailLabel:'Email',nameLabel:'Name',optIn:'I\u2019d like updates about LaserRx (you can unsubscribe anytime).',submit:'Start my free demo',footer:'Your email is safe with us. We don\u2019t share or sell it.',errEmail:'Please enter a valid email.',errName:'Please enter your name.',errNet:'Connection error. Please try again.'},
+    es:{eyebrow:'Demo gratis · Sin tarjeta',title:'Prueba LaserRx — 1 consulta gratis',sub:'Recibe un protocolo cl\u00ednico de l\u00e1ser de nuestro asistente experto. Guardaremos tu email para que regreses sin iniciar sesi\u00f3n.',emailLabel:'Email',nameLabel:'Nombre',optIn:'Quiero recibir novedades de LaserRx (puedes cancelar cuando quieras).',submit:'Comenzar mi demo gratis',footer:'Tu email est\u00e1 seguro. No lo compartimos ni vendemos.',errEmail:'Ingresa un email v\u00e1lido.',errName:'Ingresa tu nombre.',errNet:'Error de conexi\u00f3n. Intenta de nuevo.'},
+    pt:{eyebrow:'Demo gr\u00e1tis · Sem cart\u00e3o',title:'Experimente LaserRx \u2014 1 consulta gr\u00e1tis',sub:'Receba um protocolo cl\u00ednico de laser do nosso assistente IA especializado. Guardaremos seu email para voltar sem entrar.',emailLabel:'Email',nameLabel:'Nome',optIn:'Quero receber novidades sobre LaserRx (pode cancelar a qualquer momento).',submit:'Iniciar minha demo gr\u00e1tis',footer:'Seu email est\u00e1 seguro. N\u00e3o compartilhamos nem vendemos.',errEmail:'Digite um email v\u00e1lido.',errName:'Digite seu nome.',errNet:'Erro de conex\u00e3o. Tente novamente.'},
+    ja:{eyebrow:'\u7121\u6599\u30c7\u30e2\u30fb\u30af\u30ec\u30b8\u30c3\u30c8\u30ab\u30fc\u30c9\u4e0d\u8981',title:'LaserRx\u3092\u8a66\u3059 \u2014 1\u56de\u7121\u6599',sub:'\u4e13\u9580AI\u30a2\u30b7\u30b9\u30bf\u30f3\u30c8\u304b\u3089\u30ec\u30fc\u30b6\u30fc\u30d7\u30ed\u30c8\u30b3\u30eb\u3092\u53d6\u5f97\u3002\u30e1\u30fc\u30eb\u3092\u4fdd\u5b58\u3057\u30ed\u30b0\u30a4\u30f3\u4e0d\u8981\u3067\u623b\u308c\u307e\u3059\u3002',emailLabel:'\u30e1\u30fc\u30eb',nameLabel:'\u540d\u524d',optIn:'LaserRx\u306e\u6700\u65b0\u60c5\u5831\u3092\u53d7\u3051\u53d6\u308a\u305f\u3044\uff08\u3044\u3064\u3067\u3082\u89e3\u9664\u53ef\uff09\u3002',submit:'\u7121\u6599\u30c7\u30e2\u3092\u958b\u59cb',footer:'\u30e1\u30fc\u30eb\u306f\u4fdd\u8b77\u3055\u308c\u307e\u3059\u3002\u5916\u90e8\u63d0\u4f9b\u3057\u307e\u305b\u3093\u3002',errEmail:'\u6709\u52b9\u306a\u30e1\u30fc\u30eb\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002',errName:'\u540d\u524d\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002',errNet:'\u63a5\u7d9a\u30a8\u30e9\u30fc\u3002\u3082\u3046\u4e00\u5ea6\u8a66\u3057\u3066\u304f\u3060\u3055\u3044\u3002'},
+    ko:{eyebrow:'\ubb34\ub8cc \ub370\ubaa8 \u00b7 \uce74\ub4dc \ubd88\ud544\uc694',title:'LaserRx \uccb4\ud5d8 \u2014 1\ud68c \ubb34\ub8cc',sub:'\uc804\ubb38 AI \uc5b4\uc2dc\uc2a4\ud134\ud2b8\uc5d0\uc11c \ub808\uc774\uc800 \ud504\ub85c\ud1a0\ucf5c\uc744 \ubc1b\uc73c\uc138\uc694. \uc774\uba54\uc77c\uc744 \uc800\uc7a5\ud574 \ub85c\uadf8\uc778 \uc5c6\uc774 \ub3cc\uc544\uc62c \uc218 \uc788\uc2b5\ub2c8\ub2e4.',emailLabel:'\uc774\uba54\uc77c',nameLabel:'\uc774\ub984',optIn:'LaserRx \uc18c\uc2dd\uc744 \ubc1b\uace0 \uc2f6\uc5b4\uc694 (\uc5b8\uc81c\ub4e0 \ud574\uc81c \uac00\ub2a5).',submit:'\ubb34\ub8cc \ub370\ubaa8 \uc2dc\uc791',footer:'\uc774\uba54\uc77c\uc740 \uc548\uc804\ud569\ub2c8\ub2e4. \uacf5\uc720\ud558\uac70\ub098 \ud310\ub9e4\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.',errEmail:'\uc720\ud6a8\ud55c \uc774\uba54\uc77c\uc744 \uc785\ub825\ud558\uc138\uc694.',errName:'\uc774\ub984\uc744 \uc785\ub825\ud558\uc138\uc694.',errNet:'\uc5f0\uacb0 \uc624\ub958. \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uc138\uc694.'}
+  };
+  const c = copy[lang] || copy.en;
+  document.getElementById('captureEyebrow').textContent = c.eyebrow;
+  document.getElementById('captureTitle').textContent = c.title;
+  document.getElementById('captureSub').textContent = c.sub;
+  document.getElementById('captureLabelEmail').textContent = c.emailLabel;
+  document.getElementById('captureLabelName').textContent = c.nameLabel;
+  document.getElementById('captureOptInLabel').textContent = c.optIn;
+  const btn = document.getElementById('captureSubmit');
+  btn.textContent = c.submit;
+  btn.dataset.label = c.submit;
+  document.getElementById('captureFooter').textContent = c.footer;
+  document.getElementById('emailCaptureOverlay').dataset.errEmail = c.errEmail;
+  document.getElementById('emailCaptureOverlay').dataset.errName = c.errName;
+  document.getElementById('emailCaptureOverlay').dataset.errNet = c.errNet;
+}
+
+function submitEmailCapture(){
+  const overlay = document.getElementById('emailCaptureOverlay');
+  const emailInput = document.getElementById('captureEmail');
+  const nameInput = document.getElementById('captureName');
+  const optInInput = document.getElementById('captureOptIn');
+  const errEl = document.getElementById('captureError');
+  const btn = document.getElementById('captureSubmit');
+  const email = (emailInput.value || '').trim().toLowerCase();
+  const name = (nameInput.value || '').trim();
+  const optIn = optInInput.checked ? 'true' : 'false';
+  errEl.style.display = 'none';
+  // Basic email validation
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    errEl.textContent = overlay.dataset.errEmail || 'Invalid email';
+    errEl.style.display = 'block';
+    return;
+  }
+  if(!name){
+    errEl.textContent = overlay.dataset.errName || 'Name required';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '...';
+  const url = 'https://laserai.app.n8n.cloud/webhook/laserrx-register' +
+    '?email=' + encodeURIComponent(email) +
+    '&name=' + encodeURIComponent(name) +
+    '&source=landing' +
+    '&opt_in=' + optIn;
+  fetch(url)
+    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(data => {
+      try { localStorage.setItem('laserrx_email', email); } catch(e){}
+      // Reload with email in URL so the rest of the app picks it up cleanly
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('email', email);
+      window.location.href = newUrl.toString();
+    })
+    .catch(err => {
+      errEl.textContent = overlay.dataset.errNet || 'Connection error';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = btn.dataset.label || 'Submit';
+      console.error('captureLead failed:', err);
+    });
+}
+
 function registerUser(){
   // Show logged-in email immediately for diagnosing cross-account issues
   const emailBar = document.getElementById('emailBar');
@@ -2574,15 +2675,8 @@ function registerUser(){
     emailBar.style.display = 'block';
   }
   if(!EMAIL){
-    // Show sign-in prompt when no valid email
-    setPlanBar('Free', 0);
-    const anchor = document.getElementById('homeEyebrow') || document.getElementById('homeTitle');
-    if(anchor){
-      const notice = document.createElement('div');
-      notice.style.cssText = 'background:var(--white);color:var(--navy);padding:14px 16px;border-radius:4px;border:1px solid var(--hairline);border-left:3px solid var(--protocols);margin-bottom:18px;font:13px/1.55 -apple-system,system-ui,sans-serif;';
-      notice.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--protocols);margin-bottom:6px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><rect x="4" y="11" width="16" height="10" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Auth · Required</span></div><strong style="font-weight:700;display:block;margin-bottom:4px;color:var(--navy);font-size:15px;letter-spacing:-0.01em;">Sign in to continue</strong><span style="color:var(--steel);font-size:12.5px;">Access your account to use the assistant.</span><br><a href="https://app.laserapp.ai" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:var(--white);padding:9px 14px;border-radius:3px;font-size:12px;font-weight:600;text-decoration:none;margin-top:12px;letter-spacing:-0.005em;">Sign in with Google <span style="font-family:var(--mono);opacity:.7;">›</span></a>`;
-      anchor.parentNode.insertBefore(notice, anchor);
-    }
+    // No email yet — show lead capture screen (visitor from landing page or direct)
+    showEmailCapture();
     return;
   }
   const name=encodeURIComponent('');
