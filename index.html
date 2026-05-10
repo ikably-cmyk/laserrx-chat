@@ -266,6 +266,19 @@
       background: var(--paper);
     }
     .plan-bar strong { color: var(--navy); font-weight: 700; }
+    .plan-bar .new-consultation-btn {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      color: var(--navy); background: var(--paper);
+      border: 1px solid var(--navy); border-radius: 3px;
+      padding: 4px 9px; letter-spacing: 0.08em;
+      cursor: pointer; text-transform: uppercase;
+      transition: background .12s, color .12s, transform .08s;
+    }
+    .plan-bar .new-consultation-btn:hover { background: var(--navy); color: var(--cream); }
+    .plan-bar .new-consultation-btn:active { transform: scale(0.97); }
+    .plan-bar .new-consultation-btn.hidden { visibility: hidden; }
+    body.night .plan-bar .new-consultation-btn { color: #E0E1DD; background: #0F1620; border-color: #94A4BB; }
+    body.night .plan-bar .new-consultation-btn:hover { background: #2C3A52; color: #FBFAF6; }
 
     .content {
       flex: 1 1 auto;
@@ -638,6 +651,59 @@
     }
     .upg-pro { background: var(--navy2); color: var(--white); border: 1px solid var(--steel); }
     .upg-elite { background: var(--cream); color: var(--navy); }
+
+    /* New upgrade tier blocks (dual currency) */
+    .upg-tier {
+      background: var(--navy2); border: 1px solid var(--steel);
+      border-radius: 4px; padding: 14px 14px 12px; margin-bottom: 10px;
+    }
+    .upg-tier-head {
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--mono); font-size: 9px; color: var(--cream);
+      letter-spacing: 0.12em; margin-bottom: 8px; text-transform: uppercase;
+      opacity: 0.85;
+    }
+    .upg-tier-price {
+      display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px;
+    }
+    .upg-tier-amount {
+      font-size: 40px; font-weight: 700; color: var(--white);
+      letter-spacing: -0.02em; line-height: 1;
+    }
+    .upg-tier-day {
+      font-size: 11px; color: var(--cream);
+      font-family: var(--mono); letter-spacing: 0.04em; opacity: 0.85;
+    }
+    .upg-tier-monthly {
+      font-size: 11px; color: var(--cream);
+      font-family: var(--mono); letter-spacing: 0.04em; margin-bottom: 12px;
+      opacity: 0.75;
+    }
+    .upg-tier .upg-btn {
+      display: block; width: 100%; padding: 10px 8px; border-radius: 3px;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-align: center; text-decoration: none;
+    }
+    .upg-tier-mini {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; padding: 10px 12px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px;
+    }
+    .upg-tier-mini-info {
+      font-size: 11px; color: var(--white); line-height: 1.5;
+    }
+    .upg-tier-mini-info span {
+      font-size: 9px; color: var(--cream); font-family: var(--mono);
+      letter-spacing: 0.04em; opacity: 0.7;
+    }
+    .upg-tier-mini .upg-btn {
+      flex-shrink: 0; padding: 7px 12px; background: transparent;
+      color: var(--cream); border: 1px solid var(--steel);
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      letter-spacing: 0.08em; text-decoration: none; white-space: nowrap;
+      border-radius: 3px;
+    }
 
     /* ─── INPUT BAR ─── */
     /* Flex child of body (NOT fixed). Body is exactly 100svh, so input-bar
@@ -1087,8 +1153,8 @@
 </div>
 
 <div class="plan-bar">
-  <span>Plan: <strong id="planTxt">—</strong></span>
-  <span id="creditsTxt">—</span>
+  <button class="new-consultation-btn hidden" id="newConsultationBtn" onclick="newConsultation()" type="button">NUEVA CONSULTA</button>
+  <span>Plan: <strong id="planTxt">—</strong> · <span id="creditsTxt">—</span></span>
 </div>
 <div id="emailBar" style="display:none;padding:2px 16px 4px;font-size:9.5px;font-family:var(--mono);color:var(--steel);background:var(--paper);border-bottom:1px solid var(--hairline);letter-spacing:-0.005em;opacity:.55;text-align:right;flex-shrink:0;position:sticky;top:30px;z-index:48;"></div>
 
@@ -1292,7 +1358,7 @@ const L = {
       validate: {lbl:'Next step',  title:'Parameter calculator',desc:'Give me the exact numbers',  tab:'calculator'},
       calculator:{lbl:'Try also',  title:'Laser protocols',     desc:'How do I use it for X?',     tab:'protocols'}
     },
-    upg:{title:"You've used your free consultation",desc:'Upgrade to keep using LaserRx AI',pro:'Pro · $9.99/mo',elite:'Elite · $29.99/mo'},
+    upg:{title:"You've used your free consultation",desc:'Upgrade to keep using LaserRx AI',continueWith:'Continue with',pro:'Pro · $9.99/mo',elite:'See Elite plan'},newConsult:'NEW QUERY',
     welcome:{
       devices:'Hi! I\'ll help you identify your laser device.\n<em>Responding in English · change language from Home anytime</em>\n\nWhat device would you like to identify?',
       protocols:'Hi! I\'ll help you find the right laser protocol.\n<em>Responding in English · change language from Home anytime</em>\n\nWhat procedure are you looking for?',
@@ -1348,7 +1414,7 @@ const L = {
       validate: {lbl:'Siguiente paso', title:'Calculadora de parámetros',desc:'Dame los números exactos',        tab:'calculator'},
       calculator:{lbl:'Prueba también',title:'Protocolos láser',         desc:'¿Cómo lo uso para X?',           tab:'protocols'}
     },
-    upg:{title:'Usaste tu consulta gratuita',desc:'Actualiza tu plan para continuar',pro:'Pro · $9.99/mes',elite:'Elite · $29.99/mes'},
+    upg:{title:'Usaste tu consulta gratuita',desc:'Continúa con un plan de pago',continueWith:'Continuar con',pro:'Pro · $149 MXN/mes',elite:'Ver plan Elite'},newConsult:'NUEVA CONSULTA',
     welcome:{
       devices:'¡Hola! Te ayudo a identificar tu dispositivo láser.\n<em>Respondiendo en Español · cambia el idioma desde Home</em>\n\n¿Qué dispositivo quieres identificar?',
       protocols:'¡Hola! Te ayudo a encontrar el protocolo correcto.\n<em>Respondiendo en Español · cambia el idioma desde Home</em>\n\n¿Qué procedimiento vas a realizar?',
@@ -1404,7 +1470,7 @@ const L = {
       validate: {lbl:'Próximo passo',      title:'Calculadora de parâmetros',desc:'Me dê os números exatos',         tab:'calculator'},
       calculator:{lbl:'Experimente também',title:'Protocolos laser',         desc:'Como uso para X?',                tab:'protocols'}
     },
-    upg:{title:'Você usou sua consulta gratuita',desc:'Atualize seu plano para continuar',pro:'Pro · $9.99/mês',elite:'Elite · $29.99/mês'},
+    upg:{title:'Você usou sua consulta gratuita',desc:'Atualize seu plano para continuar',continueWith:'Continuar com',pro:'Pro · $9.99/mês',elite:'Ver plano Elite'},newConsult:'NOVA CONSULTA',
     welcome:{
       devices:'Olá! Vou te ajudar a identificar seu dispositivo laser.\n<em>Respondendo em Português · mude o idioma no Home</em>\n\nQual dispositivo você quer identificar?',
       protocols:'Olá! Vou te ajudar a encontrar o protocolo certo.\n<em>Respondendo em Português · mude o idioma no Home</em>\n\nQual procedimento você vai realizar?',
@@ -1460,7 +1526,7 @@ const L = {
       validate: {lbl:'次のステップ', title:'パラメータ計算機',   desc:'正確な数値を計算',         tab:'calculator'},
       calculator:{lbl:'試してみる',  title:'レーザープロトコル', desc:'どのように使いますか？',   tab:'protocols'}
     },
-    upg:{title:'無料相談を使用しました',desc:'LaserRx AIを続けるにはアップグレード',pro:'Pro · $9.99/月',elite:'Elite · $29.99/月'},
+    upg:{title:'無料相談を使用しました',desc:'続けるにはアップグレード',continueWith:'続ける',pro:'Pro · $9.99/月',elite:'Eliteプランを見る'},newConsult:'新しい相談',
     welcome:{
       devices:'こんにちは！レーザーデバイスの識別をお手伝いします。\n<em>日本語で回答中 · ホームから言語変更可能</em>\n\nどのデバイスを識別しますか？',
       protocols:'こんにちは！正しいレーザープロトコルを見つけます。\n<em>日本語で回答中 · ホームから言語変更可能</em>\n\nどの処置をお探しですか？',
@@ -1516,7 +1582,7 @@ const L = {
       validate: {lbl:'다음 단계', title:'파라미터 계산기', desc:'정확한 수치 계산',   tab:'calculator'},
       calculator:{lbl:'시도해보기',title:'레이저 프로토콜',desc:'어떻게 사용하나요?',tab:'protocols'}
     },
-    upg:{title:'무료 상담을 사용했습니다',desc:'LaserRx AI를 계속 사용하려면 업그레이드',pro:'Pro · $9.99/월',elite:'Elite · $29.99/월'},
+    upg:{title:'무료 상담을 사용했습니다',desc:'계속하려면 업그레이드',continueWith:'계속하기',pro:'Pro · $9.99/월',elite:'Elite 플랜 보기'},newConsult:'새 상담',
     welcome:{
       devices:'안녕하세요! 레이저 기기 식별을 도와드립니다.\n<em>한국어로 답변 중 · 홈에서 언어 변경 가능</em>\n\n어떤 기기를 식별하시겠습니까?',
       protocols:'안녕하세요! 올바른 레이저 프로토콜을 찾아드립니다.\n<em>한국어로 답변 중 · 홈에서 언어 변경 가능</em>\n\n어떤 시술을 찾고 계십니까?',
@@ -1976,6 +2042,29 @@ function setPlanBar(plan,credits){
   if(lp) lp.textContent=planLabel;
 }
 
+// ─── Initialize country from browser as fallback (overridden by backend response) ───
+(function(){
+  const _bl=(navigator.language||'en-US').toLowerCase();
+  window.LRX_COUNTRY = (_bl.includes('-mx') || _bl==='es' || _bl.startsWith('es-')) ? 'MX' : 'US';
+})();
+
+// ─── Reset module state for a brand new consultation (counts as first message) ───
+function newConsultation(){
+  if(curTab==='home'||busy)return;
+  sessionCreditUsed=false;
+  initMod(curTab);
+}
+
+// ─── Toggle visibility of the "new consultation" button ───
+function updateNewConsultBtn(){
+  const btn=document.getElementById('newConsultationBtn');
+  if(!btn)return;
+  btn.classList.toggle('hidden', curTab==='home');
+  // Update label for current language
+  const label=(t('newConsult')||'NUEVA CONSULTA');
+  btn.textContent=label;
+}
+
 function setLang(l){
   lang=l;applyLang();
   ['devices','protocols','validate','calculator'].forEach(m=>{
@@ -2006,6 +2095,7 @@ function applyLang(){
   $('calTitle').textContent=l.calTitle;$('calSub').textContent=l.calSub;
   $('inputField').placeholder=l.ph;
   renderMyDevices();
+  updateNewConsultBtn();
 }
 
 function goTab(tab){
@@ -2014,6 +2104,7 @@ function goTab(tab){
   curTab=tab;
   document.body.dataset.tab=tab;
   updateBreadcrumb(tab);
+  updateNewConsultBtn();
   $('inputBar').classList.toggle('hidden',tab==='home');
   const cam=$('chatCameraBtn');if(cam)cam.style.display=tab==='devices'?'flex':'none';
   window.scrollTo(0,0);
@@ -2208,7 +2299,7 @@ function sendValidateSetup(){
   showTyping('validate');busy=true;$('sendBtn').disabled=true;
   fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||''})})
   .then(res=>{if(res.status===403){hideTyping('validate');addUpgradeCard('validate');done();return null;}return res.json();})
-  .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
+  .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
   .catch(err=>{hideTyping('validate');addAI('validate',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
 }
 
@@ -2267,7 +2358,7 @@ function buildDiodeComplement(ui){const DIODE_WLS=['450 nm','650 nm (PDT)','810 
 
 function buildProtoMessage(){const ui=PROTO.ui[lang]||PROTO.ui.en;const parts=[];PROTO.groups.forEach(grp=>{const grpLabel=typeof grp.label==='string'?grp.label:grp.label[lang]||grp.label.en;const sel=proState.selections[grp.id],sub=proState.subs[grp.id],note=proState.selections[grp.id+'_note'];let val=sel?sel:ui.noSel;if(sub)val+=` — ${sub}`;if(note)val+=` (${note})`;parts.push(`${grpLabel}: ${val}`);});let procStr='';if(proState.procId){procStr=proState.procId;if(proState.procSub)procStr+=` → ${proState.procSub}`;}else if(proState.procOther){procStr=proState.procOther;}if(procStr){const procTitle=(PROTO.ui[lang]||PROTO.ui.en).procTitle.replace('?','').replace('¿','').trim();parts.push(`${procTitle}: ${procStr}`);}if(proState.notes)parts.push(`Clinical notes: ${proState.notes}`);if(proState.selections['diode_cmp'])parts.push(`Complementary diode: ${proState.selections['diode_cmp']}`);const devCtx=buildMyDevicesContext();if(devCtx&&!proState.notes.includes('devices'))parts.push(devCtx);return parts.join('. ');}
 
-function sendProtoSetup(){const msg=buildProtoMessage();if(!msg.trim())return;removeChips('protocols');addUser('protocols',msg);hist.protocols.push(`User: ${msg}`);const history=hist.protocols.slice(-12).join('\n');showTyping('protocols');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});}
+function sendProtoSetup(){const msg=buildProtoMessage();if(!msg.trim())return;removeChips('protocols');addUser('protocols',msg);hist.protocols.push(`User: ${msg}`);const history=hist.protocols.slice(-12).join('\n');showTyping('protocols');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});}
 
 // ── DEVICES DATA ──
 const DEVICES={ui:{en:{typeLabel:'What type of laser?',brandLabel:'Brand',modelLabel:'Model',needLabel:'What do you need?',searchPh:'Not listed? Search or type brand...',otherPh:'Describe your device...',showMore:'+ more ▾',showLess:'▲ less',btn:'Identify device',noType:'(not specified)',photoTitle:'Upload a photo of your device',photoSub:'I\'ll identify brand, model and wavelength from the photo',orText:'or fill in what you know',needsPhoto:'Photo ready',ledTypeLabel:'Device type',ledBrandLabel:'Brand',ledSpecsLabel:'Device specs (if unknown brand)'},es:{typeLabel:'¿Qué tipo de láser?',brandLabel:'Marca',modelLabel:'Modelo',needLabel:'¿Qué necesitas?',searchPh:'¿No está? Busca o escribe la marca...',otherPh:'Describe tu dispositivo...',showMore:'+ más ▾',showLess:'▲ menos',btn:'Identificar dispositivo',noType:'(no especificado)',photoTitle:'Sube una foto de tu equipo',photoSub:'Identifico marca, modelo y longitud de onda por la foto',orText:'o escribe lo que sabes',needsPhoto:'Foto lista',ledTypeLabel:'Tipo de dispositivo',ledBrandLabel:'Marca',ledSpecsLabel:'Especificaciones (si marca desconocida)'},pt:{typeLabel:'Que tipo de laser?',brandLabel:'Marca',modelLabel:'Modelo',needLabel:'O que você precisa?',searchPh:'Não listado? Busque ou escreva a marca...',otherPh:'Descreva seu dispositivo...',showMore:'+ mais ▾',showLess:'▲ menos',btn:'Identificar dispositivo',noType:'(não especificado)',photoTitle:'Envie uma foto do seu equipamento',photoSub:'Identifico marca, modelo e comprimento de onda pela foto',orText:'ou preencha o que você sabe',needsPhoto:'Foto pronta',ledTypeLabel:'Tipo de dispositivo',ledBrandLabel:'Marca',ledSpecsLabel:'Especificações (se marca desconhecida)'},ja:{typeLabel:'レーザーの種類は？',brandLabel:'ブランド',modelLabel:'モデル',needLabel:'何が必要ですか？',searchPh:'リストにない場合は検索...',otherPh:'デバイスを説明...',showMore:'+ もっと見る ▾',showLess:'▲ 少なく',btn:'デバイスを識別',noType:'（未指定）',photoTitle:'機器の写真をアップロード',photoSub:'写真からブランド・モデル・波長を識別します',orText:'またはわかる情報を入力',needsPhoto:'写真準備完了',ledTypeLabel:'デバイスタイプ',ledBrandLabel:'ブランド',ledSpecsLabel:'デバイス仕様'},ko:{typeLabel:'레이저 종류는?',brandLabel:'브랜드',modelLabel:'모델',needLabel:'무엇이 필요합니까?',searchPh:'목록에 없으면 검색...',otherPh:'기기 설명...',showMore:'+ 더보기 ▾',showLess:'▲ 접기',btn:'기기 식별',noType:'（미지정）',photoTitle:'기기 사진을 업로드하세요',photoSub:'사진에서 브랜드, 모델, 파장을 식별합니다',orText:'또는 아는 정보를 입력하세요',needsPhoto:'사진 준비됨',ledTypeLabel:'기기 유형',ledBrandLabel:'브랜드',ledSpecsLabel:'기기 사양'}},types:{en:['Diode','Erbium','CO₂','Nd:YAG','LED / PBM','Other'],es:['Diodo','Erbio','CO₂','Nd:YAG','LED / PBM','Otro'],pt:['Diodo','Érbio','CO₂','Nd:YAG','LED / PBM','Outro'],ja:['ダイオード','エルビウム','CO₂','Nd:YAG','LED / PBM','その他'],ko:['다이오드','어븀','CO₂','Nd:YAG','LED / PBM','기타']},brands:{'450 nm':{top:['Soga','Pion','Elexxion','Dentsply Sirona'],all:['Soga','Pion','Elexxion','Dentsply Sirona']},'810 nm':{top:['AMD Lasers','Dentsply Sirona','Doctor Smile','Zolar'],all:['AMD Lasers','Dentsply Sirona','Doctor Smile','Zolar','A.R.C. Laser','Gigaa Optronics','KaVo','Pion']},'940 nm':{top:['Biolase','Dentsply Sirona','Elexxion','Doctor Smile'],all:['Biolase','Dentsply Sirona','Elexxion','Doctor Smile']},'980 nm':{top:['Soga','Pion','Fotona','Dentsply Sirona'],all:['Soga','Pion','Fotona','Dentsply Sirona','A.R.C. Laser','J. Morita','Lasotronix','Elexxion','Doctor Smile','Gigaa Optronics','NV Microdent']},'1064 nm free running pulse':{top:['PerioLase MVP-7','Fotona','Deka','Quanta System'],all:['PerioLase MVP-7','Fotona','Deka','Quanta System']},'Er,Cr:YSGG 2780 nm':{top:['Biolase'],all:['Biolase']},'Er:YAG 2940 nm':{top:['Fotona','KaVo','Deka','Soga'],all:['Fotona','KaVo','Deka','Soga','Light Instruments','J. Morita','A.R.C. Laser','Alma Lasers','Quanta System','Elexxion']},'10,600 nm':{top:['Deka','Elexxion','Aesculight','Doctor Smile'],all:['Deka','Elexxion','Aesculight','Doctor Smile']},'1064 nm':{top:['PerioLase MVP-7','Fotona','Deka','Quanta System'],all:['PerioLase MVP-7','Fotona','Deka','Quanta System']}},models:{'Soga':['I Laser I','I Laser I Plus','I Laser II','H2O Laser','iLaser 1'],'Pion':['Mercury-Dual','Mercury 3','S3','Helipen Blue','Helipen Red','H1'],'Biolase':['Epic X','Epic Q','Epic 10','Epic Pro','Epic Hygiene','iLase','ezlase 940','Waterlase Express','Waterlase iPlus','Waterlase iPlus 2.0','Waterlase MDX','Waterlase MD'],'Fotona':['LightWalker AT','LightWalker AT-S','LightWalker TT','Versa','Fidelis Plus III'],'Dentsply Sirona':['SIROLaser Blue','SIROLaser Advance'],'AMD Lasers':['Picasso','Picasso Lite'],'Doctor Smile':['Wiser','Lambda SC','Lambda Plus','Lambda CO₂'],'KaVo':['MASTERlase','KEY Laser 3+','KEY Laser 4'],'Deka':['Smart 2940D','Er:YAG Dental Pro','SmartUS CO₂','Nd:YAG Dental'],'A.R.C. Laser':['FoxII','OfficeLase'],'Elexxion':['Claros Nano','Claros','Delos','Duros','Arcus'],'Gigaa Optronics':['CHEESE Mini','CHEESE 4W','CHEESE 7W','CHEESE 10W'],'PerioLase MVP-7':['PerioLase MVP-7'],'Convergent Dental (Solea)':['Solea'],'Quanta System':['Nd:YAG Dental','HF Dental Er:YAG'],'Light Instruments':['LightTouch','SlimLine'],'Alma Lasers':['OpusDuo'],'Lasotronix':['Smart M Pro'],'NV Microdent':['NV Pro3'],'J. Morita':['ReLase','Er:YAG Dental'],'Zolar':['Photon Plus'],'Aesculight':['Aesculight CO₂ Dental']},needs:{en:['Full tech profile','Clinical protocols','Compare devices','Other'],es:['Ficha técnica completa','Protocolos clínicos','Comparar dispositivos','Otro'],pt:['Ficha técnica completa','Protocolos clínicos','Comparar dispositivos','Outro'],ja:['完全な技術プロファイル','臨床プロトコル','デバイスを比較','その他'],ko:['전체 기술 프로파일','임상 프로토콜','기기 비교','기타']},ledTypes:{en:['Wearable','Panel'],es:['Wearable','Panel'],pt:['Wearable','Painel'],ja:['ウェアラブル','パネル'],ko:['착용형','패널']},ledBrands:{Wearable:['Biolux Pro Mini','Biolux Pro Max','Biolux Pro Dent','Biolux Pro Lens','Biolux Research OrthoPulse','Erchonia EVRL','Erchonia FX635'],Panel:['Thor LX2','Thor LED Cluster','B-Cure Dental','Omega XP','Asahi Super Lizer']},ledSpecs:{en:['No. of LEDs','LED diameter (mm)','Wavelength(s) nm','Total power output (mW)'],es:['Número de LEDs','Diámetro de LED (mm)','Longitud(es) de onda nm','Potencia total (mW)'],pt:['Número de LEDs','Diâmetro do LED (mm)','Comprimento(s) de onda nm','Potência total (mW)'],ja:['LEDの数','LED径 (mm)','波長 nm','総出力 (mW)'],ko:['LED 수','LED 직경 (mm)','파장 nm','총 출력 (mW)']}};
@@ -2347,7 +2438,7 @@ function sendDeviceSetup(){
   const isProtocolsRedirect=clinicalProtocolNeeds.includes(devState.need);
   if(isProtocolsRedirect){let label=devState.type||'';if(devState.brand)label+=` — ${devState.brand}`;if(devState.model&&devState.model!=='Other')label+=` ${devState.model}`;if(devState.wl)label+=` (${devState.wl})`;lastDeviceContext.label=label;lastDeviceContext.active=true;hist.protocols=[];$('proMsgs').innerHTML='';goTab('protocols');return;}
   const msg=buildDeviceMessage();if(!msg.trim()&&!devImageB64)return;removeChips('devices');addUser('devices',devImageB64?msg+'\n[Device photo attached]':msg);if(devImageB64)setTimeout(clearDevPhoto,200);hist.devices.push(`User: ${msg}`);const history=hist.devices.slice(-12).join('\n');showTyping('devices');busy=true;$('sendBtn').disabled=true;
-  fetch(devImageB64?HOOKS.devices_photo:HOOKS.devices,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:devImageB64||''})}).then(res=>{if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('devices');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);hist.devices.push(`Assistant: ${reply}`);addAI('devices',reply);addNextCard('devices');addChips('devices');done();}).catch(err=>{hideTyping('devices');addAI('devices',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
+  fetch(devImageB64?HOOKS.devices_photo:HOOKS.devices,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:devImageB64||''})}).then(res=>{if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('devices');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.devices.push(`Assistant: ${reply}`);addAI('devices',reply);addNextCard('devices');addChips('devices');done();}).catch(err=>{hideTyping('devices');addAI('devices',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
 }
 
 const lastProtocol={laserType:'',power:'',frequency:'',tipDiameter:'',procedure:''};
@@ -2511,7 +2602,7 @@ function addCalculatorForm(){
 
 function buildCalcMessage(){const parts=[];if(calFields.laserType?.value)parts.push(`Laser type: ${calFields.laserType.value}`);if(calFields.power?.value)parts.push(`Power: ${calFields.power.value} W`);if(calFields.frequency?.value)parts.push(`Frequency: ${calFields.frequency.value} Hz`);if(calFields.tipDiameter?.value)parts.push(`Tip diameter: ${calFields.tipDiameter.value} µm`);if(calFields.pulseWidth?.value)parts.push(`Pulse width: ${calFields.pulseWidth.value} µs`);if(calFields.exposureTime?.value)parts.push(`Exposure time: ${calFields.exposureTime.value} s`);if(calFields.context?.value)parts.push(`Context: ${calFields.context.value}`);const devCtx=buildMyDevicesContext();if(devCtx)parts.push(devCtx);return parts.join('. ');}
 
-function sendCalculatorForm(){const msg=buildCalcMessage();if(!msg.trim())return;removeChips('calculator');addUser('calculator',msg);hist.calculator.push(`User: ${msg}`);const history=hist.calculator.slice(-12).join('\n');showTyping('calculator');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.calculator,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('calculator');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);hist.calculator.push(`Assistant: ${reply}`);addAI('calculator',reply);addNextCard('calculator');addChips('calculator');done();}).catch(err=>{hideTyping('calculator');addAI('calculator',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});}
+function sendCalculatorForm(){const msg=buildCalcMessage();if(!msg.trim())return;removeChips('calculator');addUser('calculator',msg);hist.calculator.push(`User: ${msg}`);const history=hist.calculator.slice(-12).join('\n');showTyping('calculator');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.calculator,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('calculator');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.calculator.push(`Assistant: ${reply}`);addAI('calculator',reply);addNextCard('calculator');addChips('calculator');done();}).catch(err=>{hideTyping('calculator');addAI('calculator',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});}
 
 function addChips(mod){
   const msgs=msgEl(mod);const l=L[lang];
@@ -2536,7 +2627,26 @@ function addNextCard(mod){
 
 function addUpgradeCard(mod){
   const u=t('upg');const msgs=msgEl(mod);const d=document.createElement('div');d.className='upgrade-card';
-  d.innerHTML=`<div class="upg-title">${u.title}</div><div class="upg-desc">${u.desc}</div><div class="upg-btns"><a class="upg-btn upg-pro" href="https://buy.stripe.com/dRm3cngZNdvk6DU1IHdIA0D" target="_blank">${u.pro}</a><a class="upg-btn upg-elite" href="https://buy.stripe.com/bJe9ALbFt3UK2nEfzxdIA0E" target="_blank">${u.elite}</a></div>`;
+  const isMX=(window.LRX_COUNTRY||'US')==='MX';
+  const proDaily   = isMX ? '$5'   : '33¢';
+  const proLabel   = isMX ? 'pesos al día' : 'a day';
+  const proMonthly = isMX ? '$149 MXN/mes · 100 consultas' : '$9.99 USD/mo · 100 queries';
+  const eliteDaily = isMX ? '$15'  : '$1';
+  const eliteLabel = isMX ? 'pesos al día' : 'a day';
+  const eliteMonthly = isMX ? '$449 MXN/mes · ilimitadas' : '$29.99 USD/mo · unlimited';
+  const proLink   = isMX ? 'https://buy.stripe.com/6oU8wH9xl0Iyfaq5YXdIA0G' : 'https://buy.stripe.com/dRm3cngZNdvk6DU1IHdIA0D';
+  const eliteLink = isMX ? 'https://buy.stripe.com/28E6oz38Xdvkgeu1IHdIA0H' : 'https://buy.stripe.com/bJecMX24T0IybYe9b9dIA0I';
+  d.innerHTML=`<div class="upg-title">${u.title}</div><div class="upg-desc">${u.desc}</div>
+    <div class="upg-tier">
+      <div class="upg-tier-head"><span class="upg-tier-name">PRO</span><span class="upg-tier-period">${isMX?'100 consultas/mes':'100 queries/mo'}</span></div>
+      <div class="upg-tier-price"><span class="upg-tier-amount">${proDaily}</span><span class="upg-tier-day">${proLabel}</span></div>
+      <div class="upg-tier-monthly">${proMonthly}</div>
+      <a class="upg-btn upg-pro" href="${proLink}" target="_blank">${u.continueWith||'Continue with'} Pro</a>
+    </div>
+    <div class="upg-tier-mini">
+      <div class="upg-tier-mini-info"><strong>Elite</strong> · ${eliteDaily} ${eliteLabel}<br><span>${eliteMonthly}</span></div>
+      <a class="upg-btn upg-elite" href="${eliteLink}" target="_blank">${u.elite}</a>
+    </div>`;
   msgs.appendChild(d);scrollBot();
 }
 
@@ -2585,7 +2695,7 @@ function send(){
   showTyping(mod);busy=true;$('sendBtn').disabled=true;
   fetch(HOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:text,history,language:lang,is_first_message:false})})
   .then(res=>{if(res.status===403){hideTyping(mod);addUpgradeCard(mod);done();return null;}return res.json();})
-  .then(data=>{if(!data)return;hideTyping(mod);const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);hist[mod].push(`Assistant: ${reply}`);addAI(mod,reply);addNextCard(mod);addChips(mod);done();})
+  .then(data=>{if(!data)return;hideTyping(mod);const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist[mod].push(`Assistant: ${reply}`);addAI(mod,reply);addNextCard(mod);addChips(mod);done();})
   .catch(err=>{hideTyping(mod);const errMsg=lang==='es'?'Error de conexión. Intenta de nuevo.':lang==='pt'?'Erro de conexão. Tente novamente.':'Connection error. Please try again.';addAI(mod,errMsg);done();console.error(err);});
 }
 function done(){busy=false;$('sendBtn').disabled=false;if($('chatCameraBtn'))$('chatCameraBtn').classList.remove('active');}
@@ -2688,6 +2798,7 @@ function registerUser(){
     .then(data=>{
       if(data && data.plan && data.credits!==undefined){
         setPlanBar(data.plan, data.credits);
+        if(data.country) window.LRX_COUNTRY = data.country;
         // If user has 0 credits, show upgrade card on home immediately
         if(Number(data.credits)===0){
           const homeEl=document.getElementById('tab-home');
@@ -2695,7 +2806,16 @@ function registerUser(){
             const upg=document.createElement('div');
             upg.style.cssText='margin-top:16px;';
             const u=t('upg');
-            upg.innerHTML=`<div class="upgrade-card"><div class="upg-title">${u.title}</div><div class="upg-desc">${u.desc}</div><div class="upg-btns"><a class="upg-btn upg-pro" href="https://buy.stripe.com/dRm3cngZNdvk6DU1IHdIA0D" target="_blank">${u.pro}</a><a class="upg-btn upg-elite" href="https://buy.stripe.com/bJe9ALbFt3UK2nEfzxdIA0E" target="_blank">${u.elite}</a></div></div>`;
+            const isMX=(window.LRX_COUNTRY||'US')==='MX';
+            const proDaily   = isMX ? '$5'   : '33¢';
+            const proLabel   = isMX ? 'pesos al día' : 'a day';
+            const proMonthly = isMX ? '$149 MXN/mes · 100 consultas' : '$9.99 USD/mo · 100 queries';
+            const eliteDaily = isMX ? '$15'  : '$1';
+            const eliteLabel = isMX ? 'pesos al día' : 'a day';
+            const eliteMonthly = isMX ? '$449 MXN/mes · ilimitadas' : '$29.99 USD/mo · unlimited';
+            const proLink   = isMX ? 'https://buy.stripe.com/6oU8wH9xl0Iyfaq5YXdIA0G' : 'https://buy.stripe.com/dRm3cngZNdvk6DU1IHdIA0D';
+            const eliteLink = isMX ? 'https://buy.stripe.com/28E6oz38Xdvkgeu1IHdIA0H' : 'https://buy.stripe.com/bJecMX24T0IybYe9b9dIA0I';
+            upg.innerHTML=`<div class="upgrade-card"><div class="upg-title">${u.title}</div><div class="upg-desc">${u.desc}</div><div class="upg-tier"><div class="upg-tier-head"><span class="upg-tier-name">PRO</span><span class="upg-tier-period">${isMX?'100 consultas/mes':'100 queries/mo'}</span></div><div class="upg-tier-price"><span class="upg-tier-amount">${proDaily}</span><span class="upg-tier-day">${proLabel}</span></div><div class="upg-tier-monthly">${proMonthly}</div><a class="upg-btn upg-pro" href="${proLink}" target="_blank">${u.continueWith||'Continue with'} Pro</a></div><div class="upg-tier-mini"><div class="upg-tier-mini-info"><strong>Elite</strong> · ${eliteDaily} ${eliteLabel}<br><span>${eliteMonthly}</span></div><a class="upg-btn upg-elite" href="${eliteLink}" target="_blank">${u.elite}</a></div></div>`;
             const firstCard=homeEl.querySelector('.module-card');
             if(firstCard) homeEl.insertBefore(upg, firstCard);
             else homeEl.appendChild(upg);
