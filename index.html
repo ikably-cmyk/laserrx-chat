@@ -1091,6 +1091,766 @@
     body.night .module-icon { background: #0F1620; border-color: #2A3A52; color: #E0E1DD; }
     body.night .msg-user { background: #2C3A52; color: #E0E1DD; }
 
+  
+/* ═══ LASERRX TOUR — START ═══ */
+:root {
+    --tour-bg-base: #F1F5F9;
+    --tour-bg-card: #FFFFFF;
+    --tour-bg-soft: #F8FAFC;
+    --tour-border-default: #E2E8F0;
+    --tour-border-strong: #CBD5E1;
+    --tour-text-primary: #0F172A;
+    --tour-text-body: #475569;
+    --tour-text-muted: #64748B;
+    --tour-text-faint: #94A3B8;
+    --tour-accent: #475569;
+    --tour-accent-strong: #334155;
+    --tour-alert: #DC2626;
+    --tour-alert-soft-bg: #FEF2F2;
+    --tour-alert-soft-border: #FECACA;
+    --tour-backdrop: rgba(15, 23, 42, 0.55);
+    --tour-shadow-card: 0 20px 40px -16px rgba(15, 23, 42, 0.18), 0 4px 12px -4px rgba(15, 23, 42, 0.08);
+    --tour-radius-card: 16px;
+    --tour-radius-inner: 12px;
+    --tour-radius-small: 8px;
+    --tour-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --tour-font-mono: ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+    --tour-ease-natural: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { box-sizing: border-box; }
+
+  /* ─── Tour Overlay ─── */
+  .tour-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--tour-backdrop);
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    transition: opacity 220ms var(--tour-ease-natural);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .tour-overlay.visible { display: flex; opacity: 1; }
+
+  .tour-container {
+    background: var(--tour-bg-base);
+    border-radius: var(--tour-radius-card);
+    padding: 22px 18px 18px;
+    border: 1px solid var(--tour-border-default);
+    box-shadow: var(--tour-shadow-card);
+    width: 100%;
+    max-width: 420px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    transform: translateY(8px);
+    transition: transform 280ms var(--tour-ease-natural);
+    position: relative;
+  }
+  .tour-overlay.visible .tour-container { transform: translateY(0); }
+
+  /* ─── Header ─── */
+  .tour-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px; padding: 0 2px;
+  }
+  .tour-header-title {
+    font-size: 11px; color: var(--tour-text-muted);
+    letter-spacing: 0.04em; font-weight: 500;
+  }
+  .tour-stepper {
+    display: flex; gap: 5px; align-items: center;
+  }
+  .tour-dot {
+    background: var(--tour-border-strong); border-radius: 50%;
+    width: 6px; height: 6px;
+    transition: all 220ms var(--tour-ease-natural);
+    cursor: pointer; border: none; padding: 0;
+  }
+  .tour-dot.active {
+    width: 16px; height: 6px;
+    background: var(--tour-accent); border-radius: 3px;
+  }
+  .tour-dot.completed {
+    background: var(--tour-text-faint);
+  }
+  .tour-counter {
+    font-size: 11px; color: var(--tour-text-muted);
+    font-weight: 500; font-variant-numeric: tabular-nums;
+  }
+
+  .tour-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 28px; height: 28px;
+    background: transparent; border: none;
+    cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--tour-text-muted); border-radius: 50%;
+    transition: background 160ms var(--tour-ease-natural);
+    z-index: 2;
+  }
+  .tour-close:hover { background: var(--tour-border-default); }
+
+  /* ─── Card ─── */
+  .tour-card {
+    background: var(--tour-bg-card);
+    border-radius: var(--tour-radius-inner);
+    padding: 20px 20px 18px;
+    border: 1px solid var(--tour-border-default);
+    margin: 0 auto 14px;
+    min-height: 240px;
+  }
+
+  .tour-eyebrow {
+    font-size: 10px;
+    color: var(--tour-accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .tour-eyebrow.alert { color: var(--tour-alert); }
+
+  .tour-title {
+    margin: 0 0 10px;
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--tour-text-primary);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  .tour-body {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--tour-text-body);
+    line-height: 1.6;
+  }
+  .tour-body strong { color: var(--tour-text-primary); font-weight: 600; }
+  .tour-footer-note {
+    margin: 12px 0 0;
+    font-size: 12.5px;
+    color: var(--tour-text-muted);
+    line-height: 1.5;
+  }
+
+  /* ─── Step transitions ─── */
+  .tour-step { display: none; }
+  .tour-step.active { display: block; }
+  .tour-step.active > * { animation: stepFadeIn 360ms var(--tour-ease-natural) backwards; }
+  .tour-step.active > *:nth-child(1) { animation-delay: 0ms; }
+  .tour-step.active > *:nth-child(2) { animation-delay: 50ms; }
+  .tour-step.active > *:nth-child(3) { animation-delay: 100ms; }
+  .tour-step.active > *:nth-child(4) { animation-delay: 150ms; }
+  .tour-step.active > *:nth-child(5) { animation-delay: 200ms; }
+
+  @keyframes stepFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Footer / Buttons ─── */
+  .tour-actions {
+    display: flex; gap: 10px; margin: 0 auto;
+  }
+  .tour-btn {
+    flex: 1; padding: 11px 14px;
+    font-size: 13px; font-weight: 500;
+    border-radius: 8px; cursor: pointer;
+    transition: all 140ms var(--tour-ease-natural);
+    font-family: inherit;
+    letter-spacing: -0.005em;
+  }
+  .tour-btn-secondary {
+    color: var(--tour-accent); background: var(--tour-bg-card);
+    border: 1px solid var(--tour-border-strong);
+  }
+  .tour-btn-secondary:hover { background: var(--tour-bg-soft); border-color: var(--tour-accent); }
+  .tour-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tour-btn-primary {
+    color: white; background: var(--tour-accent);
+    border: 1px solid var(--tour-accent);
+  }
+  .tour-btn-primary:hover { background: var(--tour-accent-strong); border-color: var(--tour-accent-strong); }
+  .tour-btn-primary:active { transform: scale(0.98); }
+
+  /* ─── STEP 1 — Bienvenida (logo animation) ─── */
+  .step1-logo-wrap {
+    display: flex; justify-content: center; align-items: center;
+    margin-bottom: 14px; height: 64px;
+  }
+  .step1-logo {
+    width: 56px; height: 56px;
+    background: var(--tour-text-primary);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-family: var(--tour-font-mono);
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    position: relative;
+    overflow: hidden;
+  }
+  .step1-logo::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 35%, rgba(255,255,255,0.08) 50%, transparent 65%);
+    transform: translateX(-100%);
+  }
+  .tour-step.active[data-step="1"] .step1-logo {
+    animation: logoIn 600ms var(--tour-ease-natural) backwards;
+  }
+  .tour-step.active[data-step="1"] .step1-logo::before {
+    animation: logoShine 1400ms var(--tour-ease-natural) 700ms;
+  }
+  @keyframes logoIn {
+    from { transform: scale(0.6); opacity: 0; border-radius: 50%; }
+    to { transform: scale(1); opacity: 1; border-radius: 8px; }
+  }
+  @keyframes logoShine {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+  }
+
+  /* ─── STEP 2 — Cuatro módulos ─── */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .module-tile {
+    background: var(--tour-bg-soft);
+    border: 1px solid var(--tour-border-default);
+    border-radius: 8px;
+    padding: 10px 12px;
+    transition: all 240ms var(--tour-ease-natural);
+    position: relative;
+  }
+  .module-tile-name {
+    font-size: 12px; font-weight: 600;
+    color: var(--tour-text-primary);
+    margin-bottom: 3px;
+  }
+  .module-tile-desc {
+    font-size: 11px; color: var(--tour-text-muted);
+    line-height: 1.4;
+  }
+  .tour-step.active[data-step="2"] .module-tile {
+    animation: tileIn 380ms var(--tour-ease-natural) backwards;
+  }
+  .tour-step.active[data-step="2"] .module-tile:nth-child(1) { animation-delay: 200ms; }
+  .tour-step.active[data-step="2"] .module-tile:nth-child(2) { animation-delay: 280ms; }
+  .tour-step.active[data-step="2"] .module-tile:nth-child(3) { animation-delay: 360ms; }
+  .tour-step.active[data-step="2"] .module-tile:nth-child(4) { animation-delay: 440ms; }
+  @keyframes tileIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .module-tile.highlighted {
+    background: var(--tour-bg-card);
+    border-color: var(--tour-accent);
+    box-shadow: 0 0 0 2px rgba(71, 85, 105, 0.12);
+  }
+
+  /* ─── STEP 3 — Setup ─── */
+  .setup-mock {
+    background: var(--tour-bg-soft);
+    border: 1px solid var(--tour-border-default);
+    border-radius: var(--tour-radius-small);
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .setup-mock-label {
+    font-size: 10px; color: var(--tour-text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .setup-chips {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    margin-bottom: 14px;
+  }
+  .setup-chip {
+    padding: 5px 11px;
+    background: var(--tour-bg-card);
+    border: 1px solid var(--tour-border-strong);
+    border-radius: 4px;
+    font-size: 11.5px;
+    color: var(--tour-text-primary);
+    transition: all 200ms var(--tour-ease-natural);
+  }
+  .setup-chip.tap-target {
+    position: relative;
+  }
+  .setup-cursor {
+    position: absolute;
+    width: 18px; height: 18px;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 5;
+  }
+  .setup-input-mock {
+    background: var(--tour-bg-card);
+    border: 1px solid var(--tour-border-strong);
+    border-radius: 16px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--tour-text-faint);
+    margin-top: 4px;
+    position: relative;
+  }
+  .setup-input-text {
+    color: var(--tour-text-primary);
+  }
+  .setup-or {
+    text-align: center;
+    font-size: 10px; color: var(--tour-text-muted);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 600;
+    margin: 10px 0 8px;
+    position: relative;
+  }
+  .setup-or::before, .setup-or::after {
+    content: '';
+    position: absolute; top: 50%;
+    width: 30%; height: 1px;
+    background: var(--tour-border-default);
+  }
+  .setup-or::before { left: 0; }
+  .setup-or::after { right: 0; }
+
+  .setup-sub-label {
+    margin-top: 12px;
+    color: var(--tour-accent);
+    opacity: 0;
+  }
+  .setup-subchips {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    min-height: 28px;
+  }
+  .setup-subchip {
+    padding: 5px 11px;
+    background: var(--tour-bg-card);
+    border: 1px solid var(--tour-accent);
+    border-radius: 4px;
+    font-size: 11.5px;
+    color: var(--tour-text-primary);
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  /* Setup animation sequence — 6s loop, coordinated */
+  .tour-step.active[data-step="3"] .setup-cursor {
+    animation: cursorTap 6000ms var(--tour-ease-natural) 400ms infinite;
+  }
+  .tour-step.active[data-step="3"] .setup-chip.tap-target {
+    animation: chipPulse 6000ms var(--tour-ease-natural) 400ms infinite;
+  }
+  .tour-step.active[data-step="3"] .setup-sub-label {
+    animation: subLabelIn 6000ms var(--tour-ease-natural) 400ms infinite;
+  }
+  .tour-step.active[data-step="3"] .setup-subchip {
+    animation: subchipIn 6000ms var(--tour-ease-natural) infinite;
+  }
+  .tour-step.active[data-step="3"] .setup-subchip.sub-1 { animation-delay: 1500ms; }
+  .tour-step.active[data-step="3"] .setup-subchip.sub-2 { animation-delay: 1700ms; }
+  .tour-step.active[data-step="3"] .setup-subchip.sub-3 { animation-delay: 1900ms; }
+
+  @keyframes cursorTap {
+    0%, 3% { opacity: 0; transform: translate(-30px, -10px) scale(0.85); }
+    8% { opacity: 1; transform: translate(0, 0) scale(1); }
+    11% { transform: translate(0, 0) scale(0.85); }
+    13%, 18% { opacity: 1; transform: translate(0, 0) scale(1); }
+    22%, 100% { opacity: 0; }
+  }
+  @keyframes chipPulse {
+    0%, 8% { background: var(--tour-bg-card); border-color: var(--tour-border-strong); color: var(--tour-text-primary); }
+    13%, 80% { background: var(--tour-accent); border-color: var(--tour-accent); color: white; }
+    87%, 100% { background: var(--tour-bg-card); border-color: var(--tour-border-strong); color: var(--tour-text-primary); }
+  }
+  @keyframes subLabelIn {
+    0%, 18% { opacity: 0; transform: translateY(-3px); }
+    22%, 80% { opacity: 1; transform: translateY(0); }
+    87%, 100% { opacity: 0; transform: translateY(-3px); }
+  }
+  @keyframes subchipIn {
+    0%, 22% { opacity: 0; transform: translateY(-4px); }
+    28%, 80% { opacity: 1; transform: translateY(0); }
+    87%, 100% { opacity: 0; transform: translateY(-4px); }
+  }
+
+  /* ─── STEP 4 — Scroll mockup ─── */
+  .step4-mockup-wrap {
+    position: relative;
+    max-width: 260px;
+    margin: 0 auto 16px;
+  }
+  .phone-frame {
+    background: #1E293B;
+    border-radius: 22px;
+    padding: 6px 6px 8px;
+  }
+  .phone-screen {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+  }
+  .phone-header {
+    background: #1B263B;
+    padding: 6px 9px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .phone-logo {
+    width: 18px; height: 18px;
+    background: #0F1620;
+    border: 1px solid #2A3A52;
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--tour-font-mono);
+    color: #E0E1DD;
+    font-size: 8px; font-weight: 500;
+  }
+  .phone-title {
+    font-size: 10px; font-weight: 500; color: white;
+    flex: 1;
+  }
+  .phone-lang {
+    padding: 1px 4px;
+    background: #C09A5C;
+    border-radius: 2px;
+    font-family: var(--tour-font-mono);
+    font-size: 7px; font-weight: 500;
+    color: #0F1620;
+  }
+  .phone-tabs {
+    padding: 5px 9px 3px;
+    display: flex; border-bottom: 1px solid #D8DAD3;
+    gap: 7px;
+  }
+  .phone-tab {
+    font-size: 9px; color: #778DA9;
+    padding-bottom: 2px;
+  }
+  .phone-tab.active {
+    color: #1B263B; font-weight: 500;
+    border-bottom: 2px solid #C09A5C;
+  }
+  .phone-planbar {
+    padding: 4px 9px;
+    display: flex; justify-content: space-between;
+    font-size: 8px; color: #778DA9;
+    border-bottom: 1px solid #D8DAD3;
+    background: #FBFAF6;
+  }
+  .phone-newbtn {
+    font-family: var(--tour-font-mono);
+    font-size: 7px;
+    padding: 1px 4px;
+    border: 1px solid #1B263B;
+    border-radius: 2px;
+    color: #1B263B;
+  }
+  .phone-content {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+    background: #F4F5F2;
+  }
+  .phone-scroll {
+    height: 100%;
+    overflow-y: scroll;
+    padding: 8px 9px 14px;
+    scrollbar-width: none;
+  }
+  .phone-scroll::-webkit-scrollbar { display: none; }
+  .phone-msg-user {
+    background: #1B263B;
+    color: white;
+    border-radius: 9px 9px 3px 9px;
+    padding: 6px 9px;
+    max-width: 75%;
+    margin-left: auto;
+    font-family: var(--tour-font-mono);
+    font-size: 9px;
+    line-height: 1.4;
+    margin-bottom: 7px;
+  }
+  .phone-msg-ai {
+    background: white;
+    border: 1px solid #D8DAD3;
+    border-left: 3px solid #C09A5C;
+    border-radius: 3px 9px 9px 9px;
+    padding: 7px 9px;
+    margin-bottom: 7px;
+    max-width: 90%;
+    font-size: 9.5px;
+    color: #1B263B;
+    line-height: 1.5;
+  }
+  .phone-msg-ai-label {
+    font-family: var(--tour-font-mono);
+    font-size: 8px; font-weight: 500;
+    color: #C09A5C;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+  .phone-msg-ai p { margin: 2px 0; }
+  .phone-msg-ai .meta { font-size: 8.5px; color: #5F5E5A; }
+  .phone-input-bar {
+    background: #FBFAF6;
+    border-top: 1px solid #D8DAD3;
+    padding: 6px 8px;
+    display: flex; gap: 5px;
+    align-items: center;
+    margin: 0 -9px -14px;
+  }
+  .phone-input-field {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid #D8DAD3;
+    border-radius: 12px;
+    font-size: 9px;
+    color: #778DA9;
+    background: white;
+  }
+  .phone-input-send {
+    width: 22px; height: 22px;
+    background: #1B263B;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .frame-scrollbar-track {
+    position: absolute;
+    right: -1px; top: 6px; bottom: 8px;
+    width: 6px;
+    background: rgba(15, 23, 42, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .frame-scrollbar-thumb {
+    position: absolute;
+    right: 0; left: 0; top: 0;
+    height: 38%;
+    background: var(--tour-alert);
+    border-radius: 3px;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18);
+  }
+
+  .scroll-hint-arrow {
+    position: absolute;
+    right: -52px; top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    animation: scrollHintPulse 1.5s ease-in-out infinite;
+  }
+  .scroll-hint-label {
+    position: absolute;
+    right: -90px;
+    top: 50%;
+    transform: translateY(calc(-50% + 32px));
+    background: var(--tour-alert);
+    color: white;
+    font-size: 9px; font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+    animation: scrollHintLabelPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes scrollHintPulse {
+    0%, 100% { transform: translateY(-50%) translateX(0); }
+    50% { transform: translateY(-50%) translateX(-5px); }
+  }
+  @keyframes scrollHintLabelPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
+  }
+
+  /* Step 4 dual scroll explanation */
+  .scroll-callout {
+    background: var(--tour-bg-soft);
+    border-radius: var(--tour-radius-small);
+    padding: 10px 12px;
+    border: 1px solid var(--tour-border-default);
+    margin-bottom: 7px;
+    display: flex; gap: 9px;
+    align-items: flex-start;
+  }
+  .scroll-callout.alert {
+    background: var(--tour-alert-soft-bg);
+    border-color: var(--tour-alert-soft-border);
+  }
+  .scroll-callout-bar {
+    width: 4px;
+    flex-shrink: 0; align-self: stretch;
+    background: var(--tour-border-strong);
+    border-radius: 2px;
+  }
+  .scroll-callout.alert .scroll-callout-bar {
+    background: var(--tour-alert);
+  }
+  .scroll-callout-text {
+    font-size: 12px;
+    color: var(--tour-text-body);
+    line-height: 1.5;
+  }
+  .scroll-callout-text strong { color: var(--tour-text-primary); }
+
+  /* ─── STEP 5 — Follow-up examples ─── */
+  .followup-examples {
+    background: var(--tour-bg-soft);
+    border: 1px solid var(--tour-border-default);
+    border-radius: var(--tour-radius-small);
+    padding: 11px 13px;
+  }
+  .followup-examples-label {
+    font-size: 11.5px;
+    color: var(--tour-text-muted);
+    line-height: 1.5;
+    margin-bottom: 6px;
+  }
+  .followup-example {
+    font-size: 12px;
+    color: var(--tour-text-primary);
+    line-height: 1.5;
+    padding: 4px 0;
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  .tour-step.active[data-step="5"] .followup-example {
+    animation: exampleSlideIn 380ms var(--tour-ease-natural) both;
+  }
+  .tour-step.active[data-step="5"] .followup-example.fe-1 { animation-delay: 500ms; }
+  .tour-step.active[data-step="5"] .followup-example.fe-2 { animation-delay: 950ms; }
+  .tour-step.active[data-step="5"] .followup-example.fe-3 { animation-delay: 1400ms; }
+  @keyframes exampleSlideIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .followup-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 10px;
+    padding: 4px 9px;
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    border-radius: 12px;
+    font-size: 11px; font-weight: 500;
+    color: #047857;
+    opacity: 0;
+  }
+  .tour-step.active[data-step="5"] .followup-badge {
+    animation: badgeIn 380ms var(--tour-ease-natural) 1900ms both;
+  }
+  @keyframes badgeIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ─── STEP 6 — New consultation: full phone mockup with zoom-in animation ─── */
+  .step6-mockup-wrap {
+    max-width: 260px;
+    margin: 28px auto 4px;
+    perspective: 1000px;
+  }
+  .step6-phone-frame {
+    background: #1E293B;
+    border-radius: 22px;
+    padding: 6px 6px 8px;
+  }
+  .step6-phone-screen {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    transform-origin: 18% 62%;
+  }
+  .step6-fade { transition: opacity 600ms var(--tour-ease-natural); }
+  .step6-target {
+    transition: transform 600ms var(--tour-ease-natural), box-shadow 600ms var(--tour-ease-natural);
+    transform-origin: center;
+    display: inline-block;
+  }
+  .step6-planbar {
+    transition: background 600ms var(--tour-ease-natural);
+  }
+
+  /* 7s loop — wide shot → zoom into button → hold → return */
+  .tour-step.active[data-step="6"] .step6-phone-screen {
+    animation: phoneZoom 7000ms var(--tour-ease-natural) 600ms infinite;
+  }
+  .tour-step.active[data-step="6"] .step6-fade {
+    animation: fadeOutOnZoom 7000ms var(--tour-ease-natural) 600ms infinite;
+  }
+  .tour-step.active[data-step="6"] .step6-target {
+    animation: buttonHighlight 7000ms var(--tour-ease-natural) 600ms infinite;
+  }
+  .tour-step.active[data-step="6"] .step6-planbar {
+    animation: planbarHighlight 7000ms var(--tour-ease-natural) 600ms infinite;
+  }
+
+  @keyframes phoneZoom {
+    0%, 14% { transform: scale(1); }
+    35%, 71% { transform: scale(1.7); }
+    92%, 100% { transform: scale(1); }
+  }
+  @keyframes fadeOutOnZoom {
+    0%, 14% { opacity: 1; }
+    35%, 71% { opacity: 0.18; }
+    92%, 100% { opacity: 1; }
+  }
+  @keyframes planbarHighlight {
+    0%, 14% { background: #FBFAF6; }
+    35%, 71% { background: #FFF5F5; }
+    92%, 100% { background: #FBFAF6; }
+  }
+  @keyframes buttonHighlight {
+    0%, 14% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    35% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    45% { transform: scale(1.08); box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25); }
+    55% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+    65% { transform: scale(1.08); box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25); }
+    71%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  }
+
+  /* ─── External trigger button (?) ─── */
+  .tour-trigger {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    width: 44px; height: 44px;
+    background: var(--tour-text-primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 8px 24px -8px rgba(15, 23, 42, 0.3);
+    display: none;
+    align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 500;
+    z-index: 9998;
+    transition: transform 160ms var(--tour-ease-natural), background 160ms var(--tour-ease-natural);
+    font-family: inherit;
+  }
+  .tour-trigger:hover { background: var(--tour-accent-strong); transform: scale(1.05); }
+  .tour-trigger.visible { display: none; }
+  body[data-tab="home"] .tour-trigger.visible { display: flex; }
+
+  /* ─── Demo page (only visible on standalone) ─── */
+  @media (max-width: 380px) {
+    .tour-container { padding: 18px 14px 14px; max-width: 100%; }
+    .tour-card { padding: 16px 16px 14px; }
+    .tour-title { font-size: 17px; }
+    .tour-body { font-size: 13.5px; }
+    .scroll-hint-arrow { right: -42px; }
+    .scroll-hint-label { right: -78px; font-size: 8px; }
+  }
+/* ═══ LASERRX TOUR — END ═══ */
+
   </style>
 </head>
 <body data-tab="home">
@@ -1358,7 +2118,7 @@ const L = {
       validate: {lbl:'Next step',  title:'Parameter calculator',desc:'Give me the exact numbers',  tab:'calculator'},
       calculator:{lbl:'Try also',  title:'Laser protocols',     desc:'How do I use it for X?',     tab:'protocols'}
     },
-    upg:{title:"You've used your free consultation",desc:'Upgrade to keep using LaserRx AI',continueWith:'Continue with',pro:'Pro · $9.99/mo',elite:'See Elite plan'},newConsult:'NEW CONSULTATION',,
+    upg:{title:"You've used your free consultation",desc:'Upgrade to keep using LaserRx AI',continueWith:'Continue with',pro:'Pro · $9.99/mo',elite:'See Elite plan'},newConsult:'NEW QUERY',
     welcome:{
       devices:'Hi! I\'ll help you identify your laser device.\n<em>Responding in English · change language from Home anytime</em>\n\nWhat device would you like to identify?',
       protocols:'Hi! I\'ll help you find the right laser protocol.\n<em>Responding in English · change language from Home anytime</em>\n\nWhat procedure are you looking for?',
@@ -3000,5 +3760,403 @@ function toggleNight(){
   }catch(e){}
 })();
 </script>
+
+<!-- ═══ LASERRX TOUR — START ═══ -->
+<button class="tour-trigger" id="tourTrigger" onclick="LaserRxTour.show()" aria-label="Abrir guía rápida" title="Guía rápida">?</button>
+
+<!-- Tour Overlay -->
+<div class="tour-overlay" id="tourOverlay" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+
+  <div class="tour-container">
+
+    <button class="tour-close" onclick="LaserRxTour.hide()" aria-label="Cerrar guía">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M2 2 L12 12 M12 2 L2 12"/>
+      </svg>
+    </button>
+
+    <div class="tour-header">
+      <div class="tour-header-title">Guía rápida · <span id="tourCurrent">1</span> / 6</div>
+      <div class="tour-stepper" id="tourStepper" role="tablist">
+        <button class="tour-dot active" data-step="1" aria-label="Paso 1"></button>
+        <button class="tour-dot" data-step="2" aria-label="Paso 2"></button>
+        <button class="tour-dot" data-step="3" aria-label="Paso 3"></button>
+        <button class="tour-dot" data-step="4" aria-label="Paso 4"></button>
+        <button class="tour-dot" data-step="5" aria-label="Paso 5"></button>
+        <button class="tour-dot" data-step="6" aria-label="Paso 6"></button>
+      </div>
+      <div style="width: 32px;"></div>
+    </div>
+
+    <div class="tour-card" id="tourCard">
+
+      <!-- STEP 1: Bienvenida -->
+      <div class="tour-step active" data-step="1">
+        <div class="step1-logo-wrap">
+          <div class="step1-logo">Rx</div>
+        </div>
+        <div class="tour-eyebrow">Bienvenida</div>
+        <h2 class="tour-title" id="tourTitle">Tu asistente clínico de láser dental</h2>
+        <p class="tour-body">Especializado en equipos láser dentales — diodos, erbios, Er,Cr:YSGG, Er:YAG y PBM. Consulta protocolos, valida parámetros y calcula fluencias en segundos.</p>
+        <p class="tour-footer-note">Esta guía rápida toma menos de un minuto.</p>
+      </div>
+
+      <!-- STEP 2: Cuatro módulos -->
+      <div class="tour-step" data-step="2">
+        <div class="tour-eyebrow">Cuatro módulos</div>
+        <h2 class="tour-title">Elige el tipo de consulta</h2>
+        <p class="tour-body">Cada módulo está optimizado para una pregunta clínica distinta:</p>
+        <div class="modules-grid" id="modulesGrid">
+          <div class="module-tile">
+            <div class="module-tile-name">Devices</div>
+            <div class="module-tile-desc">Tu equipo, sus tips, capacidades.</div>
+          </div>
+          <div class="module-tile">
+            <div class="module-tile-name">Protocols</div>
+            <div class="module-tile-desc">Parámetros clínicos paso a paso.</div>
+          </div>
+          <div class="module-tile">
+            <div class="module-tile-name">Validate</div>
+            <div class="module-tile-desc">¿Lo que voy a hacer es seguro?</div>
+          </div>
+          <div class="module-tile">
+            <div class="module-tile-name">Calculator</div>
+            <div class="module-tile-desc">Fluencia, energía, tiempo.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Setup -->
+      <div class="tour-step" data-step="3">
+        <div class="tour-eyebrow">Setup</div>
+        <h2 class="tour-title">Tap, o escribe libre</h2>
+        <p class="tour-body">Cada módulo te guía con preguntas tappeables — eliges procedimiento, equipo y condición clínica con un toque, sin escribir nada técnico. <strong>¿Quieres ir directo al grano?</strong> También puedes escribir tu consulta libre en el campo de texto de abajo.</p>
+        <div class="setup-mock">
+          <div class="setup-mock-label">Procedimientos</div>
+          <div class="setup-chips">
+            <span class="setup-chip">Endodoncia</span>
+            <span class="setup-chip tap-target">
+              Periodoncia
+              <svg class="setup-cursor" viewBox="0 0 24 24" fill="none" style="left: calc(100% - 16px); top: 100%; margin-top: 2px;">
+                <path d="M5 3 L5 18 L9 14 L11 19 L14 18 L12 13 L18 13 Z" fill="#0F172A" stroke="white" stroke-width="1.2"/>
+              </svg>
+            </span>
+            <span class="setup-chip">Implantes</span>
+            <span class="setup-chip">PBM</span>
+          </div>
+          <div class="setup-mock-label setup-sub-label">Tratamiento</div>
+          <div class="setup-subchips">
+            <span class="setup-subchip sub-1">Periimplantitis</span>
+            <span class="setup-subchip sub-2">Gingivectomía</span>
+            <span class="setup-subchip sub-3">Bolsa periodontal</span>
+          </div>
+          <div class="setup-or">o</div>
+          <div class="setup-input-mock">Escribe tu consulta directamente…</div>
+        </div>
+      </div>
+
+      <!-- STEP 4: Scroll -->
+      <div class="tour-step" data-step="4">
+        <div class="tour-eyebrow alert">Importante — dos scrolls distintos</div>
+        <h2 class="tour-title">El input aparece al scrollear el borde derecho</h2>
+
+        <div class="step4-mockup-wrap">
+          <div class="phone-frame">
+            <div class="phone-screen">
+              <div class="phone-header">
+                <div class="phone-logo">Rx</div>
+                <div class="phone-title">LaserRx</div>
+                <div class="phone-lang">EN</div>
+              </div>
+              <div class="phone-tabs">
+                <span class="phone-tab active">Protocols</span>
+                <span class="phone-tab">Validate</span>
+                <span class="phone-tab">Calculator</span>
+              </div>
+              <div class="phone-planbar">
+                <span class="phone-newbtn">NUEVA CONSULTA</span>
+                <span>Plan: <strong style="color: #1B263B;">Free</strong> · 19</span>
+              </div>
+              <div class="phone-content">
+                <div class="phone-scroll" id="phoneScroll">
+                  <div class="phone-msg-user">Endodoncia · Er,Cr:YSGG 2780nm</div>
+                  <div class="phone-msg-ai">
+                    <div class="phone-msg-ai-label">Protocolo</div>
+                    <p><strong>Fase 0 — Activación en cámara</strong></p>
+                    <p class="meta">Potencia: 1.5 W · Frec: 30 Hz · H Mode 60 µs · RFTP5 500 µm · 45–60 s</p>
+                    <p><strong>Fase 1 — Limpieza intracanal</strong></p>
+                    <p class="meta">1.25 W · RFT2 200 µm · Spray 90/30 · 4 ciclos a 2 mm/s</p>
+                    <p><strong>Fase 2 — Activación fotoacústica</strong></p>
+                    <p class="meta">Mismo tip. Spray apagado. NaOCl → EDTA → agua. 4 ciclos cada uno.</p>
+                    <p class="meta">Conductos secos antes de Fase 3 con diodo. Movimiento continuo.</p>
+                  </div>
+                  <div class="phone-input-bar">
+                    <div class="phone-input-field">Pregunta de seguimiento...</div>
+                    <div class="phone-input-send">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="frame-scrollbar-track">
+            <div class="frame-scrollbar-thumb" id="frameScrollbarThumb"></div>
+          </div>
+
+          <div class="scroll-hint-arrow">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+              <path d="M38 22 L10 22 M18 14 L8 22 L18 30" stroke="#DC2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="scroll-hint-label">Este scroll</div>
+        </div>
+
+        <div class="scroll-callout">
+          <div class="scroll-callout-bar"></div>
+          <div class="scroll-callout-text"><strong>Centro</strong> — mueve los mensajes (releer respuesta).</div>
+        </div>
+        <div class="scroll-callout alert">
+          <div class="scroll-callout-bar"></div>
+          <div class="scroll-callout-text"><strong>Borde derecho</strong> — revela el campo de pregunta.</div>
+        </div>
+      </div>
+
+      <!-- STEP 5: Follow-up -->
+      <div class="tour-step" data-step="5">
+        <div class="tour-eyebrow">Follow-up gratuito</div>
+        <h2 class="tour-title">Pregunta de seguimiento sin costo</h2>
+        <p class="tour-body">Una vez tienes respuesta, los <strong>follow-ups relacionados no consumen créditos</strong>. Pregunta variaciones, dudas, ajustes — el agente mantiene el contexto.</p>
+        <div class="followup-examples">
+          <div class="followup-examples-label">Ejemplos:</div>
+          <div class="followup-example fe-1">"¿Y si uso un tip de 200 µm en vez de 300?"</div>
+          <div class="followup-example fe-2">"¿Cambia el protocolo si el conducto está calcificado?"</div>
+          <div class="followup-example fe-3">"¿Qué pasa si bajo la potencia a 1 W?"</div>
+          <div class="followup-badge">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7 L6 10 L11 4"/></svg>
+            0 créditos consumidos
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 6: Nueva consulta -->
+      <div class="tour-step" data-step="6">
+        <div class="tour-eyebrow">Empezar de cero</div>
+        <h2 class="tour-title">¿Otro caso clínico? Nueva consulta</h2>
+        <p class="tour-body">El botón <strong>"NUEVA CONSULTA"</strong> vive en el plan-bar — debajo de las pestañas. Resetea el módulo y te deja listo para una pregunta totalmente distinta. Cada nueva consulta consume 1 crédito.</p>
+
+        <div class="step6-mockup-wrap">
+          <div class="step6-phone-frame">
+            <div class="step6-phone-screen" id="step6Screen">
+              <div class="phone-header step6-fade">
+                <div class="phone-logo">Rx</div>
+                <div class="phone-title">LaserRx</div>
+                <div class="phone-lang">EN</div>
+              </div>
+              <div class="phone-tabs step6-fade">
+                <span class="phone-tab active">Protocols</span>
+                <span class="phone-tab">Validate</span>
+                <span class="phone-tab">Calculator</span>
+              </div>
+              <div class="phone-planbar step6-planbar">
+                <span class="phone-newbtn step6-target">NUEVA CONSULTA</span>
+                <span class="step6-fade">Plan: <strong style="color: #1B263B;">Free</strong> · 19</span>
+              </div>
+              <div class="phone-content step6-fade" style="height: 80px;">
+                <div style="padding: 10px 9px; font-size: 9px; color: #778DA9; font-style: italic;">Mensajes del chat...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tour-actions">
+      <button class="tour-btn tour-btn-secondary" id="tourBtnPrev" onclick="LaserRxTour.prev()" disabled>Anterior</button>
+      <button class="tour-btn tour-btn-primary" id="tourBtnNext" onclick="LaserRxTour.next()">Siguiente</button>
+    </div>
+
+  </div>
+</div>
+<!-- ═══ LASERRX TOUR — END ═══ -->
+
+
+<!-- ═══ LASERRX TOUR JS — START ═══ -->
+<script>
+(function(){
+  const TOTAL_STEPS = 6;
+  const STORAGE_KEY = 'laserrx_tour_seen_v1';
+  let currentStep = 1;
+  let scrollAnimationId = null;
+
+  const overlay = document.getElementById('tourOverlay');
+  const stepper = document.getElementById('tourStepper');
+  const counter = document.getElementById('tourCurrent');
+  const btnPrev = document.getElementById('tourBtnPrev');
+  const btnNext = document.getElementById('tourBtnNext');
+  const trigger = document.getElementById('tourTrigger');
+
+  function setStep(n) {
+    if (n < 1 || n > TOTAL_STEPS) return;
+    currentStep = n;
+    document.querySelectorAll('.tour-step').forEach(el => {
+      const isTarget = parseInt(el.dataset.step) === n;
+      // Always remove first; force reflow on target so CSS animations restart
+      el.classList.remove('active');
+      if (isTarget) {
+        // Force reflow — this restarts all CSS animations defined on .active
+        void el.offsetWidth;
+        el.classList.add('active');
+      }
+    });
+    counter.textContent = n;
+    document.querySelectorAll('.tour-dot').forEach(d => {
+      const i = parseInt(d.dataset.step);
+      d.classList.remove('active', 'completed');
+      if (i === n) d.classList.add('active');
+      else if (i < n) d.classList.add('completed');
+    });
+    btnPrev.disabled = (n === 1);
+    btnNext.textContent = (n === TOTAL_STEPS) ? 'Empezar' : 'Siguiente';
+    if (n === 4) startScrollAnimation();
+    else stopScrollAnimation();
+    if (n === 2) startModuleHighlight();
+    else stopModuleHighlight();
+  }
+
+  // ─── Step 4: scroll loop ───
+  function startScrollAnimation() {
+    stopScrollAnimation();
+    const el = document.getElementById('phoneScroll');
+    const thumb = document.getElementById('frameScrollbarThumb');
+    if (!el || !thumb) return;
+    el.scrollTop = 0;
+    let dir = 1;
+    scrollAnimationId = setInterval(() => {
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 0) return;
+      el.scrollTop += dir * 1.2;
+      if (el.scrollTop >= max) dir = -1;
+      if (el.scrollTop <= 0) dir = 1;
+      const trackH = 100 - 38;
+      const pct = (el.scrollTop / max) * trackH;
+      thumb.style.top = pct + '%';
+    }, 45);
+  }
+  function stopScrollAnimation() {
+    if (scrollAnimationId) { clearInterval(scrollAnimationId); scrollAnimationId = null; }
+  }
+
+  // ─── Step 2: module highlight rotation ───
+  let moduleHighlightId = null;
+  let moduleHighlightIdx = 0;
+  function startModuleHighlight() {
+    stopModuleHighlight();
+    const tiles = document.querySelectorAll('#modulesGrid .module-tile');
+    if (!tiles.length) return;
+    setTimeout(() => {
+      moduleHighlightIdx = 0;
+      moduleHighlightId = setInterval(() => {
+        tiles.forEach(t => t.classList.remove('highlighted'));
+        tiles[moduleHighlightIdx].classList.add('highlighted');
+        moduleHighlightIdx = (moduleHighlightIdx + 1) % tiles.length;
+      }, 1800);
+    }, 700);
+  }
+  function stopModuleHighlight() {
+    if (moduleHighlightId) { clearInterval(moduleHighlightId); moduleHighlightId = null; }
+    document.querySelectorAll('.module-tile').forEach(t => t.classList.remove('highlighted'));
+  }
+
+  // ─── Public API ───
+  const LaserRxTour = {
+    show() {
+      overlay.classList.add('visible');
+      setStep(1);
+      document.body.style.overflow = 'hidden';
+    },
+    hide() {
+      overlay.classList.remove('visible');
+      stopScrollAnimation();
+      stopModuleHighlight();
+      document.body.style.overflow = '';
+      try { localStorage.setItem(STORAGE_KEY, '1'); } catch(e){}
+    },
+    next() {
+      if (currentStep === TOTAL_STEPS) { this.hide(); return; }
+      setStep(currentStep + 1);
+    },
+    prev() {
+      if (currentStep > 1) setStep(currentStep - 1);
+    },
+    goToStep(n) { setStep(n); },
+    isFirstVisit() {
+      try { return !localStorage.getItem(STORAGE_KEY); } catch(e){ return true; }
+    },
+    reset() {
+      try { localStorage.removeItem(STORAGE_KEY); } catch(e){}
+    }
+  };
+  window.LaserRxTour = LaserRxTour;
+
+  // ─── Stepper dots click ───
+  stepper.addEventListener('click', (e) => {
+    const dot = e.target.closest('.tour-dot');
+    if (!dot) return;
+    const step = parseInt(dot.dataset.step);
+    if (step) setStep(step);
+  });
+
+  // ─── Keyboard navigation ───
+  document.addEventListener('keydown', (e) => {
+    if (!overlay.classList.contains('visible')) return;
+    if (e.key === 'Escape') LaserRxTour.hide();
+    else if (e.key === 'ArrowRight') LaserRxTour.next();
+    else if (e.key === 'ArrowLeft') LaserRxTour.prev();
+  });
+
+  // ─── Click backdrop to close ───
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) LaserRxTour.hide();
+  });
+
+  // ─── Touch swipe between steps (mobile) ───
+  let touchStartX = 0;
+  overlay.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  overlay.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(dx) < 50) return;
+    if (dx < 0) LaserRxTour.next();
+    else LaserRxTour.prev();
+  }, { passive: true });
+
+  // ─── Auto-show logic ───
+  function init() {
+    const params = new URLSearchParams(window.location.search);
+    const forceShow = params.get('tour') === '1';
+    const forceReset = params.get('tourreset') === '1';
+    if (forceReset) LaserRxTour.reset();
+    // Always show "?" trigger; CSS controls visibility per tab (only on home)
+    if (trigger) trigger.classList.add('visible');
+    // Auto-show on first visit, or if forced via URL
+    if (forceShow) {
+      LaserRxTour.show();
+    } else if (LaserRxTour.isFirstVisit()) {
+      setTimeout(() => LaserRxTour.show(), 800);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+<!-- ═══ LASERRX TOUR JS — END ═══ -->
+
 </body>
 </html>
