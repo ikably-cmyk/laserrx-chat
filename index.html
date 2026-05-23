@@ -1851,7 +1851,57 @@
   }
 /* ═══ LASERRX TOUR — END ═══ */
 
-  </style>
+  
+/* ─── PBM (Module 05) ─── */
+.home-tile.t-pbm{background:linear-gradient(135deg,#1B263B 0%,#2d4a6b 100%);color:#fff;position:relative;border:1px solid #2d4a6b}
+.home-tile.t-pbm .tile-num{color:#a8c0d8}
+.home-tile.t-pbm .tile-name{color:#fff}
+.home-tile.t-pbm .tile-desc{color:#d4dde8}
+.home-tile.t-pbm.locked{background:linear-gradient(135deg,#3a3a3a 0%,#555 100%);opacity:.72;cursor:not-allowed}
+.home-tile.t-pbm.locked .tile-num,
+.home-tile.t-pbm.locked .tile-name,
+.home-tile.t-pbm.locked .tile-desc{color:#bbb}
+.tile-badge-new{display:inline-block;padding:1px 6px;border-radius:8px;background:#22c55e;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.5px;margin-left:6px;vertical-align:middle}
+.tile-lock{position:absolute;top:10px;right:12px;font-size:18px;line-height:1}
+.tile-lock.hidden{display:none}
+:root{--pbm:#2d4a6b}
+
+/* PBM setup area */
+.pbm-setup{padding:12px 4px}
+.pbm-setup-section{margin-bottom:14px}
+.pbm-section-title{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--steel);margin-bottom:6px;font-family:'Space Mono',monospace}
+.pbm-area-chips{display:flex;gap:8px;flex-wrap:wrap}
+.pbm-area-chip{padding:8px 14px;border:1px solid #d6dde5;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;display:flex;flex-direction:column;align-items:flex-start;min-width:90px}
+.pbm-area-chip.sel{background:#1B263B;color:#fff;border-color:#1B263B}
+.pbm-area-chip.disabled{opacity:.55;cursor:not-allowed;background:#f4f5f7}
+.pbm-area-chip-soon{font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:#999;margin-top:2px}
+.pbm-area-chip.sel .pbm-area-chip-soon{color:#a8c0d8}
+.pbm-preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pbm-preset{padding:8px 10px;border:1px solid #d6dde5;border-radius:8px;background:#fff;cursor:pointer;font-size:12px;line-height:1.3}
+.pbm-preset.sel{background:#1B263B;color:#fff;border-color:#1B263B}
+.pbm-preset-name{font-weight:600;font-size:12px}
+.pbm-preset-wl{font-size:10px;color:var(--steel);font-family:'Space Mono',monospace;margin-top:2px}
+.pbm-preset.sel .pbm-preset-wl{color:#a8c0d8}
+.pbm-preset.preset-other{background:#f4f5f7;border-style:dashed;grid-column:1/-1}
+.pbm-preset.preset-other.sel{background:#1B263B;color:#fff;border-style:solid}
+.pbm-other-field{width:100%;padding:8px 10px;margin-top:6px;border:1px solid #d6dde5;border-radius:6px;font-size:12px;font-family:inherit}
+.pbm-indication-chips{display:flex;gap:6px;flex-wrap:wrap}
+.pbm-ind-chip{padding:6px 11px;border:1px solid #d6dde5;border-radius:14px;background:#fff;cursor:pointer;font-size:12px}
+.pbm-ind-chip.sel{background:#1B263B;color:#fff;border-color:#1B263B}
+.pbm-notes{width:100%;padding:10px;border:1px solid #d6dde5;border-radius:8px;font-size:13px;font-family:inherit;min-height:54px;resize:vertical}
+.pbm-submit{display:block;width:100%;padding:12px;background:linear-gradient(135deg,#1B263B 0%,#2d4a6b 100%);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;font-family:inherit}
+.pbm-submit:disabled{opacity:.5;cursor:not-allowed}
+.pbm-coming-soon{padding:14px;background:#f4f5f7;border-radius:8px;text-align:center;color:var(--steel);font-size:13px;margin-top:6px;border:1px dashed #d6dde5}
+.pbm-coming-soon-title{font-weight:600;color:#1B263B;margin-bottom:4px}
+
+/* PBM upsell card (Pro-blocked) */
+.upgrade-card.pbm-upsell{border-color:var(--pbm)}
+.upg-pbm-options{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+.upg-pbm-opt{padding:10px;border:1px solid #d6dde5;border-radius:8px;background:#fff}
+.upg-pbm-opt-title{font-weight:700;color:#1B263B;font-size:13px}
+.upg-pbm-opt-price{font-size:12px;color:var(--steel);margin-bottom:6px}
+.upg-pbm-opt-btn{display:block;text-align:center;padding:8px;background:#1B263B;color:#fff!important;text-decoration:none;border-radius:6px;font-size:12px;font-weight:600}
+</style>
 </head>
 <body data-tab="home">
 <div id="emailCaptureOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;padding:20px;overflow-y:auto;font-family:var(--sans);">
@@ -1910,6 +1960,7 @@
   <div class="tab"        data-tab="protocols"  onclick="goTab('protocols')">Protocols</div>
   <div class="tab"        data-tab="validate"   onclick="goTab('validate')">Validate</div>
   <div class="tab"        data-tab="calculator" onclick="goTab('calculator')">Calculator</div>
+  <div class="tab"        data-tab="pbm"        onclick="goTab('pbm')">PBM</div>
 </div>
 
 <div class="plan-bar">
@@ -1956,10 +2007,16 @@
         <div class="tile-name" id="cValName">Validate</div>
         <div class="tile-desc" id="cValDesc">Are my parameters correct?</div>
       </div>
-      <div class="home-tile t-calculator full" onclick="goTab('calculator')">
+      <div class="home-tile t-calculator" onclick="goTab('calculator')">
         <div class="tile-num">MOD · 04</div>
         <div class="tile-name" id="cCalName">Calculator</div>
         <div class="tile-desc" id="cCalDesc">Give me the exact numbers</div>
+      </div>
+      <div class="home-tile t-pbm" id="cPbmTile" onclick="openPbmTab(event)">
+        <div class="tile-num">MOD · 05 <span class="tile-badge-new">NEW</span></div>
+        <div class="tile-name" id="cPbmName">PBM Dental</div>
+        <div class="tile-desc" id="cPbmDesc">Photobiomodulation, LLLT &amp; PDT</div>
+        <div class="tile-lock hidden" id="cPbmLock">🔒</div>
       </div>
     </div>
 
@@ -2053,6 +2110,22 @@
     <div class="messages" id="calMsgs"></div>
   </div>
 
+  <!-- PBM -->
+  <div id="tab-pbm" class="hidden">
+    <div class="mod-header">
+      <div class="mod-header-num">MOD · 05</div>
+      <div class="mod-header-text">
+        <div class="mod-title" id="pbmTitle">PBM Dental</div>
+        <div class="mod-subtitle" id="pbmSub">Photobiomodulation, LLLT &amp; PDT</div>
+      </div>
+      <div class="mod-header-led">
+        <div class="mod-header-led-row"><span class="d"></span>READY</div>
+        <div class="mod-header-session">SESSION · E5-01</div>
+      </div>
+    </div>
+    <div class="messages" id="pbmMsgs"></div>
+  </div>
+
 </div>
 
 <div class="input-bar hidden" id="inputBar">
@@ -2073,6 +2146,12 @@
 </div>
 
 <script>
+  window.LRX_PBM_LINKS = {
+    pbm_usd: "https://buy.stripe.com/5kQaEP9xlcrg7HYdrpdIA0R",
+    pbm_mxn: "https://buy.stripe.com/5kQ3cnbFtbnc1jAevtdIA0S"
+  };
+</script>
+<script>
 const QS    = new URLSearchParams(location.search);
 let EMAIL_RAW = QS.get('email') || '';
 // If no valid email in URL, try localStorage (returning lead capture)
@@ -2085,14 +2164,15 @@ const MOD   = QS.get('module') || '';
 let lang    = 'en';
 let curTab  = 'home';
 let busy    = false;
-const hist  = { devices:[], protocols:[], validate:[], calculator:[] };
+const hist  = { devices:[], protocols:[], validate:[], calculator:[], pbm:[] };
 
 const HOOKS = {
   devices:    'https://laserai.app.n8n.cloud/webhook/laserrx-chat-devices',
   devices_photo: 'https://laserai.app.n8n.cloud/webhook/laserrx-chat-devices-v4',
   protocols:  'https://laserai.app.n8n.cloud/webhook/laserrx-chat-protocols',
   validate:   'https://laserai.app.n8n.cloud/webhook/laserrx-chat-validate',
-  calculator: 'https://laserai.app.n8n.cloud/webhook/laserrx-chat-calculator'
+  calculator: 'https://laserai.app.n8n.cloud/webhook/laserrx-chat-calculator',
+  pbm:        'https://laserai.app.n8n.cloud/webhook/laserrx-chat-pbm'
 };
 
 const L = {
@@ -2104,7 +2184,7 @@ const L = {
     cDevName:'Identify a device',   cDevDesc:'What laser do I have?',
     cProName:'Laser protocols',     cProDesc:'How do I use it for X?',
     cValName:'Validate settings',   cValDesc:'Are my parameters correct?',
-    cCalName:'Parameter calculator',cCalDesc:'Give me the exact numbers',
+    cCalName:'Parameter calculator',cCalDesc:'Give me the exact numbers', cPbmName:'PBM Dental', cPbmDesc:'Photobiomodulation, LLLT & PDT',
     devTitle:'Device Identifier',   devSub:'Identify your laser device',
     proTitle:'Protocol Consultant', proSub:'Find the right protocol',
     valTitle:'Validate Settings',   valSub:'Check your parameters before you treat',
@@ -2160,7 +2240,7 @@ const L = {
     cDevName:'Identificar dispositivo', cDevDesc:'¿Qué láser tengo?',
     cProName:'Protocolos láser',        cProDesc:'¿Cómo lo uso para X?',
     cValName:'Validar parámetros',      cValDesc:'¿Tengo los parámetros correctos?',
-    cCalName:'Calculadora de parámetros',cCalDesc:'Dame los números exactos',
+    cCalName:'Calculadora de parámetros',cCalDesc:'Dame los números exactos', cPbmName:'PBM Dental', cPbmDesc:'Fotobiomodulación, LLLT y PDT',
     devTitle:'Identificador',           devSub:'Identifica tu dispositivo láser',
     proTitle:'Consultor de Protocolos', proSub:'Encuentra el protocolo correcto',
     valTitle:'Validar Parámetros',      valSub:'Verifica tus parámetros antes de tratar',
@@ -2216,7 +2296,7 @@ const L = {
     cDevName:'Identificar dispositivo', cDevDesc:'Qual laser eu tenho?',
     cProName:'Protocolos laser',        cProDesc:'Como uso para X?',
     cValName:'Validar parâmetros',      cValDesc:'Meus parâmetros estão corretos?',
-    cCalName:'Calculadora de parâmetros',cCalDesc:'Me dê os números exatos',
+    cCalName:'Calculadora de parâmetros',cCalDesc:'Me dê os números exatos', cPbmName:'PBM Dental', cPbmDesc:'Fotobiomodulação, LLLT e PDT',
     devTitle:'Identificador',           devSub:'Identifique seu dispositivo laser',
     proTitle:'Consultor de Protocolos', proSub:'Encontre o protocolo certo',
     valTitle:'Validar Parâmetros',      valSub:'Verifique seus parâmetros antes de tratar',
@@ -2272,7 +2352,7 @@ const L = {
     cDevName:'デバイスを識別', cDevDesc:'どのレーザーを持っていますか？',
     cProName:'レーザープロトコル', cProDesc:'どのように使いますか？',
     cValName:'設定を検証', cValDesc:'パラメータは正しいですか？',
-    cCalName:'パラメータ計算機', cCalDesc:'正確な数値を計算',
+    cCalName:'パラメータ計算機', cCalDesc:'正確な数値を計算', cPbmName:'PBM歯科', cPbmDesc:'光生体調節、LLLT、PDT',
     devTitle:'デバイス識別', devSub:'レーザーデバイスを識別',
     proTitle:'プロトコルコンサルタント', proSub:'正しいプロトコルを見つける',
     valTitle:'設定の検証', valSub:'治療前にパラメータを確認',
@@ -2328,7 +2408,7 @@ const L = {
     cDevName:'기기 식별', cDevDesc:'어떤 레이저가 있나요?',
     cProName:'레이저 프로토콜', cProDesc:'어떻게 사용하나요?',
     cValName:'설정 검증', cValDesc:'파라미터가 맞나요?',
-    cCalName:'파라미터 계산기', cCalDesc:'정확한 수치 계산',
+    cCalName:'파라미터 계산기', cCalDesc:'정확한 수치 계산', cPbmName:'PBM 치과', cPbmDesc:'광생체조절, LLLT, PDT',
     devTitle:'기기 식별', devSub:'레이저 기기를 식별하세요',
     proTitle:'프로토콜 컨설턴트', proSub:'올바른 프로토콜 찾기',
     valTitle:'설정 검증', valSub:'치료 전 파라미터를 확인하세요',
@@ -2800,6 +2880,7 @@ function setPlanBar(plan,credits){
   const lp=document.getElementById('lcdPlan');
   if(lc) lc.textContent=isFinite(Number(credits))?Number(credits):'—';
   if(lp) lp.textContent=planLabel;
+  try{applyPbmTileGating(plan);}catch(e){}
 }
 
 // ─── Initialize country from browser as fallback (overridden by backend response) ───
@@ -2827,9 +2908,9 @@ function updateNewConsultBtn(){
 
 function setLang(l){
   lang=l;applyLang();
-  ['devices','protocols','validate','calculator'].forEach(m=>{
+  ['devices','protocols','validate','calculator','pbm'].forEach(m=>{
     hist[m]=[];
-    const ids={devices:'devMsgs',protocols:'proMsgs',validate:'valMsgs',calculator:'calMsgs'};
+    const ids={devices:'devMsgs',protocols:'proMsgs',validate:'valMsgs',calculator:'calMsgs',pbm:'pbmMsgs'};
     $(ids[m]).innerHTML='';
   });
   if(curTab!=='home')initMod(curTab);
@@ -2848,7 +2929,7 @@ function applyLang(){
   $('cDevName').textContent=l.cDevName;$('cDevDesc').textContent=l.cDevDesc;
   $('cProName').textContent=l.cProName;$('cProDesc').textContent=l.cProDesc;
   $('cValName').textContent=l.cValName;$('cValDesc').textContent=l.cValDesc;
-  $('cCalName').textContent=l.cCalName;$('cCalDesc').textContent=l.cCalDesc;
+  $('cCalName').textContent=l.cCalName;$('cCalDesc').textContent=l.cCalDesc; $('cPbmName').textContent=l.cPbmName; $('cPbmDesc').textContent=l.cPbmDesc;
   $('devTitle').textContent=l.devTitle;$('devSub').textContent=l.devSub;
   $('proTitle').textContent=l.proTitle;$('proSub').textContent=l.proSub;
   $('valTitle').textContent=l.valTitle;$('valSub').textContent=l.valSub;
@@ -2860,7 +2941,8 @@ function applyLang(){
 
 function goTab(tab){
   document.querySelectorAll('.tab').forEach(el=>{el.classList.toggle('active',el.dataset.tab===tab);});
-  ['home','devices','protocols','validate','calculator'].forEach(t=>{$(`tab-${t}`).classList.toggle('hidden',t!==tab);});
+  ['home','devices','protocols','validate','calculator','pbm'].forEach(t=>{$(`tab-${t}`).classList.toggle('hidden',t!==tab);});
+  if(tab==='pbm' && !$('pbmMsgs').children.length){ buildPbmSetup(); }
   curTab=tab;
   document.body.dataset.tab=tab;
   updateBreadcrumb(tab);
@@ -2890,15 +2972,16 @@ function updateBreadcrumb(tab){
   const m=$('crumbMod'),n=$('crumbName');
   if(m)m.textContent=info.mod;
   if(n){
-    const titleEl={devices:'devTitle',protocols:'proTitle',validate:'valTitle',calculator:'calTitle'}[tab];
+    const titleEl={devices:'devTitle',protocols:'proTitle',validate:'valTitle',calculator:'calTitle',pbm:'pbmTitle'}[tab];
     n.textContent=(titleEl&&$(titleEl)?$(titleEl).textContent:info.name)||info.name;
   }
 }
 
-function msgEl(mod){return $({devices:'devMsgs',protocols:'proMsgs',validate:'valMsgs',calculator:'calMsgs'}[mod]);}
+function msgEl(mod){return $({devices:'devMsgs',protocols:'proMsgs',validate:'valMsgs',calculator:'calMsgs',pbm:'pbmMsgs'}[mod]);}
 
 function initMod(mod){
   const msgs=msgEl(mod);msgs.innerHTML='';hist[mod]=[];
+  if(mod==='pbm'){pbmState.area='dental';pbmState.preset=null;pbmState.otherDevice='';pbmState.otherArch='';pbmState.indication='';pbmState.indFree='';pbmState.notes='';buildPbmSetup();return;}
   addAI(mod,t('welcome')[mod]);
   if(mod==='protocols')addProtocolSetup();
   else if(mod==='devices')addDeviceSetup();
@@ -3364,6 +3447,380 @@ function buildCalcMessage(){const parts=[];if(calFields.laserType?.value)parts.p
 
 function sendCalculatorForm(){const msg=buildCalcMessage();if(!msg.trim())return;removeChips('calculator');addUser('calculator',msg);hist.calculator.push(`User: ${msg}`);const history=hist.calculator.slice(-12).join('\n');showTyping('calculator');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.calculator,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('calculator');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.calculator.push(`Assistant: ${reply}`);addAI('calculator',reply);addNextCard('calculator');addChips('calculator');done();}).catch(err=>{hideTyping('calculator');addAI('calculator',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});}
 
+// ─── PBM (Module 05) ────────────────────────────────────────────────────
+const PBM = {
+  presets: [
+    // LED clusters (3)
+    { id:'biolux_dent', name:'BioluxPro Dent',  wl:'650 nm intraoral',      arch:'led_cluster' },
+    { id:'biolux_mini', name:'BioluxPro Mini',  wl:'650+850 nm wearable',   arch:'led_cluster' },
+    { id:'biolux_max',  name:'BioluxPro Max',   wl:'650+850 nm pad',        arch:'led_cluster' },
+    // Lasers (8)
+    { id:'epic_10',     name:'Biolase EPIC 10',          wl:'940 nm',                      arch:'laser_handpiece' },
+    { id:'epic_x',      name:'Biolase EPIC X',           wl:'940 nm',                      arch:'laser_handpiece' },
+    { id:'soga_triple', name:'Soga Diodo Triple',        wl:'450 / 650 / 980 nm',          arch:'laser_handpiece' },
+    { id:'pioon_h1',    name:'PIOON H1',                 wl:'980 nm',                      arch:'laser_handpiece' },
+    { id:'fotona_ndyag',name:'Fotona LightWalker Nd:YAG',wl:'1064 nm fr-pulse',            arch:'laser_handpiece' },
+    { id:'periolase',   name:'PerioLase MVP-7',          wl:'1064 nm fr-pulse',            arch:'laser_handpiece' },
+    { id:'mls_mphi',    name:'MLS Mphi 5',               wl:'808 + 905 nm',                arch:'laser_handpiece' },
+    { id:'klaser_cube', name:'K-Laser Cube Performance', wl:'660 / 800 / 905 / 970 nm',    arch:'laser_handpiece' }
+  ],
+  ui: {
+    en: { welcome:"PBM Dental — photobiomodulation, low-power therapy and PDT. Tell me your device and what you want to treat.", areaTitle:'Treatment area', dental:'Dental', physio:'Physiotherapy', medical:'Medical', comingJuly:'Coming July 2026', deviceTitle:'Your PBM device', otherLabel:'Other — describe', otherPh:'e.g., MLS Mphi 5 — 808 + 905 nm, 500 mW max, pulsed, single emitter', archLabel:'Architecture', archLaser:'Laser handpiece', archLED:'LED cluster', indicationTitle:'Indication', indPlaceholder:'or describe your indication…', notesPh:'Clinical notes — patient age, area, prior treatments, contraindications…', btn:'Get PBM protocol', thorWarn:'THOR has its own pre-set Treatment Library. I will redirect you to its native recommendations.' },
+    es: { welcome:"PBM Dental — fotobiomodulación, terapia de baja potencia y PDT. Dime tu equipo y qué quieres tratar.", areaTitle:'Área de tratamiento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponible julio 2026', deviceTitle:'Tu equipo PBM', otherLabel:'Otro — describir', otherPh:'Ej., MLS Mphi 5 — 808 + 905 nm, 500 mW máx, pulsado, emisor único', archLabel:'Arquitectura', archLaser:'Pieza de mano láser', archLED:'Cluster LED', indicationTitle:'Indicación', indPlaceholder:'o describe tu indicación…', notesPh:'Notas clínicas — edad, área, tratamientos previos, contraindicaciones…', btn:'Obtener protocolo PBM', thorWarn:'THOR tiene su propia biblioteca de tratamientos predefinida. Te redirigiré a sus recomendaciones nativas.' },
+    pt: { welcome:"PBM Dental — fotobiomodulação, terapia de baixa potência e PDT. Diga seu equipamento e o que deseja tratar.", areaTitle:'Área de tratamento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponível julho 2026', deviceTitle:'Seu equipamento PBM', otherLabel:'Outro — descrever', otherPh:'Ex., MLS Mphi 5 — 808 + 905 nm, 500 mW máx, pulsado, emissor único', archLabel:'Arquitetura', archLaser:'Caneta laser', archLED:'Cluster LED', indicationTitle:'Indicação', indPlaceholder:'ou descreva sua indicação…', notesPh:'Notas clínicas — idade, área, tratamentos prévios, contraindicações…', btn:'Obter protocolo PBM', thorWarn:'THOR tem sua própria biblioteca de tratamentos. Vou redirecioná-lo às recomendações nativas.' },
+    ja: { welcome:"PBM歯科 — フォトバイオモジュレーション、低出力療法、PDT。機器と治療対象を教えてください。", areaTitle:'治療領域', dental:'歯科', physio:'理学療法', medical:'医療', comingJuly:'2026年7月公開', deviceTitle:'PBM機器', otherLabel:'その他 — 記述', otherPh:'例: MLS Mphi 5 — 808 + 905 nm, 500 mW最大, パルス, 単一エミッタ', archLabel:'構造', archLaser:'レーザーハンドピース', archLED:'LEDクラスター', indicationTitle:'適応', indPlaceholder:'または適応を記述…', notesPh:'臨床ノート — 年齢、部位、既往治療、禁忌…', btn:'PBMプロトコル取得', thorWarn:'THORには独自のTreatment Libraryがあります。ネイティブ推奨にリダイレクトします。' },
+    ko: { welcome:"PBM 치과 — 광생체조절, 저출력 치료 및 PDT. 기기와 치료 대상을 알려주세요.", areaTitle:'치료 영역', dental:'치과', physio:'물리치료', medical:'의료', comingJuly:'2026년 7월 출시', deviceTitle:'PBM 기기', otherLabel:'기타 — 설명', otherPh:'예: MLS Mphi 5 — 808 + 905 nm, 500 mW 최대, 펄스, 단일 이미터', archLabel:'구조', archLaser:'레이저 핸드피스', archLED:'LED 클러스터', indicationTitle:'적응증', indPlaceholder:'또는 적응증 설명…', notesPh:'임상 메모 — 연령, 부위, 이전 치료, 금기…', btn:'PBM 프로토콜 받기', thorWarn:'THOR는 자체 Treatment Library가 있습니다. 네이티브 권장사항으로 안내합니다.' }
+  },
+  indications: {
+    en: ['Herpes labial','Aphthous ulcers','Oral mucositis','TMD/TMJ','Dentin hypersensitivity','Post-implant','Paresthesia','Xerostomia','Burning mouth','Lichen planus','Wound healing','Post-extraction'],
+    es: ['Herpes labial','Aftas','Mucositis oral','ATM/DTM','Hipersensibilidad dentinaria','Post-implante','Parestesia','Xerostomía','Boca ardiente','Liquen plano','Cicatrización','Post-extracción'],
+    pt: ['Herpes labial','Aftas','Mucosite oral','ATM/DTM','Hipersensibilidade','Pós-implante','Parestesia','Xerostomia','Boca ardente','Líquen plano','Cicatrização','Pós-extração'],
+    ja: ['口唇ヘルペス','アフタ','口腔粘膜炎','顎関節症','象牙質知覚過敏','インプラント後','麻痺','口腔乾燥症','口腔灼熱','扁平苔癬','創傷治癒','抜歯後'],
+    ko: ['구순포진','아프타','구강점막염','턱관절','상아질 과민','임플란트 후','감각이상','구강건조','구강작열','편평태선','상처치유','발치 후']
+  }
+};
+
+const pbmState = { area:'dental', preset:null, otherDevice:'', otherArch:'', indication:'', indFree:'', notes:'' };
+
+function openPbmTab(ev){
+  if(ev) ev.stopPropagation();
+  // Pro plan is locked out — show upsell instead of opening
+  const tile = $('cPbmTile');
+  if(tile && tile.classList.contains('locked')){
+    // For Pro users: redirect them to view plans rather than entering a non-functional tab
+    showPbmUpsellModal();
+    return;
+  }
+  goTab('pbm');
+}
+
+function applyPbmTileGating(plan){
+  const tile = $('cPbmTile');
+  const lock = $('cPbmLock');
+  if(!tile) return;
+  const isPro = String(plan||'').toLowerCase() === 'pro';
+  if(isPro){
+    tile.classList.add('locked');
+    if(lock) lock.classList.remove('hidden');
+  } else {
+    tile.classList.remove('locked');
+    if(lock) lock.classList.add('hidden');
+  }
+}
+
+function showPbmUpsellModal(){
+  // Reuse the upgrade card pattern but render as a temporary message in PBM area
+  // For tile click on Pro plan: redirect to PBM tab and inject upsell card directly
+  goTab('pbm');
+  // Clear messages and show the upsell-as-card
+  const msgs = $('pbmMsgs');
+  if(!msgs) return;
+  msgs.innerHTML = '';
+  addPbmUpsellCard();
+}
+
+function buildPbmSetup(){
+  const msgs = $('pbmMsgs');
+  if(!msgs) return;
+  msgs.innerHTML = '';
+  const ui = PBM.ui[lang] || PBM.ui.en;
+
+  // Welcome bubble
+  const welcome = document.createElement('div');
+  welcome.className = 'msg ai';
+  welcome.innerHTML = `<div class="bubble"><em>${ui.welcome}</em></div>`;
+  msgs.appendChild(welcome);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'pbm-setup';
+
+  // ─ Area ────────────────────────────────────────────────────────
+  const areaSec = document.createElement('div');
+  areaSec.className = 'pbm-setup-section';
+  areaSec.innerHTML = `<div class="pbm-section-title">${ui.areaTitle}</div>`;
+  const areaRow = document.createElement('div');
+  areaRow.className = 'pbm-area-chips';
+  const areas = [
+    { id:'dental',  label:ui.dental,  enabled:true  },
+    { id:'physio',  label:ui.physio,  enabled:false },
+    { id:'medical', label:ui.medical, enabled:false }
+  ];
+  areas.forEach(a => {
+    const c = document.createElement('div');
+    c.className = 'pbm-area-chip' + (a.enabled ? '' : ' disabled') + (pbmState.area === a.id ? ' sel' : '');
+    c.innerHTML = `<span>${a.label}</span>${a.enabled ? '' : `<span class="pbm-area-chip-soon">${ui.comingJuly}</span>`}`;
+    c.onclick = () => {
+      if(!a.enabled){
+        // Show "Coming soon" inline message
+        renderPbmComingSoon(a.id);
+        return;
+      }
+      pbmState.area = a.id;
+      buildPbmSetup();
+    };
+    areaRow.appendChild(c);
+  });
+  areaSec.appendChild(areaRow);
+  wrap.appendChild(areaSec);
+
+  // Only Dental is functional in v1
+  if(pbmState.area !== 'dental'){
+    msgs.appendChild(wrap);
+    renderPbmComingSoon(pbmState.area);
+    return;
+  }
+
+  // ─ Device preset picker ────────────────────────────────────────
+  const devSec = document.createElement('div');
+  devSec.className = 'pbm-setup-section';
+  devSec.innerHTML = `<div class="pbm-section-title">${ui.deviceTitle}</div>`;
+  const presetGrid = document.createElement('div');
+  presetGrid.className = 'pbm-preset-grid';
+  PBM.presets.forEach(p => {
+    const c = document.createElement('div');
+    c.className = 'pbm-preset' + (pbmState.preset === p.id ? ' sel' : '');
+    c.innerHTML = `<div class="pbm-preset-name">${p.name}</div><div class="pbm-preset-wl">${p.wl}</div>`;
+    c.onclick = () => {
+      pbmState.preset = p.id;
+      pbmState.otherDevice = '';
+      pbmState.otherArch = '';
+      buildPbmSetup();
+    };
+    presetGrid.appendChild(c);
+  });
+  // "Other" tile + branched form
+  const otherTile = document.createElement('div');
+  otherTile.className = 'pbm-preset preset-other' + (pbmState.preset === 'other' ? ' sel' : '');
+  otherTile.innerHTML = `<div class="pbm-preset-name">${ui.otherLabel}</div>`;
+  otherTile.onclick = () => {
+    pbmState.preset = 'other';
+    buildPbmSetup();
+  };
+  presetGrid.appendChild(otherTile);
+  devSec.appendChild(presetGrid);
+
+  // Branched "Other" form
+  if(pbmState.preset === 'other'){
+    const archRow = document.createElement('div');
+    archRow.className = 'pbm-indication-chips';
+    archRow.style.marginTop = '8px';
+    [
+      { id:'laser_handpiece', label:ui.archLaser },
+      { id:'led_cluster',     label:ui.archLED   }
+    ].forEach(a => {
+      const c = document.createElement('div');
+      c.className = 'pbm-ind-chip' + (pbmState.otherArch === a.id ? ' sel' : '');
+      c.textContent = a.label;
+      c.onclick = () => { pbmState.otherArch = a.id; buildPbmSetup(); };
+      archRow.appendChild(c);
+    });
+    devSec.appendChild(archRow);
+
+    const otherField = document.createElement('input');
+    otherField.type = 'text';
+    otherField.className = 'pbm-other-field';
+    otherField.placeholder = ui.otherPh;
+    otherField.value = pbmState.otherDevice;
+    otherField.oninput = e => {
+      pbmState.otherDevice = e.target.value;
+      // THOR special-case detection
+      if(/\bthor\b/i.test(e.target.value)){
+        if(!$('pbmThorWarn')){
+          const warn = document.createElement('div');
+          warn.id = 'pbmThorWarn';
+          warn.className = 'pbm-coming-soon';
+          warn.style.marginTop = '6px';
+          warn.innerHTML = `<div class="pbm-coming-soon-title">⚠️ THOR</div>${ui.thorWarn}`;
+          otherField.parentNode.appendChild(warn);
+        }
+      } else {
+        const w = $('pbmThorWarn'); if(w) w.remove();
+      }
+    };
+    devSec.appendChild(otherField);
+  }
+  wrap.appendChild(devSec);
+
+  // ─ Indication picker ───────────────────────────────────────────
+  const indSec = document.createElement('div');
+  indSec.className = 'pbm-setup-section';
+  indSec.innerHTML = `<div class="pbm-section-title">${ui.indicationTitle}</div>`;
+  const indRow = document.createElement('div');
+  indRow.className = 'pbm-indication-chips';
+  const inds = PBM.indications[lang] || PBM.indications.en;
+  inds.forEach(ind => {
+    const c = document.createElement('div');
+    c.className = 'pbm-ind-chip' + (pbmState.indication === ind ? ' sel' : '');
+    c.textContent = ind;
+    c.onclick = () => {
+      pbmState.indication = (pbmState.indication === ind) ? '' : ind;
+      pbmState.indFree = '';
+      buildPbmSetup();
+    };
+    indRow.appendChild(c);
+  });
+  indSec.appendChild(indRow);
+  // Free-text indication
+  const indFree = document.createElement('input');
+  indFree.type = 'text';
+  indFree.className = 'pbm-other-field';
+  indFree.placeholder = ui.indPlaceholder;
+  indFree.value = pbmState.indFree;
+  indFree.oninput = e => { pbmState.indFree = e.target.value; if(e.target.value) pbmState.indication = ''; };
+  indSec.appendChild(indFree);
+  wrap.appendChild(indSec);
+
+  // ─ Notes ───────────────────────────────────────────────────────
+  const notesSec = document.createElement('div');
+  notesSec.className = 'pbm-setup-section';
+  const notes = document.createElement('textarea');
+  notes.className = 'pbm-notes';
+  notes.placeholder = ui.notesPh;
+  notes.value = pbmState.notes;
+  notes.oninput = e => { pbmState.notes = e.target.value; };
+  notesSec.appendChild(notes);
+  wrap.appendChild(notesSec);
+
+  // ─ Submit ──────────────────────────────────────────────────────
+  const btn = document.createElement('button');
+  btn.className = 'pbm-submit';
+  btn.textContent = ui.btn;
+  btn.onclick = sendPbmSetup;
+  wrap.appendChild(btn);
+
+  msgs.appendChild(wrap);
+  scrollBot();
+}
+
+function renderPbmComingSoon(areaId){
+  const msgs = $('pbmMsgs');
+  if(!msgs) return;
+  const ui = PBM.ui[lang] || PBM.ui.en;
+  // Remove any existing coming-soon
+  const existing = msgs.querySelector('.pbm-coming-soon-msg');
+  if(existing) existing.remove();
+  const areaName = areaId === 'physio' ? ui.physio : ui.medical;
+  const div = document.createElement('div');
+  div.className = 'pbm-coming-soon pbm-coming-soon-msg';
+  div.innerHTML = `<div class="pbm-coming-soon-title">${areaName} — ${ui.comingJuly}</div>` +
+    (lang==='es' ? 'PBM dental ya está disponible. Las áreas de fisioterapia y medicina se lanzan en julio 2026.' :
+     lang==='pt' ? 'PBM dental já está disponível. As áreas de fisioterapia e médica serão lançadas em julho de 2026.' :
+     lang==='ja' ? 'PBM歯科は利用可能です。理学療法と医療領域は2026年7月にリリースされます。' :
+     lang==='ko' ? 'PBM 치과는 이용 가능합니다. 물리치료 및 의료 영역은 2026년 7월에 출시됩니다.' :
+                   'PBM dental is available now. Physiotherapy and medical areas launch July 2026.');
+  msgs.appendChild(div);
+  scrollBot();
+}
+
+function buildPbmMessage(){
+  const ui = PBM.ui[lang] || PBM.ui.en;
+  const parts = ['PBM DENTAL CONSULT'];
+  parts.push(`Area: ${ui[pbmState.area] || pbmState.area}`);
+  if(pbmState.preset && pbmState.preset !== 'other'){
+    const p = PBM.presets.find(x => x.id === pbmState.preset);
+    if(p) parts.push(`Device: ${p.name} (${p.wl}) [arch=${p.arch}]`);
+  } else if(pbmState.preset === 'other'){
+    if(pbmState.otherArch) parts.push(`Architecture: ${pbmState.otherArch}`);
+    if(pbmState.otherDevice) parts.push(`Device (free-text): ${pbmState.otherDevice}`);
+  }
+  if(pbmState.indication) parts.push(`Indication: ${pbmState.indication}`);
+  if(pbmState.indFree) parts.push(`Indication (free-text): ${pbmState.indFree}`);
+  if(pbmState.notes) parts.push(`Clinical notes: ${pbmState.notes}`);
+  return parts.join('. ');
+}
+
+function sendPbmSetup(){
+  const msg = buildPbmMessage();
+  if(!msg.trim() || msg === 'PBM DENTAL CONSULT. Area: '+(PBM.ui[lang]||PBM.ui.en).dental) return;
+
+  // Wipe setup, render the user message
+  const msgs = $('pbmMsgs');
+  msgs.innerHTML = '';
+  addUser('pbm', msg);
+  hist.pbm.push(`User: ${msg}`);
+
+  const history = hist.pbm.slice(-12).join('\n');
+  showTyping('pbm');
+  busy = true; $('sendBtn').disabled = true;
+
+  fetch(HOOKS.pbm, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      user_email: EMAIL || 'guest@laserrx.app',
+      last_message: msg,
+      history,
+      language: lang,
+      is_first_message: isFirstMessage()
+    })
+  })
+  .then(res => {
+    if(res.status === 402){ hideTyping('pbm'); addPbmUpsellCard(); done(); return null; }
+    if(res.status === 403){ hideTyping('pbm'); addUpgradeCard('pbm'); done(); return null; }
+    return res.json();
+  })
+  .then(data => {
+    if(!data) return;
+    hideTyping('pbm');
+    const reply = data.response || data.message || '—';
+    if(data.plan && data.credits !== undefined){
+      setPlanBar(data.plan, data.credits);
+      applyPbmTileGating(data.plan);
+    }
+    if(data.country) window.LRX_COUNTRY = data.country;
+    hist.pbm.push(`Assistant: ${reply}`);
+    addAI('pbm', reply);
+    addNextCard('pbm');
+    done();
+  })
+  .catch(err => {
+    hideTyping('pbm');
+    const errMsg = lang==='es' ? 'Error de conexión. Intenta de nuevo.' :
+                   lang==='pt' ? 'Erro de conexão. Tente novamente.' :
+                                 'Connection error. Please try again.';
+    addAI('pbm', errMsg); done(); console.error(err);
+  });
+}
+
+function addPbmUpsellCard(){
+  const msgs = $('pbmMsgs');
+  if(!msgs) return;
+  const isMX = (window.LRX_COUNTRY||'US') === 'MX';
+  const pbmPrice   = isMX ? '$149 MXN/mes' : '$9.99 USD/mo';
+  const elitePrice = isMX ? '$449 MXN/mes' : '$29.99 USD/mo';
+  // Stripe links — PBM standalone links will need to be filled in by Isaac
+  // (placeholder env var: window.LRX_PBM_LINKS may be injected later)
+  const pbmLink   = isMX ? (window.LRX_PBM_LINKS?.pbm_mxn   || '#pbm-standalone-mxn')
+                         : (window.LRX_PBM_LINKS?.pbm_usd   || '#pbm-standalone-usd');
+  const eliteLink = isMX ? 'https://buy.stripe.com/28E6oz38Xdvkgeu1IHdIA0H'
+                         : 'https://buy.stripe.com/bJecMX24T0IybYe9b9dIA0I';
+  const t = {
+    en: { title:'PBM Module — Pro plan upgrade', desc:'PBM Dental is a specialized module. Add it standalone or upgrade to Elite for unlimited access to all modules.', pbmName:'PBM standalone', pbmDesc:'PBM module only · unlimited', eliteName:'Elite', eliteDesc:'All modules · unlimited', cta:'Continue' },
+    es: { title:'Módulo PBM — actualización desde Pro', desc:'PBM Dental es un módulo especializado. Agrégalo de forma independiente o actualiza a Elite para acceso ilimitado a todos los módulos.', pbmName:'PBM independiente', pbmDesc:'Solo módulo PBM · ilimitado', eliteName:'Elite', eliteDesc:'Todos los módulos · ilimitado', cta:'Continuar' },
+    pt: { title:'Módulo PBM — atualização do plano Pro', desc:'PBM Dental é um módulo especializado. Adicione-o independente ou atualize para Elite para acesso ilimitado a todos os módulos.', pbmName:'PBM independente', pbmDesc:'Apenas módulo PBM · ilimitado', eliteName:'Elite', eliteDesc:'Todos os módulos · ilimitado', cta:'Continuar' },
+    ja: { title:'PBMモジュール — Proプランからアップグレード', desc:'PBM Dentalは専門モジュールです。単独追加またはEliteへアップグレードで全モジュール無制限アクセス。', pbmName:'PBM単独', pbmDesc:'PBMモジュールのみ · 無制限', eliteName:'Elite', eliteDesc:'全モジュール · 無制限', cta:'続行' },
+    ko: { title:'PBM 모듈 — Pro 플랜 업그레이드', desc:'PBM 치과는 전문 모듈입니다. 단독으로 추가하거나 Elite로 업그레이드하여 모든 모듈을 무제한 사용하세요.', pbmName:'PBM 단독', pbmDesc:'PBM 모듈만 · 무제한', eliteName:'Elite', eliteDesc:'모든 모듈 · 무제한', cta:'계속' }
+  }[lang] || t.en;
+  const d = document.createElement('div');
+  d.className = 'upgrade-card pbm-upsell';
+  d.innerHTML = `<div class="upg-title">${t.title}</div>
+    <div class="upg-desc">${t.desc}</div>
+    <div class="upg-pbm-options">
+      <div class="upg-pbm-opt">
+        <div class="upg-pbm-opt-title">${t.pbmName} · ${pbmPrice}</div>
+        <div class="upg-pbm-opt-price">${t.pbmDesc}</div>
+        <a class="upg-pbm-opt-btn" href="${pbmLink}" target="_blank">${t.cta} · ${t.pbmName}</a>
+      </div>
+      <div class="upg-pbm-opt">
+        <div class="upg-pbm-opt-title">${t.eliteName} · ${elitePrice}</div>
+        <div class="upg-pbm-opt-price">${t.eliteDesc}</div>
+        <a class="upg-pbm-opt-btn" href="${eliteLink}" target="_blank">${t.cta} · ${t.eliteName}</a>
+      </div>
+    </div>`;
+  msgs.appendChild(d);
+  scrollBot();
+}
+
 function addChips(mod){
   const msgs=msgEl(mod);const l=L[lang];
   const wrap=document.createElement('div');wrap.className='chips-wrap';wrap.id=`chips-${mod}`;
@@ -3605,7 +4062,7 @@ function registerUser(){
 
 applyLang();
 loadSavedDevices();
-if(MOD&&['devices','protocols','validate','calculator'].includes(MOD)){goTab(MOD);}
+if(MOD&&['devices','protocols','validate','calculator','pbm'].includes(MOD)){goTab(MOD);}
 else { updateBreadcrumb('home'); }
 registerUser();
 
