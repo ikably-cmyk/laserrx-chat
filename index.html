@@ -1901,6 +1901,28 @@
 .upg-pbm-opt-title{font-weight:700;color:#1B263B;font-size:13px}
 .upg-pbm-opt-price{font-size:12px;color:var(--steel);margin-bottom:6px}
 .upg-pbm-opt-btn{display:block;text-align:center;padding:8px;background:#1B263B;color:#fff!important;text-decoration:none;border-radius:6px;font-size:12px;font-weight:600}
+
+/* PBM v1.1 — tip selector, spec card, custom form */
+.pbm-required::after{content:" *";color:#c1432e;font-weight:700}
+.pbm-detail-sec{padding-top:6px;border-top:1px dashed rgba(27,38,59,0.18);margin-top:6px}
+.pbm-tip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:6px}
+.pbm-tip{padding:10px 12px;border:1.5px solid rgba(27,38,59,0.2);border-radius:10px;background:#fff;cursor:pointer;transition:all .15s}
+.pbm-tip:hover{border-color:#1B263B}
+.pbm-tip.sel{background:#1B263B;color:#fff;border-color:#1B263B}
+.pbm-tip-name{font-size:13px;font-weight:600;font-family:'Instrument Sans',sans-serif}
+.pbm-tip-meta{font-size:11px;font-family:'Space Mono',monospace;opacity:0.7;margin-top:2px}
+.pbm-tip.sel .pbm-tip-meta{opacity:0.9}
+.pbm-tip.preset-other{border-style:dashed}
+.pbm-spec-card{background:#F4F5F2;border:1px solid rgba(27,38,59,0.15);border-radius:10px;padding:12px 14px;margin-top:6px;font-size:13px;line-height:1.5}
+.pbm-spec-row{font-family:'Space Mono',monospace;font-size:13px;color:#1B263B}
+.pbm-spec-text{margin-top:6px;color:#1B263B;opacity:0.85}
+.pbm-custom-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.pbm-field{display:flex;flex-direction:column;font-size:12px;font-family:'Instrument Sans',sans-serif}
+.pbm-field span{margin-bottom:4px;color:#1B263B;font-weight:500}
+.pbm-field span em{font-weight:400;color:#778DA9;font-style:italic;font-size:11px}
+.pbm-field input,.pbm-field select{padding:8px 10px;border:1.5px solid rgba(27,38,59,0.2);border-radius:8px;background:#fff;font-size:13px;font-family:'Space Mono',monospace;color:#1B263B}
+.pbm-field input:focus,.pbm-field select:focus{outline:none;border-color:#1B263B}
+.pbm-field-full{grid-column:1/-1}
 </style>
 </head>
 <body data-tab="home">
@@ -3448,13 +3470,95 @@ function buildCalcMessage(){const parts=[];if(calFields.laserType?.value)parts.p
 function sendCalculatorForm(){const msg=buildCalcMessage();if(!msg.trim())return;removeChips('calculator');addUser('calculator',msg);hist.calculator.push(`User: ${msg}`);const history=hist.calculator.slice(-12).join('\n');showTyping('calculator');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.calculator,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_email:EMAIL||'guest@laserrx.app',last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('calculator');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.calculator.push(`Assistant: ${reply}`);addAI('calculator',reply);addNextCard('calculator');addChips('calculator');done();}).catch(err=>{hideTyping('calculator');addAI('calculator',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});}
 
 // ─── PBM (Module 05) ────────────────────────────────────────────────────
+const PBM_TIPS = {
+  // Spot size (mm²) calculated as π × (diameter_mm/2)². Conversion: 1 mm² = 0.01 cm².
+  // technique: 'contact' or 'non-contact'.
+  epic_10: [
+    {id:'e2',         label:'E2 — 200µm fiber',         spot_mm2:0.0314, technique:'contact'},
+    {id:'e3',         label:'E3 — 300µm fiber',         spot_mm2:0.0707, technique:'contact'},
+    {id:'e4',         label:'E4 — 400µm fiber',         spot_mm2:0.1257, technique:'contact'},
+    {id:'pbm_hp_10',  label:'PBM handpiece (~10 mm)',   spot_mm2:78.5,   technique:'non-contact'},
+    {id:'whitening',  label:'Whitening handpiece (~8 mm)', spot_mm2:50.3, technique:'non-contact'}
+  ],
+  epic_x: [
+    {id:'e2',         label:'E2 — 200µm fiber',         spot_mm2:0.0314, technique:'contact'},
+    {id:'e3',         label:'E3 — 300µm fiber',         spot_mm2:0.0707, technique:'contact'},
+    {id:'e4',         label:'E4 — 400µm fiber',         spot_mm2:0.1257, technique:'contact'},
+    {id:'pbm_hp_10',  label:'PBM handpiece (~10 mm)',   spot_mm2:78.5,   technique:'non-contact'},
+    {id:'whitening',  label:'Whitening handpiece (~8 mm)', spot_mm2:50.3, technique:'non-contact'}
+  ],
+  soga_triple: [
+    {id:'f200',       label:'200µm fiber',              spot_mm2:0.0314, technique:'contact'},
+    {id:'f300',       label:'300µm fiber',              spot_mm2:0.0707, technique:'contact'},
+    {id:'f400',       label:'400µm fiber',              spot_mm2:0.1257, technique:'contact'},
+    {id:'f600',       label:'600µm fiber',              spot_mm2:0.2827, technique:'contact'},
+    {id:'radial',     label:'Radial firing fiber',      spot_mm2:1.5,    technique:'contact'},
+    {id:'pbm_hp_10',  label:'PBM handpiece (~10 mm)',   spot_mm2:78.5,   technique:'non-contact'}
+  ],
+  pioon_h1: [
+    {id:'f200',       label:'200µm fiber',              spot_mm2:0.0314, technique:'contact'},
+    {id:'f300',       label:'300µm fiber',              spot_mm2:0.0707, technique:'contact'},
+    {id:'f400',       label:'400µm fiber',              spot_mm2:0.1257, technique:'contact'},
+    {id:'f600',       label:'600µm fiber',              spot_mm2:0.2827, technique:'contact'},
+    {id:'pbm_hp_10',  label:'PBM handpiece (~10 mm)',   spot_mm2:78.5,   technique:'non-contact'}
+  ],
+  fotona_ndyag: [
+    {id:'r34',        label:'R34 — short handpiece (contact)',     spot_mm2:0.503, technique:'contact'},
+    {id:'r33',        label:'R33 — long handpiece (non-contact)',  spot_mm2:1.77,  technique:'non-contact'},
+    {id:'r14',        label:'R14 — thin handpiece',                spot_mm2:0.196, technique:'contact'},
+    {id:'r02',        label:'R02 — wide handpiece',                spot_mm2:3.14,  technique:'non-contact'}
+  ],
+  periolase: [
+    {id:'f360',       label:'360µm fiber (Type 1)',     spot_mm2:0.102, technique:'contact'},
+    {id:'f400',       label:'400µm fiber (Type 1)',     spot_mm2:0.1257, technique:'contact'},
+    {id:'f600',       label:'600µm fiber (Type 1)',     spot_mm2:0.2827, technique:'contact'},
+    {id:'digital',    label:'Digital tip handpiece',    spot_mm2:0.503, technique:'contact'}
+  ],
+  mls_mphi: [
+    {id:'fixed',      label:'Fixed handpiece (~5 mm spot)',     spot_mm2:19.6,  technique:'non-contact'},
+    {id:'scanner',    label:'Scanner head (~50 mm spot)',       spot_mm2:1963,  technique:'non-contact'}
+  ],
+  klaser_cube: [
+    {id:'flat_top',   label:'Flat-top handpiece (~12 mm)',  spot_mm2:113, technique:'non-contact'},
+    {id:'narrow',     label:'Narrow handpiece (~5 mm)',     spot_mm2:19.6, technique:'non-contact'},
+    {id:'massage',    label:'Massage-ball applicator',      spot_mm2:200, technique:'contact'}
+  ]
+};
+
+const PBM_CLUSTER_SPECS = {
+  biolux_dent: {
+    summary_en:'650 nm red LED, intraoral mouthguard, irradiance 0.128 W/cm². Manual external timing required.',
+    summary_es:'LED rojo 650 nm, férula intraoral, irradiancia 0.128 W/cm². Cronómetro externo requerido.',
+    summary_pt:'LED vermelho 650 nm, férula intraoral, irradiância 0.128 W/cm². Temporizador externo requerido.',
+    summary_ja:'650 nm 赤色LED、口腔内マウスガード、放射照度 0.128 W/cm²。外部タイマーが必要。',
+    summary_ko:'650 nm 적색 LED, 구강내 마우스가드, 조사강도 0.128 W/cm². 외부 타이머 필요.',
+    irradiance_w_cm2:0.128, wavelengths_nm:[650], mode:'CW', simultaneous_use:false
+  },
+  biolux_mini: {
+    summary_en:'650 + 850 nm extraoral wearable band, irradiance 0.0171 W/cm². Automatic 15-min cycle delivers ~15.4 J/cm² per side. Modes: 1-click red only, 2-click combined, 3-click IR only.',
+    summary_es:'Banda extraoral 650 + 850 nm, irradiancia 0.0171 W/cm². Ciclo automático 15 min entrega ~15.4 J/cm² por lado. Modos: 1 clic solo rojo, 2 clics combinado, 3 clics solo IR.',
+    summary_pt:'Banda extraoral 650 + 850 nm, irradiância 0.0171 W/cm². Ciclo automático 15 min entrega ~15.4 J/cm² por lado. Modos: 1 clique vermelho, 2 cliques combinado, 3 cliques IR.',
+    summary_ja:'650 + 850 nm 口腔外ウェアラブルバンド、放射照度 0.0171 W/cm²。自動15分サイクルで片側~15.4 J/cm²。モード:1クリック赤、2クリック併用、3クリックIR。',
+    summary_ko:'650 + 850 nm 구강외 웨어러블 밴드, 조사강도 0.0171 W/cm². 자동 15분 사이클로 측면당 ~15.4 J/cm². 모드:1클릭 적색, 2클릭 결합, 3클릭 IR.',
+    irradiance_w_cm2:0.0171, wavelengths_nm:[650,850], mode:'auto_15min', simultaneous_use:true
+  },
+  biolux_max: {
+    summary_en:'650 + 850 nm large extraoral pad, irradiance ~0.0125 W/cm². CW or pulsed (10/40/73 Hz). 10 min ≈ 7.5 J/cm², 20 min ≈ 15 J/cm². Intensity dial 1–10.',
+    summary_es:'Pad grande extraoral 650 + 850 nm, irradiancia ~0.0125 W/cm². CW o pulsado (10/40/73 Hz). 10 min ≈ 7.5 J/cm², 20 min ≈ 15 J/cm². Intensidad 1–10.',
+    summary_pt:'Pad grande extraoral 650 + 850 nm, irradiância ~0.0125 W/cm². CW ou pulsado (10/40/73 Hz). 10 min ≈ 7.5 J/cm², 20 min ≈ 15 J/cm². Intensidade 1–10.',
+    summary_ja:'650 + 850 nm 大型口腔外パッド、放射照度 ~0.0125 W/cm²。CWまたはパルス(10/40/73 Hz)。10分 ≈ 7.5 J/cm²、20分 ≈ 15 J/cm²。強度 1–10。',
+    summary_ko:'650 + 850 nm 대형 구강외 패드, 조사강도 ~0.0125 W/cm². CW 또는 펄스(10/40/73 Hz). 10분 ≈ 7.5 J/cm², 20분 ≈ 15 J/cm². 강도 1–10.',
+    irradiance_w_cm2:0.0125, wavelengths_nm:[650,850], mode:'CW or pulsed (10/40/73 Hz)', simultaneous_use:true
+  }
+};
+
 const PBM = {
   presets: [
-    // LED clusters (3)
+    // LED clusters (3) — specs come from PBM_CLUSTER_SPECS
     { id:'biolux_dent', name:'BioluxPro Dent',  wl:'650 nm intraoral',      arch:'led_cluster' },
     { id:'biolux_mini', name:'BioluxPro Mini',  wl:'650+850 nm wearable',   arch:'led_cluster' },
     { id:'biolux_max',  name:'BioluxPro Max',   wl:'650+850 nm pad',        arch:'led_cluster' },
-    // Lasers (8)
+    // Lasers (8) — require tip selection from PBM_TIPS
     { id:'epic_10',     name:'Biolase EPIC 10',          wl:'940 nm',                      arch:'laser_handpiece' },
     { id:'epic_x',      name:'Biolase EPIC X',           wl:'940 nm',                      arch:'laser_handpiece' },
     { id:'soga_triple', name:'Soga Diodo Triple',        wl:'450 / 650 / 980 nm',          arch:'laser_handpiece' },
@@ -3465,11 +3569,11 @@ const PBM = {
     { id:'klaser_cube', name:'K-Laser Cube Performance', wl:'660 / 800 / 905 / 970 nm',    arch:'laser_handpiece' }
   ],
   ui: {
-    en: { welcome:"PBM Dental — photobiomodulation, low-power therapy and PDT. Tell me your device and what you want to treat.", areaTitle:'Treatment area', dental:'Dental', physio:'Physiotherapy', medical:'Medical', comingJuly:'Coming July 2026', deviceTitle:'Your PBM device', otherLabel:'Other — describe', otherPh:'e.g., MLS Mphi 5 — 808 + 905 nm, 500 mW max, pulsed, single emitter', archLabel:'Architecture', archLaser:'Laser handpiece', archLED:'LED cluster', indicationTitle:'Indication', indPlaceholder:'or describe your indication…', notesPh:'Clinical notes — patient age, area, prior treatments, contraindications…', btn:'Get PBM protocol', thorWarn:'THOR has its own pre-set Treatment Library. I will redirect you to its native recommendations.' },
-    es: { welcome:"PBM Dental — fotobiomodulación, terapia de baja potencia y PDT. Dime tu equipo y qué quieres tratar.", areaTitle:'Área de tratamiento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponible julio 2026', deviceTitle:'Tu equipo PBM', otherLabel:'Otro — describir', otherPh:'Ej., MLS Mphi 5 — 808 + 905 nm, 500 mW máx, pulsado, emisor único', archLabel:'Arquitectura', archLaser:'Pieza de mano láser', archLED:'Cluster LED', indicationTitle:'Indicación', indPlaceholder:'o describe tu indicación…', notesPh:'Notas clínicas — edad, área, tratamientos previos, contraindicaciones…', btn:'Obtener protocolo PBM', thorWarn:'THOR tiene su propia biblioteca de tratamientos predefinida. Te redirigiré a sus recomendaciones nativas.' },
-    pt: { welcome:"PBM Dental — fotobiomodulação, terapia de baixa potência e PDT. Diga seu equipamento e o que deseja tratar.", areaTitle:'Área de tratamento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponível julho 2026', deviceTitle:'Seu equipamento PBM', otherLabel:'Outro — descrever', otherPh:'Ex., MLS Mphi 5 — 808 + 905 nm, 500 mW máx, pulsado, emissor único', archLabel:'Arquitetura', archLaser:'Caneta laser', archLED:'Cluster LED', indicationTitle:'Indicação', indPlaceholder:'ou descreva sua indicação…', notesPh:'Notas clínicas — idade, área, tratamentos prévios, contraindicações…', btn:'Obter protocolo PBM', thorWarn:'THOR tem sua própria biblioteca de tratamentos. Vou redirecioná-lo às recomendações nativas.' },
-    ja: { welcome:"PBM歯科 — フォトバイオモジュレーション、低出力療法、PDT。機器と治療対象を教えてください。", areaTitle:'治療領域', dental:'歯科', physio:'理学療法', medical:'医療', comingJuly:'2026年7月公開', deviceTitle:'PBM機器', otherLabel:'その他 — 記述', otherPh:'例: MLS Mphi 5 — 808 + 905 nm, 500 mW最大, パルス, 単一エミッタ', archLabel:'構造', archLaser:'レーザーハンドピース', archLED:'LEDクラスター', indicationTitle:'適応', indPlaceholder:'または適応を記述…', notesPh:'臨床ノート — 年齢、部位、既往治療、禁忌…', btn:'PBMプロトコル取得', thorWarn:'THORには独自のTreatment Libraryがあります。ネイティブ推奨にリダイレクトします。' },
-    ko: { welcome:"PBM 치과 — 광생체조절, 저출력 치료 및 PDT. 기기와 치료 대상을 알려주세요.", areaTitle:'치료 영역', dental:'치과', physio:'물리치료', medical:'의료', comingJuly:'2026년 7월 출시', deviceTitle:'PBM 기기', otherLabel:'기타 — 설명', otherPh:'예: MLS Mphi 5 — 808 + 905 nm, 500 mW 최대, 펄스, 단일 이미터', archLabel:'구조', archLaser:'레이저 핸드피스', archLED:'LED 클러스터', indicationTitle:'적응증', indPlaceholder:'또는 적응증 설명…', notesPh:'임상 메모 — 연령, 부위, 이전 치료, 금기…', btn:'PBM 프로토콜 받기', thorWarn:'THOR는 자체 Treatment Library가 있습니다. 네이티브 권장사항으로 안내합니다.' }
+    en: { welcome:"PBM Dental — photobiomodulation, low-power therapy and PDT. Tell me your device and what you want to treat.", areaTitle:'Treatment area', dental:'Dental', physio:'Physiotherapy', medical:'Medical', comingJuly:'Coming July 2026', deviceTitle:'Your PBM device', otherLabel:'Other — describe', archLabel:'Architecture', archLaser:'Laser handpiece', archLED:'LED cluster', indicationTitle:'Indication', indPlaceholder:'or describe your indication…', notesPh:'Clinical notes — patient age, area, prior treatments, contraindications…', btn:'Get PBM protocol', thorWarn:'THOR has its own pre-set Treatment Library. I will redirect you to its native recommendations.', tipTitle:'Tip / Handpiece (required for exact dosimetry)', specsTitle:'Device specifications (from knowledge base)', customLaserTitle:'Laser handpiece specs (required)', customLedTitle:'LED cluster specs (required)', f_brand:'Brand', f_model:'Model', f_wl:'Wavelength (nm)', f_maxPow:'Max power (W)', f_spot:'Spot size (mm²) — or diameter in µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Fiber/tip diameter (µm)', f_mode:'Emission mode', f_modeCW:'CW', f_modePulsed:'Pulsed', f_nLeds:'Number of LEDs', f_ledDiam:'Diameter of each LED (mm)', f_powerLed:'Power per LED (mW)', f_wls:'Wavelengths (nm) — comma-separated', f_spacing:'LED-to-LED spacing (mm, center-to-center)', f_arrayDim:'Array dimensions (e.g., 10×10 cm)', f_simul:'Wavelengths emitted simultaneously?', yes:'Yes', no:'No' },
+    es: { welcome:"PBM Dental — fotobiomodulación, terapia de baja potencia y PDT. Dime tu equipo y qué quieres tratar.", areaTitle:'Área de tratamiento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponible julio 2026', deviceTitle:'Tu equipo PBM', otherLabel:'Otro — describir', archLabel:'Arquitectura', archLaser:'Pieza de mano láser', archLED:'Cluster LED', indicationTitle:'Indicación', indPlaceholder:'o describe tu indicación…', notesPh:'Notas clínicas — edad, área, tratamientos previos, contraindicaciones…', btn:'Obtener protocolo PBM', thorWarn:'THOR tiene su propia biblioteca de tratamientos predefinida. Te redirigiré a sus recomendaciones nativas.', tipTitle:'Tip / Pieza de mano (requerido para dosimetría exacta)', specsTitle:'Especificaciones del equipo (desde la base de conocimiento)', customLaserTitle:'Especificaciones láser (requeridas)', customLedTitle:'Especificaciones del cluster LED (requeridas)', f_brand:'Marca', f_model:'Modelo', f_wl:'Longitud de onda (nm)', f_maxPow:'Potencia máx (W)', f_spot:'Spot (mm²) — o diámetro en µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Diámetro fibra/tip (µm)', f_mode:'Modo de emisión', f_modeCW:'CW', f_modePulsed:'Pulsado', f_nLeds:'Número de LEDs', f_ledDiam:'Diámetro de cada LED (mm)', f_powerLed:'Potencia por LED (mW)', f_wls:'Longitudes de onda (nm) — separadas por coma', f_spacing:'Espaciamiento entre LEDs (mm, centro a centro)', f_arrayDim:'Dimensiones del array (ej., 10×10 cm)', f_simul:'¿Longitudes de onda emitidas simultáneamente?', yes:'Sí', no:'No' },
+    pt: { welcome:"PBM Dental — fotobiomodulação, terapia de baixa potência e PDT. Diga seu equipamento e o que deseja tratar.", areaTitle:'Área de tratamento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponível julho 2026', deviceTitle:'Seu equipamento PBM', otherLabel:'Outro — descrever', archLabel:'Arquitetura', archLaser:'Caneta laser', archLED:'Cluster LED', indicationTitle:'Indicação', indPlaceholder:'ou descreva sua indicação…', notesPh:'Notas clínicas — idade, área, tratamentos prévios, contraindicações…', btn:'Obter protocolo PBM', thorWarn:'THOR tem sua própria biblioteca de tratamentos. Vou redirecioná-lo às recomendações nativas.', tipTitle:'Ponta / Caneta (necessária para dosimetria exata)', specsTitle:'Especificações do equipamento (da base de conhecimento)', customLaserTitle:'Especificações laser (obrigatórias)', customLedTitle:'Especificações do cluster LED (obrigatórias)', f_brand:'Marca', f_model:'Modelo', f_wl:'Comprimento de onda (nm)', f_maxPow:'Potência máx (W)', f_spot:'Spot (mm²) — ou diâmetro em µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Diâmetro fibra/ponta (µm)', f_mode:'Modo de emissão', f_modeCW:'CW', f_modePulsed:'Pulsado', f_nLeds:'Número de LEDs', f_ledDiam:'Diâmetro de cada LED (mm)', f_powerLed:'Potência por LED (mW)', f_wls:'Comprimentos de onda (nm) — separados por vírgula', f_spacing:'Espaçamento entre LEDs (mm, centro a centro)', f_arrayDim:'Dimensões do array (ex., 10×10 cm)', f_simul:'Comprimentos de onda emitidos simultaneamente?', yes:'Sim', no:'Não' },
+    ja: { welcome:"PBM歯科 — フォトバイオモジュレーション、低出力療法、PDT。機器と治療対象を教えてください。", areaTitle:'治療領域', dental:'歯科', physio:'理学療法', medical:'医療', comingJuly:'2026年7月公開', deviceTitle:'PBM機器', otherLabel:'その他 — 記述', archLabel:'構造', archLaser:'レーザーハンドピース', archLED:'LEDクラスター', indicationTitle:'適応', indPlaceholder:'または適応を記述…', notesPh:'臨床ノート — 年齢、部位、既往治療、禁忌…', btn:'PBMプロトコル取得', thorWarn:'THORには独自のTreatment Libraryがあります。ネイティブ推奨にリダイレクトします。', tipTitle:'チップ/ハンドピース(正確な線量に必須)', specsTitle:'機器仕様(ナレッジベースより)', customLaserTitle:'レーザー仕様(必須)', customLedTitle:'LEDクラスター仕様(必須)', f_brand:'メーカー', f_model:'モデル', f_wl:'波長 (nm)', f_maxPow:'最大出力 (W)', f_spot:'スポット (mm²) または直径 (µm)', f_spotMm2:'スポットサイズ (mm²)', f_diamUm:'ファイバー/チップ直径 (µm)', f_mode:'発振モード', f_modeCW:'CW', f_modePulsed:'パルス', f_nLeds:'LED数', f_ledDiam:'各LED直径 (mm)', f_powerLed:'LEDあたり出力 (mW)', f_wls:'波長 (nm) — カンマ区切り', f_spacing:'LED間隔 (mm, 中心から中心)', f_arrayDim:'アレイ寸法 (例: 10×10 cm)', f_simul:'波長を同時に発射?', yes:'はい', no:'いいえ' },
+    ko: { welcome:"PBM 치과 — 광생체조절, 저출력 치료 및 PDT. 기기와 치료 대상을 알려주세요.", areaTitle:'치료 영역', dental:'치과', physio:'물리치료', medical:'의료', comingJuly:'2026년 7월 출시', deviceTitle:'PBM 기기', otherLabel:'기타 — 설명', archLabel:'구조', archLaser:'레이저 핸드피스', archLED:'LED 클러스터', indicationTitle:'적응증', indPlaceholder:'또는 적응증 설명…', notesPh:'임상 메모 — 연령, 부위, 이전 치료, 금기…', btn:'PBM 프로토콜 받기', thorWarn:'THOR는 자체 Treatment Library가 있습니다. 네이티브 권장사항으로 안내합니다.', tipTitle:'팁/핸드피스 (정확한 선량 필수)', specsTitle:'기기 사양 (지식베이스에서)', customLaserTitle:'레이저 사양 (필수)', customLedTitle:'LED 클러스터 사양 (필수)', f_brand:'브랜드', f_model:'모델', f_wl:'파장 (nm)', f_maxPow:'최대 출력 (W)', f_spot:'스팟 (mm²) 또는 직경 (µm)', f_spotMm2:'스팟 사이즈 (mm²)', f_diamUm:'섬유/팁 직경 (µm)', f_mode:'발진 모드', f_modeCW:'CW', f_modePulsed:'펄스', f_nLeds:'LED 개수', f_ledDiam:'각 LED 직경 (mm)', f_powerLed:'LED당 출력 (mW)', f_wls:'파장 (nm) — 쉼표로 구분', f_spacing:'LED 간격 (mm, 중심에서 중심)', f_arrayDim:'어레이 치수 (예: 10×10 cm)', f_simul:'파장 동시 발사?', yes:'예', no:'아니오' }
   },
   indications: {
     en: ['Herpes labial','Aphthous ulcers','Oral mucositis','TMD/TMJ','Dentin hypersensitivity','Post-implant','Paresthesia','Xerostomia','Burning mouth','Lichen planus','Wound healing','Post-extraction'],
@@ -3480,7 +3584,19 @@ const PBM = {
   }
 };
 
-const pbmState = { area:'dental', preset:null, otherDevice:'', otherArch:'', indication:'', indFree:'', notes:'' };
+const pbmState = {
+  area:'dental', preset:null,
+  // For laser_handpiece presets:
+  tipId:null,
+  // For "Other" path:
+  otherArch:'',
+  // Other laser_handpiece fields:
+  otherBrand:'', otherModel:'', otherWl:'', otherMaxPow:'', otherSpotMm2:'', otherDiamUm:'', otherMode:'',
+  // Other led_cluster fields:
+  otherLedBrand:'', otherLedModel:'', otherLedWls:'', otherLedCount:'', otherLedDiam:'', otherLedPowerEach:'', otherLedSpacing:'', otherLedArrayDim:'', otherLedSimul:'',
+  // Indication
+  indication:'', indFree:'', notes:''
+};
 
 function openPbmTab(ev){
   if(ev) ev.stopPropagation();
@@ -3550,11 +3666,7 @@ function buildPbmSetup(){
     c.className = 'pbm-area-chip' + (a.enabled ? '' : ' disabled') + (pbmState.area === a.id ? ' sel' : '');
     c.innerHTML = `<span>${a.label}</span>${a.enabled ? '' : `<span class="pbm-area-chip-soon">${ui.comingJuly}</span>`}`;
     c.onclick = () => {
-      if(!a.enabled){
-        // Show "Coming soon" inline message
-        renderPbmComingSoon(a.id);
-        return;
-      }
+      if(!a.enabled){ renderPbmComingSoon(a.id); return; }
       pbmState.area = a.id;
       buildPbmSetup();
     };
@@ -3563,7 +3675,6 @@ function buildPbmSetup(){
   areaSec.appendChild(areaRow);
   wrap.appendChild(areaSec);
 
-  // Only Dental is functional in v1
   if(pbmState.area !== 'dental'){
     msgs.appendChild(wrap);
     renderPbmComingSoon(pbmState.area);
@@ -3582,28 +3693,99 @@ function buildPbmSetup(){
     c.innerHTML = `<div class="pbm-preset-name">${p.name}</div><div class="pbm-preset-wl">${p.wl}</div>`;
     c.onclick = () => {
       pbmState.preset = p.id;
-      pbmState.otherDevice = '';
+      pbmState.tipId = null;
       pbmState.otherArch = '';
       buildPbmSetup();
     };
     presetGrid.appendChild(c);
   });
-  // "Other" tile + branched form
   const otherTile = document.createElement('div');
   otherTile.className = 'pbm-preset preset-other' + (pbmState.preset === 'other' ? ' sel' : '');
   otherTile.innerHTML = `<div class="pbm-preset-name">${ui.otherLabel}</div>`;
   otherTile.onclick = () => {
     pbmState.preset = 'other';
+    pbmState.tipId = null;
     buildPbmSetup();
   };
   presetGrid.appendChild(otherTile);
   devSec.appendChild(presetGrid);
+  wrap.appendChild(devSec);
 
-  // Branched "Other" form
+  // ─ Device details (depending on selection) ─────────────────────
+  if(pbmState.preset && pbmState.preset !== 'other'){
+    const preset = PBM.presets.find(x => x.id === pbmState.preset);
+    if(preset){
+      const detailSec = document.createElement('div');
+      detailSec.className = 'pbm-setup-section pbm-detail-sec';
+
+      if(preset.arch === 'laser_handpiece'){
+        // Tip selector — REQUIRED for laser handpiece presets
+        detailSec.innerHTML = `<div class="pbm-section-title pbm-required">${ui.tipTitle}</div>`;
+        const tipGrid = document.createElement('div');
+        tipGrid.className = 'pbm-tip-grid';
+        const tips = PBM_TIPS[preset.id] || [];
+        tips.forEach(t => {
+          const c = document.createElement('div');
+          c.className = 'pbm-tip' + (pbmState.tipId === t.id ? ' sel' : '');
+          c.innerHTML = `<div class="pbm-tip-name">${t.label}</div><div class="pbm-tip-meta">${t.spot_mm2} mm² · ${t.technique}</div>`;
+          c.onclick = () => { pbmState.tipId = t.id; buildPbmSetup(); };
+          tipGrid.appendChild(c);
+        });
+        // "Other tip" option — custom spot
+        const otherTip = document.createElement('div');
+        otherTip.className = 'pbm-tip preset-other' + (pbmState.tipId === '__other__' ? ' sel' : '');
+        otherTip.innerHTML = `<div class="pbm-tip-name">${ui.otherLabel}</div>`;
+        otherTip.onclick = () => { pbmState.tipId = '__other__'; buildPbmSetup(); };
+        tipGrid.appendChild(otherTip);
+        detailSec.appendChild(tipGrid);
+
+        if(pbmState.tipId === '__other__'){
+          const customRow = document.createElement('div');
+          customRow.className = 'pbm-custom-form';
+          customRow.innerHTML = `
+            <label class="pbm-field"><span>${ui.f_spotMm2}</span><input type="number" step="0.001" id="pbmOtherSpotMm2" value="${pbmState.otherSpotMm2 || ''}" placeholder="e.g., 0.0707"></label>
+            <label class="pbm-field"><span>${ui.f_diamUm} <em>(auto-calc if filled)</em></span><input type="number" step="10" id="pbmOtherDiamUm" value="${pbmState.otherDiamUm || ''}" placeholder="e.g., 300"></label>`;
+          detailSec.appendChild(customRow);
+          setTimeout(()=>{
+            const sM = $('pbmOtherSpotMm2'); const sD = $('pbmOtherDiamUm');
+            if(sM) sM.oninput = e => { pbmState.otherSpotMm2 = e.target.value; };
+            if(sD) sD.oninput = e => {
+              pbmState.otherDiamUm = e.target.value;
+              const d = parseFloat(e.target.value);
+              if(d > 0 && sM){
+                const r_mm = d / 2000;
+                const area_mm2 = Math.PI * r_mm * r_mm;
+                sM.value = area_mm2.toFixed(4);
+                pbmState.otherSpotMm2 = sM.value;
+              }
+            };
+          }, 0);
+        }
+      } else if(preset.arch === 'led_cluster'){
+        // LED cluster summary card (read-only from KB)
+        const specs = PBM_CLUSTER_SPECS[preset.id];
+        if(specs){
+          const sumKey = 'summary_' + lang;
+          const summaryText = specs[sumKey] || specs.summary_en;
+          detailSec.innerHTML = `
+            <div class="pbm-section-title">${ui.specsTitle}</div>
+            <div class="pbm-spec-card">
+              <div class="pbm-spec-row"><strong>${preset.name}</strong></div>
+              <div class="pbm-spec-text">${summaryText}</div>
+            </div>`;
+        }
+      }
+      wrap.appendChild(detailSec);
+    }
+  }
+
+  // ─ "Other" branched form ───────────────────────────────────────
   if(pbmState.preset === 'other'){
+    const archSec = document.createElement('div');
+    archSec.className = 'pbm-setup-section pbm-detail-sec';
+    archSec.innerHTML = `<div class="pbm-section-title pbm-required">${ui.archLabel}</div>`;
     const archRow = document.createElement('div');
     archRow.className = 'pbm-indication-chips';
-    archRow.style.marginTop = '8px';
     [
       { id:'laser_handpiece', label:ui.archLaser },
       { id:'led_cluster',     label:ui.archLED   }
@@ -3614,32 +3796,94 @@ function buildPbmSetup(){
       c.onclick = () => { pbmState.otherArch = a.id; buildPbmSetup(); };
       archRow.appendChild(c);
     });
-    devSec.appendChild(archRow);
+    archSec.appendChild(archRow);
+    wrap.appendChild(archSec);
 
-    const otherField = document.createElement('input');
-    otherField.type = 'text';
-    otherField.className = 'pbm-other-field';
-    otherField.placeholder = ui.otherPh;
-    otherField.value = pbmState.otherDevice;
-    otherField.oninput = e => {
-      pbmState.otherDevice = e.target.value;
-      // THOR special-case detection
-      if(/\bthor\b/i.test(e.target.value)){
-        if(!$('pbmThorWarn')){
-          const warn = document.createElement('div');
-          warn.id = 'pbmThorWarn';
-          warn.className = 'pbm-coming-soon';
-          warn.style.marginTop = '6px';
-          warn.innerHTML = `<div class="pbm-coming-soon-title">⚠️ THOR</div>${ui.thorWarn}`;
-          otherField.parentNode.appendChild(warn);
-        }
-      } else {
-        const w = $('pbmThorWarn'); if(w) w.remove();
-      }
-    };
-    devSec.appendChild(otherField);
+    if(pbmState.otherArch === 'laser_handpiece'){
+      const formSec = document.createElement('div');
+      formSec.className = 'pbm-setup-section pbm-detail-sec';
+      formSec.innerHTML = `<div class="pbm-section-title pbm-required">${ui.customLaserTitle}</div>`;
+      const grid = document.createElement('div');
+      grid.className = 'pbm-custom-form';
+      grid.innerHTML = `
+        <label class="pbm-field"><span>${ui.f_brand}</span><input type="text" id="pbmOL_brand" value="${pbmState.otherBrand || ''}" placeholder="e.g., Lumix"></label>
+        <label class="pbm-field"><span>${ui.f_model}</span><input type="text" id="pbmOL_model" value="${pbmState.otherModel || ''}" placeholder="e.g., 4 Plus"></label>
+        <label class="pbm-field"><span>${ui.f_wl}</span><input type="number" id="pbmOL_wl" value="${pbmState.otherWl || ''}" placeholder="e.g., 810"></label>
+        <label class="pbm-field"><span>${ui.f_maxPow}</span><input type="number" step="0.01" id="pbmOL_maxPow" value="${pbmState.otherMaxPow || ''}" placeholder="e.g., 0.5"></label>
+        <label class="pbm-field"><span>${ui.f_spotMm2}</span><input type="number" step="0.001" id="pbmOL_spotMm2" value="${pbmState.otherSpotMm2 || ''}" placeholder="e.g., 0.503"></label>
+        <label class="pbm-field"><span>${ui.f_diamUm} <em>(auto)</em></span><input type="number" step="10" id="pbmOL_diamUm" value="${pbmState.otherDiamUm || ''}" placeholder="e.g., 300"></label>
+        <label class="pbm-field pbm-field-full"><span>${ui.f_mode}</span><select id="pbmOL_mode">
+          <option value="">—</option>
+          <option value="CW" ${pbmState.otherMode==='CW'?'selected':''}>${ui.f_modeCW}</option>
+          <option value="Pulsed" ${pbmState.otherMode==='Pulsed'?'selected':''}>${ui.f_modePulsed}</option>
+        </select></label>`;
+      formSec.appendChild(grid);
+      wrap.appendChild(formSec);
+      setTimeout(()=>{
+        const bind = (id, key) => { const el = $(id); if(el) el.oninput = e => { pbmState[key] = e.target.value; }; };
+        bind('pbmOL_brand','otherBrand'); bind('pbmOL_model','otherModel');
+        bind('pbmOL_wl','otherWl'); bind('pbmOL_maxPow','otherMaxPow');
+        bind('pbmOL_spotMm2','otherSpotMm2');
+        const dEl = $('pbmOL_diamUm');
+        if(dEl) dEl.oninput = e => {
+          pbmState.otherDiamUm = e.target.value;
+          const d = parseFloat(e.target.value);
+          if(d > 0){
+            const r_mm = d / 2000;
+            const area_mm2 = Math.PI * r_mm * r_mm;
+            const sM = $('pbmOL_spotMm2');
+            if(sM){ sM.value = area_mm2.toFixed(4); pbmState.otherSpotMm2 = sM.value; }
+          }
+        };
+        const mEl = $('pbmOL_mode'); if(mEl) mEl.onchange = e => { pbmState.otherMode = e.target.value; };
+        // THOR warning if brand contains THOR
+        const bEl = $('pbmOL_brand');
+        if(bEl) bEl.addEventListener('input', e => {
+          const w = $('pbmThorWarn');
+          if(/thor/i.test(e.target.value)){
+            if(!w){
+              const warn = document.createElement('div');
+              warn.id = 'pbmThorWarn';
+              warn.className = 'pbm-coming-soon';
+              warn.style.marginTop = '6px';
+              warn.innerHTML = `<div class="pbm-coming-soon-title">⚠️ THOR</div>${ui.thorWarn}`;
+              grid.parentNode.appendChild(warn);
+            }
+          } else if(w){ w.remove(); }
+        });
+      }, 0);
+    } else if(pbmState.otherArch === 'led_cluster'){
+      const formSec = document.createElement('div');
+      formSec.className = 'pbm-setup-section pbm-detail-sec';
+      formSec.innerHTML = `<div class="pbm-section-title pbm-required">${ui.customLedTitle}</div>`;
+      const grid = document.createElement('div');
+      grid.className = 'pbm-custom-form';
+      grid.innerHTML = `
+        <label class="pbm-field"><span>${ui.f_brand}</span><input type="text" id="pbmOLed_brand" value="${pbmState.otherLedBrand || ''}" placeholder="e.g., Joovv"></label>
+        <label class="pbm-field"><span>${ui.f_model}</span><input type="text" id="pbmOLed_model" value="${pbmState.otherLedModel || ''}" placeholder="e.g., Solo 3.0"></label>
+        <label class="pbm-field pbm-field-full"><span>${ui.f_wls}</span><input type="text" id="pbmOLed_wls" value="${pbmState.otherLedWls || ''}" placeholder="e.g., 660, 850"></label>
+        <label class="pbm-field"><span>${ui.f_nLeds}</span><input type="number" id="pbmOLed_count" value="${pbmState.otherLedCount || ''}" placeholder="e.g., 60"></label>
+        <label class="pbm-field"><span>${ui.f_ledDiam}</span><input type="number" step="0.1" id="pbmOLed_diam" value="${pbmState.otherLedDiam || ''}" placeholder="e.g., 5"></label>
+        <label class="pbm-field"><span>${ui.f_powerLed}</span><input type="number" step="1" id="pbmOLed_power" value="${pbmState.otherLedPowerEach || ''}" placeholder="e.g., 250"></label>
+        <label class="pbm-field"><span>${ui.f_spacing}</span><input type="number" step="0.1" id="pbmOLed_spacing" value="${pbmState.otherLedSpacing || ''}" placeholder="e.g., 12"></label>
+        <label class="pbm-field pbm-field-full"><span>${ui.f_arrayDim}</span><input type="text" id="pbmOLed_arrayDim" value="${pbmState.otherLedArrayDim || ''}" placeholder="e.g., 30×30 cm"></label>
+        <label class="pbm-field pbm-field-full"><span>${ui.f_simul}</span><select id="pbmOLed_simul">
+          <option value="">—</option>
+          <option value="yes" ${pbmState.otherLedSimul==='yes'?'selected':''}>${ui.yes}</option>
+          <option value="no"  ${pbmState.otherLedSimul==='no' ?'selected':''}>${ui.no}</option>
+        </select></label>`;
+      formSec.appendChild(grid);
+      wrap.appendChild(formSec);
+      setTimeout(()=>{
+        const bind = (id, key) => { const el = $(id); if(el) el.oninput = e => { pbmState[key] = e.target.value; }; };
+        bind('pbmOLed_brand','otherLedBrand'); bind('pbmOLed_model','otherLedModel');
+        bind('pbmOLed_wls','otherLedWls'); bind('pbmOLed_count','otherLedCount');
+        bind('pbmOLed_diam','otherLedDiam'); bind('pbmOLed_power','otherLedPowerEach');
+        bind('pbmOLed_spacing','otherLedSpacing'); bind('pbmOLed_arrayDim','otherLedArrayDim');
+        const s = $('pbmOLed_simul'); if(s) s.onchange = e => { pbmState.otherLedSimul = e.target.value; };
+      }, 0);
+    }
   }
-  wrap.appendChild(devSec);
 
   // ─ Indication picker ───────────────────────────────────────────
   const indSec = document.createElement('div');
@@ -3660,7 +3904,6 @@ function buildPbmSetup(){
     indRow.appendChild(c);
   });
   indSec.appendChild(indRow);
-  // Free-text indication
   const indFree = document.createElement('input');
   indFree.type = 'text';
   indFree.className = 'pbm-other-field';
@@ -3716,16 +3959,61 @@ function buildPbmMessage(){
   const ui = PBM.ui[lang] || PBM.ui.en;
   const parts = ['PBM DENTAL CONSULT'];
   parts.push(`Area: ${ui[pbmState.area] || pbmState.area}`);
+
   if(pbmState.preset && pbmState.preset !== 'other'){
     const p = PBM.presets.find(x => x.id === pbmState.preset);
-    if(p) parts.push(`Device: ${p.name} (${p.wl}) [arch=${p.arch}]`);
+    if(p){
+      parts.push(`Device: ${p.name} (${p.wl}) [arch=${p.arch}]`);
+      if(p.arch === 'laser_handpiece'){
+        // Append tip details
+        if(pbmState.tipId === '__other__'){
+          const spot = pbmState.otherSpotMm2 || 'unspecified';
+          const diam = pbmState.otherDiamUm ? ` (${pbmState.otherDiamUm} µm diameter)` : '';
+          parts.push(`Tip/Handpiece: custom — spot ${spot} mm²${diam}`);
+        } else if(pbmState.tipId){
+          const tip = (PBM_TIPS[p.id] || []).find(t => t.id === pbmState.tipId);
+          if(tip) parts.push(`Tip/Handpiece: ${tip.label} — spot ${tip.spot_mm2} mm², ${tip.technique}`);
+        }
+      } else if(p.arch === 'led_cluster'){
+        // Append KB cluster specs
+        const specs = PBM_CLUSTER_SPECS[p.id];
+        if(specs){
+          parts.push(`Cluster specs: irradiance ${specs.irradiance_w_cm2} W/cm², wavelengths ${specs.wavelengths_nm.join('+')} nm, mode ${specs.mode}, simultaneous ${specs.simultaneous_use ? 'yes' : 'no'}`);
+        }
+      }
+    }
   } else if(pbmState.preset === 'other'){
-    if(pbmState.otherArch) parts.push(`Architecture: ${pbmState.otherArch}`);
-    if(pbmState.otherDevice) parts.push(`Device (free-text): ${pbmState.otherDevice}`);
+    parts.push(`Device: custom`);
+    if(pbmState.otherArch === 'laser_handpiece'){
+      parts.push(`Architecture: laser_handpiece`);
+      const fields = [];
+      if(pbmState.otherBrand)   fields.push(`brand=${pbmState.otherBrand}`);
+      if(pbmState.otherModel)   fields.push(`model=${pbmState.otherModel}`);
+      if(pbmState.otherWl)      fields.push(`wavelength_nm=${pbmState.otherWl}`);
+      if(pbmState.otherMaxPow)  fields.push(`max_power_w=${pbmState.otherMaxPow}`);
+      if(pbmState.otherSpotMm2) fields.push(`spot_size_mm2=${pbmState.otherSpotMm2}`);
+      if(pbmState.otherDiamUm)  fields.push(`fiber_diameter_um=${pbmState.otherDiamUm}`);
+      if(pbmState.otherMode)    fields.push(`emission_mode=${pbmState.otherMode}`);
+      if(fields.length) parts.push(`Specs: { ${fields.join(', ')} }`);
+    } else if(pbmState.otherArch === 'led_cluster'){
+      parts.push(`Architecture: led_cluster`);
+      const fields = [];
+      if(pbmState.otherLedBrand)     fields.push(`brand=${pbmState.otherLedBrand}`);
+      if(pbmState.otherLedModel)     fields.push(`model=${pbmState.otherLedModel}`);
+      if(pbmState.otherLedWls)       fields.push(`wavelengths_nm=[${pbmState.otherLedWls}]`);
+      if(pbmState.otherLedCount)     fields.push(`leds_count=${pbmState.otherLedCount}`);
+      if(pbmState.otherLedDiam)      fields.push(`led_diameter_mm=${pbmState.otherLedDiam}`);
+      if(pbmState.otherLedPowerEach) fields.push(`power_per_led_mw=${pbmState.otherLedPowerEach}`);
+      if(pbmState.otherLedSpacing)   fields.push(`led_spacing_mm=${pbmState.otherLedSpacing}`);
+      if(pbmState.otherLedArrayDim)  fields.push(`array_dimensions=${pbmState.otherLedArrayDim}`);
+      if(pbmState.otherLedSimul)     fields.push(`simultaneous_use=${pbmState.otherLedSimul}`);
+      if(fields.length) parts.push(`Specs: { ${fields.join(', ')} }`);
+    }
   }
+
   if(pbmState.indication) parts.push(`Indication: ${pbmState.indication}`);
-  if(pbmState.indFree) parts.push(`Indication (free-text): ${pbmState.indFree}`);
-  if(pbmState.notes) parts.push(`Clinical notes: ${pbmState.notes}`);
+  if(pbmState.indFree)    parts.push(`Indication (free-text): ${pbmState.indFree}`);
+  if(pbmState.notes)      parts.push(`Clinical notes: ${pbmState.notes}`);
   return parts.join('. ');
 }
 
