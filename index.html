@@ -1938,6 +1938,27 @@
 .pbm-mode-chip{padding:8px 16px;border:1.5px solid rgba(27,38,59,0.2);border-radius:8px;background:#fff;font-family:'Space Mono',monospace;font-size:13px;color:#1B263B;cursor:pointer;transition:.15s;user-select:none}
 .pbm-mode-chip:hover{border-color:#1B263B}
 .pbm-mode-chip.sel{background:#1B263B;color:#fff;border-color:#1B263B}
+
+/* PBM v1.3 — Custom Spot Override accordion */
+.pbm-cs-wrap{margin-top:10px;border-top:1px dashed rgba(27,38,59,0.15);padding-top:8px}
+.pbm-cs-toggle{display:flex;align-items:center;gap:6px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#778DA9;cursor:pointer;user-select:none;padding:6px 0}
+.pbm-cs-toggle:hover{color:#1B263B}
+.pbm-cs-toggle.open{color:#1B263B}
+.pbm-cs-toggle-arrow{font-size:9px;display:inline-block;width:10px}
+.pbm-cs-panel{background:#FAEEDA;border:1px solid #B47410;border-radius:8px;padding:12px 14px;margin-top:6px;font-family:'Instrument Sans',sans-serif}
+.pbm-cs-title{font-size:12px;font-weight:700;color:#854F0B;letter-spacing:.05em;margin-bottom:8px}
+.pbm-cs-intro{font-size:12px;line-height:1.5;color:#5d3c0a;margin-bottom:10px}
+.pbm-cs-risks{font-size:12px;line-height:1.5;color:#5d3c0a;padding-left:18px;margin:0 0 10px 0}
+.pbm-cs-risks li{margin-bottom:6px}
+.pbm-cs-risks strong{color:#854F0B;font-size:11px;letter-spacing:.04em}
+.pbm-cs-fallback{font-size:11px;font-style:italic;color:#854F0B;margin-bottom:10px;line-height:1.4}
+.pbm-cs-accept{display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12px;color:#1B263B;background:#fff;padding:10px;border-radius:6px;border:1px solid #B47410;margin-bottom:10px}
+.pbm-cs-accept input{margin-top:2px;flex-shrink:0;cursor:pointer}
+.pbm-cs-accept span{flex:1;font-weight:500}
+.pbm-cs-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;transition:opacity .2s}
+.pbm-cs-form.disabled{opacity:0.4;pointer-events:none}
+.pbm-cs-area{justify-content:flex-start}
+.pbm-cs-area-val{padding:8px 10px;border:1.5px solid rgba(27,38,59,0.2);border-radius:8px;background:#F4F5F2;font-family:'Space Mono',monospace;font-size:13px;color:#1B263B}
 </style>
 </head>
 <body data-tab="home">
@@ -3540,6 +3561,8 @@ const PBM_TIPS = {
   ]
 };
 
+const PBM_CUSTOM_SPOT_ELIGIBLE = new Set(['epic_10','epic_x','soga_triple','pioon_h1']);
+
 const PBM_CLUSTER_SPECS = {
   biolux_dent: {
     summary_en:'650 nm red LED, intraoral mouthguard, irradiance 0.128 W/cm². Manual external timing required.',
@@ -3584,11 +3607,11 @@ const PBM = {
     { id:'klaser_cube', name:'K-Laser Cube Performance', wl:'660 / 800 / 905 / 970 nm',    arch:'laser_handpiece' }
   ],
   ui: {
-    en: { welcome:"PBM Dental — photobiomodulation, low-power therapy and PDT. Tell me your device and what you want to treat.", areaTitle:'Treatment area', dental:'Dental', physio:'Physiotherapy', medical:'Medical', comingJuly:'Coming July 2026', deviceTitle:'Your PBM device', otherLabel:'Other — describe', archLabel:'Architecture', archLaser:'Laser handpiece', archLED:'LED cluster', indicationTitle:'Indication', indPlaceholder:'or describe your indication…', notesPh:'Clinical notes — patient age, area, prior treatments, contraindications…', btn:'Get PBM protocol', thorWarn:'THOR has its own pre-set Treatment Library. I will redirect you to its native recommendations.', tipTitle:'Tip / Handpiece (required for exact dosimetry)', specsTitle:'Device specifications (from knowledge base)', customLaserTitle:'Laser handpiece specs (required)', customLedTitle:'LED cluster specs (required)', f_brand:'Brand', f_model:'Model', f_wl:'Wavelength (nm)', f_maxPow:'Max power (W)', f_spot:'Spot size (mm²) — or diameter in µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Fiber/tip diameter (µm)', f_mode:'Emission mode', f_modeCW:'CW', f_modePulsed:'Pulsed', f_nLeds:'Number of LEDs', f_ledDiam:'Diameter of each LED (mm)', f_powerLed:'Power per LED (mW)', f_wls:'Wavelengths (nm) — comma-separated', f_spacing:'LED-to-LED spacing (mm, center-to-center)', f_arrayDim:'Array dimensions (e.g., 10×10 cm)', f_simul:'Wavelengths emitted simultaneously?', yes:'Yes', no:'No' },
-    es: { welcome:"PBM Dental — fotobiomodulación, terapia de baja potencia y PDT. Dime tu equipo y qué quieres tratar.", areaTitle:'Área de tratamiento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponible julio 2026', deviceTitle:'Tu equipo PBM', otherLabel:'Otro — describir', archLabel:'Arquitectura', archLaser:'Pieza de mano láser', archLED:'Cluster LED', indicationTitle:'Indicación', indPlaceholder:'o describe tu indicación…', notesPh:'Notas clínicas — edad, área, tratamientos previos, contraindicaciones…', btn:'Obtener protocolo PBM', thorWarn:'THOR tiene su propia biblioteca de tratamientos predefinida. Te redirigiré a sus recomendaciones nativas.', tipTitle:'Tip / Pieza de mano (requerido para dosimetría exacta)', specsTitle:'Especificaciones del equipo (desde la base de conocimiento)', customLaserTitle:'Especificaciones láser (requeridas)', customLedTitle:'Especificaciones del cluster LED (requeridas)', f_brand:'Marca', f_model:'Modelo', f_wl:'Longitud de onda (nm)', f_maxPow:'Potencia máx (W)', f_spot:'Spot (mm²) — o diámetro en µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Diámetro fibra/tip (µm)', f_mode:'Modo de emisión', f_modeCW:'CW', f_modePulsed:'Pulsado', f_nLeds:'Número de LEDs', f_ledDiam:'Diámetro de cada LED (mm)', f_powerLed:'Potencia por LED (mW)', f_wls:'Longitudes de onda (nm) — separadas por coma', f_spacing:'Espaciamiento entre LEDs (mm, centro a centro)', f_arrayDim:'Dimensiones del array (ej., 10×10 cm)', f_simul:'¿Longitudes de onda emitidas simultáneamente?', yes:'Sí', no:'No' },
-    pt: { welcome:"PBM Dental — fotobiomodulação, terapia de baixa potência e PDT. Diga seu equipamento e o que deseja tratar.", areaTitle:'Área de tratamento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponível julho 2026', deviceTitle:'Seu equipamento PBM', otherLabel:'Outro — descrever', archLabel:'Arquitetura', archLaser:'Caneta laser', archLED:'Cluster LED', indicationTitle:'Indicação', indPlaceholder:'ou descreva sua indicação…', notesPh:'Notas clínicas — idade, área, tratamentos prévios, contraindicações…', btn:'Obter protocolo PBM', thorWarn:'THOR tem sua própria biblioteca de tratamentos. Vou redirecioná-lo às recomendações nativas.', tipTitle:'Ponta / Caneta (necessária para dosimetria exata)', specsTitle:'Especificações do equipamento (da base de conhecimento)', customLaserTitle:'Especificações laser (obrigatórias)', customLedTitle:'Especificações do cluster LED (obrigatórias)', f_brand:'Marca', f_model:'Modelo', f_wl:'Comprimento de onda (nm)', f_maxPow:'Potência máx (W)', f_spot:'Spot (mm²) — ou diâmetro em µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Diâmetro fibra/ponta (µm)', f_mode:'Modo de emissão', f_modeCW:'CW', f_modePulsed:'Pulsado', f_nLeds:'Número de LEDs', f_ledDiam:'Diâmetro de cada LED (mm)', f_powerLed:'Potência por LED (mW)', f_wls:'Comprimentos de onda (nm) — separados por vírgula', f_spacing:'Espaçamento entre LEDs (mm, centro a centro)', f_arrayDim:'Dimensões do array (ex., 10×10 cm)', f_simul:'Comprimentos de onda emitidos simultaneamente?', yes:'Sim', no:'Não' },
-    ja: { welcome:"PBM歯科 — フォトバイオモジュレーション、低出力療法、PDT。機器と治療対象を教えてください。", areaTitle:'治療領域', dental:'歯科', physio:'理学療法', medical:'医療', comingJuly:'2026年7月公開', deviceTitle:'PBM機器', otherLabel:'その他 — 記述', archLabel:'構造', archLaser:'レーザーハンドピース', archLED:'LEDクラスター', indicationTitle:'適応', indPlaceholder:'または適応を記述…', notesPh:'臨床ノート — 年齢、部位、既往治療、禁忌…', btn:'PBMプロトコル取得', thorWarn:'THORには独自のTreatment Libraryがあります。ネイティブ推奨にリダイレクトします。', tipTitle:'チップ/ハンドピース(正確な線量に必須)', specsTitle:'機器仕様(ナレッジベースより)', customLaserTitle:'レーザー仕様(必須)', customLedTitle:'LEDクラスター仕様(必須)', f_brand:'メーカー', f_model:'モデル', f_wl:'波長 (nm)', f_maxPow:'最大出力 (W)', f_spot:'スポット (mm²) または直径 (µm)', f_spotMm2:'スポットサイズ (mm²)', f_diamUm:'ファイバー/チップ直径 (µm)', f_mode:'発振モード', f_modeCW:'CW', f_modePulsed:'パルス', f_nLeds:'LED数', f_ledDiam:'各LED直径 (mm)', f_powerLed:'LEDあたり出力 (mW)', f_wls:'波長 (nm) — カンマ区切り', f_spacing:'LED間隔 (mm, 中心から中心)', f_arrayDim:'アレイ寸法 (例: 10×10 cm)', f_simul:'波長を同時に発射?', yes:'はい', no:'いいえ' },
-    ko: { welcome:"PBM 치과 — 광생체조절, 저출력 치료 및 PDT. 기기와 치료 대상을 알려주세요.", areaTitle:'치료 영역', dental:'치과', physio:'물리치료', medical:'의료', comingJuly:'2026년 7월 출시', deviceTitle:'PBM 기기', otherLabel:'기타 — 설명', archLabel:'구조', archLaser:'레이저 핸드피스', archLED:'LED 클러스터', indicationTitle:'적응증', indPlaceholder:'또는 적응증 설명…', notesPh:'임상 메모 — 연령, 부위, 이전 치료, 금기…', btn:'PBM 프로토콜 받기', thorWarn:'THOR는 자체 Treatment Library가 있습니다. 네이티브 권장사항으로 안내합니다.', tipTitle:'팁/핸드피스 (정확한 선량 필수)', specsTitle:'기기 사양 (지식베이스에서)', customLaserTitle:'레이저 사양 (필수)', customLedTitle:'LED 클러스터 사양 (필수)', f_brand:'브랜드', f_model:'모델', f_wl:'파장 (nm)', f_maxPow:'최대 출력 (W)', f_spot:'스팟 (mm²) 또는 직경 (µm)', f_spotMm2:'스팟 사이즈 (mm²)', f_diamUm:'섬유/팁 직경 (µm)', f_mode:'발진 모드', f_modeCW:'CW', f_modePulsed:'펄스', f_nLeds:'LED 개수', f_ledDiam:'각 LED 직경 (mm)', f_powerLed:'LED당 출력 (mW)', f_wls:'파장 (nm) — 쉼표로 구분', f_spacing:'LED 간격 (mm, 중심에서 중심)', f_arrayDim:'어레이 치수 (예: 10×10 cm)', f_simul:'파장 동시 발사?', yes:'예', no:'아니오' }
+    en: { welcome:"PBM Dental — photobiomodulation, low-power therapy and PDT. Tell me your device and what you want to treat.", areaTitle:'Treatment area', dental:'Dental', physio:'Physiotherapy', medical:'Medical', comingJuly:'Coming July 2026', deviceTitle:'Your PBM device', otherLabel:'Other — describe', archLabel:'Architecture', archLaser:'Laser handpiece', archLED:'LED cluster', indicationTitle:'Indication', indPlaceholder:'or describe your indication…', notesPh:'Clinical notes — patient age, area, prior treatments, contraindications…', btn:'Get PBM protocol', thorWarn:'THOR has its own pre-set Treatment Library. I will redirect you to its native recommendations.', tipTitle:'Tip / Handpiece (required for exact dosimetry)', specsTitle:'Device specifications (from knowledge base)', customLaserTitle:'Laser handpiece specs (required)', customLedTitle:'LED cluster specs (required)', f_brand:'Brand', f_model:'Model', f_wl:'Wavelength (nm)', f_maxPow:'Max power (W)', f_spot:'Spot size (mm²) — or diameter in µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Fiber/tip diameter (µm)', f_mode:'Emission mode', f_modeCW:'CW', f_modePulsed:'Pulsed', f_nLeds:'Number of LEDs', f_ledDiam:'Diameter of each LED (mm)', f_powerLed:'Power per LED (mW)', f_wls:'Wavelengths (nm) — comma-separated', f_spacing:'LED-to-LED spacing (mm, center-to-center)', f_arrayDim:'Array dimensions (e.g., 10×10 cm)', f_simul:'Wavelengths emitted simultaneously?', yes:'Yes', no:'No' , cs_toggle:"Use custom spot size (advanced)", cs_title:"CUSTOM SPOT OVERRIDE — Advanced clinical technique", cs_intro:"A clinically known technique: using the surgical handpiece without a tip inserted, covered with a sterile transparent barrier (e.g., clear plastic sleeve). Applies to diode devices with interchangeable fiber tips. NOT a manufacturer-approved configuration. By using this option you accept three responsibilities:", cs_risk1_t:"MEASUREMENT ACCURACY", cs_risk1_d:"You measure the spot diameter (caliper or beam test) and accept that all calculations depend on the accuracy of your measurement.", cs_risk2_t:"STERILE BARRIER", cs_risk2_d:"You confirm the handpiece will be covered with a sterile transparent barrier. Direct mucosal contact without barrier carries cross-contamination risk.", cs_risk3_t:"EQUIPMENT PROTECTION", cs_risk3_d:"Improper use without barrier (or with damaged barrier) can permanently contaminate the handpiece emitter window with dust, aerosol or debris, degrading laser output for ALL future uses and silently altering future protocols. You assume responsibility for equipment care.", cs_fallback:"If you do not accept these three responsibilities, please pick a different tip from the catalog above.", cs_accept:"I have read and accept these three responsibilities", cs_diam:"Measured spot diameter (mm)", cs_diam_ph:"e.g., 4.5", cs_notes:"Optional notes", cs_notes_ph:"measurement method, barrier type, etc.", cs_area_lbl:"Computed area" },
+    es: { welcome:"PBM Dental — fotobiomodulación, terapia de baja potencia y PDT. Dime tu equipo y qué quieres tratar.", areaTitle:'Área de tratamiento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponible julio 2026', deviceTitle:'Tu equipo PBM', otherLabel:'Otro — describir', archLabel:'Arquitectura', archLaser:'Pieza de mano láser', archLED:'Cluster LED', indicationTitle:'Indicación', indPlaceholder:'o describe tu indicación…', notesPh:'Notas clínicas — edad, área, tratamientos previos, contraindicaciones…', btn:'Obtener protocolo PBM', thorWarn:'THOR tiene su propia biblioteca de tratamientos predefinida. Te redirigiré a sus recomendaciones nativas.', tipTitle:'Tip / Pieza de mano (requerido para dosimetría exacta)', specsTitle:'Especificaciones del equipo (desde la base de conocimiento)', customLaserTitle:'Especificaciones láser (requeridas)', customLedTitle:'Especificaciones del cluster LED (requeridas)', f_brand:'Marca', f_model:'Modelo', f_wl:'Longitud de onda (nm)', f_maxPow:'Potencia máx (W)', f_spot:'Spot (mm²) — o diámetro en µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Diámetro fibra/tip (µm)', f_mode:'Modo de emisión', f_modeCW:'CW', f_modePulsed:'Pulsado', f_nLeds:'Número de LEDs', f_ledDiam:'Diámetro de cada LED (mm)', f_powerLed:'Potencia por LED (mW)', f_wls:'Longitudes de onda (nm) — separadas por coma', f_spacing:'Espaciamiento entre LEDs (mm, centro a centro)', f_arrayDim:'Dimensiones del array (ej., 10×10 cm)', f_simul:'¿Longitudes de onda emitidas simultáneamente?', yes:'Sí', no:'No' , cs_toggle:"Usar spot personalizado (avanzado)", cs_title:"CUSTOM SPOT OVERRIDE — Técnica clínica avanzada", cs_intro:"Técnica clínicamente conocida: usar la pieza de mano quirúrgica sin tip insertado, cubierta con barrera estéril transparente (ej., funda plástica clara). Aplica a diodos con tips de fibra intercambiables. NO es una configuración aprobada por el fabricante. Al usar esta opción aceptas tres responsabilidades:", cs_risk1_t:"PRECISIÓN DE MEDICIÓN", cs_risk1_d:"Tú mides el diámetro del spot (calibrador o prueba de haz) y aceptas que todos los cálculos dependen de que tu medición sea correcta.", cs_risk2_t:"BARRERA ESTÉRIL", cs_risk2_d:"Confirmas que la pieza de mano será cubierta con una barrera estéril transparente. El contacto mucoso directo sin barrera genera riesgo de contaminación cruzada.", cs_risk3_t:"PROTECCIÓN DEL EQUIPO", cs_risk3_d:"El uso indebido sin barrera (o con barrera dañada) puede contaminar permanentemente la ventana emisora del handpiece con polvo, aerosol o debris, degradando la salida del láser para TODOS los usos futuros y alterando silenciosamente protocolos futuros. Asumes la responsabilidad del cuidado del equipo.", cs_fallback:"Si no aceptas estas tres responsabilidades, elige un tip diferente del catálogo de arriba.", cs_accept:"He leído y acepto estas tres responsabilidades", cs_diam:"Diámetro del spot medido (mm)", cs_diam_ph:"ej., 4.5", cs_notes:"Notas opcionales", cs_notes_ph:"método de medición, tipo de barrera, etc.", cs_area_lbl:"Área calculada" },
+    pt: { welcome:"PBM Dental — fotobiomodulação, terapia de baixa potência e PDT. Diga seu equipamento e o que deseja tratar.", areaTitle:'Área de tratamento', dental:'Dental', physio:'Fisioterapia', medical:'Médica', comingJuly:'Disponível julho 2026', deviceTitle:'Seu equipamento PBM', otherLabel:'Outro — descrever', archLabel:'Arquitetura', archLaser:'Caneta laser', archLED:'Cluster LED', indicationTitle:'Indicação', indPlaceholder:'ou descreva sua indicação…', notesPh:'Notas clínicas — idade, área, tratamentos prévios, contraindicações…', btn:'Obter protocolo PBM', thorWarn:'THOR tem sua própria biblioteca de tratamentos. Vou redirecioná-lo às recomendações nativas.', tipTitle:'Ponta / Caneta (necessária para dosimetria exata)', specsTitle:'Especificações do equipamento (da base de conhecimento)', customLaserTitle:'Especificações laser (obrigatórias)', customLedTitle:'Especificações do cluster LED (obrigatórias)', f_brand:'Marca', f_model:'Modelo', f_wl:'Comprimento de onda (nm)', f_maxPow:'Potência máx (W)', f_spot:'Spot (mm²) — ou diâmetro em µm', f_spotMm2:'Spot size (mm²)', f_diamUm:'Diâmetro fibra/ponta (µm)', f_mode:'Modo de emissão', f_modeCW:'CW', f_modePulsed:'Pulsado', f_nLeds:'Número de LEDs', f_ledDiam:'Diâmetro de cada LED (mm)', f_powerLed:'Potência por LED (mW)', f_wls:'Comprimentos de onda (nm) — separados por vírgula', f_spacing:'Espaçamento entre LEDs (mm, centro a centro)', f_arrayDim:'Dimensões do array (ex., 10×10 cm)', f_simul:'Comprimentos de onda emitidos simultaneamente?', yes:'Sim', no:'Não' , cs_toggle:"Usar spot personalizado (avançado)", cs_title:"CUSTOM SPOT OVERRIDE — Técnica clínica avançada", cs_intro:"Técnica clinicamente conhecida: usar a caneta cirúrgica sem ponta inserida, coberta com barreira estéril transparente (ex., manga plástica clara). Aplica a diodos com pontas de fibra intercambiáveis. NÃO é uma configuração aprovada pelo fabricante. Ao usar esta opção você aceita três responsabilidades:", cs_risk1_t:"PRECISÃO DA MEDIÇÃO", cs_risk1_d:"Você mede o diâmetro do spot (calibrador ou teste de feixe) e aceita que todos os cálculos dependem da exatidão da sua medição.", cs_risk2_t:"BARREIRA ESTÉRIL", cs_risk2_d:"Você confirma que a caneta será coberta com barreira estéril transparente. Contato direto com mucosa sem barreira traz risco de contaminação cruzada.", cs_risk3_t:"PROTEÇÃO DO EQUIPAMENTO", cs_risk3_d:"Uso impróprio sem barreira (ou com barreira danificada) pode contaminar permanentemente a janela emissora da caneta com poeira, aerossol ou debris, degradando a saída do laser em TODOS os usos futuros e alterando silenciosamente protocolos futuros. Você assume a responsabilidade pelo cuidado do equipamento.", cs_fallback:"Se você não aceita essas três responsabilidades, escolha uma ponta diferente do catálogo acima.", cs_accept:"Li e aceito essas três responsabilidades", cs_diam:"Diâmetro do spot medido (mm)", cs_diam_ph:"ex., 4.5", cs_notes:"Notas opcionais", cs_notes_ph:"método de medição, tipo de barreira, etc.", cs_area_lbl:"Área calculada" },
+    ja: { welcome:"PBM歯科 — フォトバイオモジュレーション、低出力療法、PDT。機器と治療対象を教えてください。", areaTitle:'治療領域', dental:'歯科', physio:'理学療法', medical:'医療', comingJuly:'2026年7月公開', deviceTitle:'PBM機器', otherLabel:'その他 — 記述', archLabel:'構造', archLaser:'レーザーハンドピース', archLED:'LEDクラスター', indicationTitle:'適応', indPlaceholder:'または適応を記述…', notesPh:'臨床ノート — 年齢、部位、既往治療、禁忌…', btn:'PBMプロトコル取得', thorWarn:'THORには独自のTreatment Libraryがあります。ネイティブ推奨にリダイレクトします。', tipTitle:'チップ/ハンドピース(正確な線量に必須)', specsTitle:'機器仕様(ナレッジベースより)', customLaserTitle:'レーザー仕様(必須)', customLedTitle:'LEDクラスター仕様(必須)', f_brand:'メーカー', f_model:'モデル', f_wl:'波長 (nm)', f_maxPow:'最大出力 (W)', f_spot:'スポット (mm²) または直径 (µm)', f_spotMm2:'スポットサイズ (mm²)', f_diamUm:'ファイバー/チップ直径 (µm)', f_mode:'発振モード', f_modeCW:'CW', f_modePulsed:'パルス', f_nLeds:'LED数', f_ledDiam:'各LED直径 (mm)', f_powerLed:'LEDあたり出力 (mW)', f_wls:'波長 (nm) — カンマ区切り', f_spacing:'LED間隔 (mm, 中心から中心)', f_arrayDim:'アレイ寸法 (例: 10×10 cm)', f_simul:'波長を同時に発射?', yes:'はい', no:'いいえ' , cs_toggle:"カスタムスポット使用(上級)", cs_title:"カスタムスポットオーバーライド — 上級臨床技術", cs_intro:"臨床的に知られた技術:チップを挿入せずに外科用ハンドピースを使用し、滅菌透明バリアで覆います。交換可能なファイバーチップを持つすべてのダイオード機器に適用されます。メーカー承認の構成ではありません。このオプションを使用することで、3つの責任を受け入れます:", cs_risk1_t:"測定精度", cs_risk1_d:"スポット直径を測定し、すべての計算が測定の正確性に依存することを受け入れます。", cs_risk2_t:"滅菌バリア", cs_risk2_d:"ハンドピースが滅菌透明バリアで覆われることを確認します。バリアなしの直接粘膜接触は交差汚染のリスクがあります。", cs_risk3_t:"機器の保護", cs_risk3_d:"バリアなし(または損傷したバリア)での不適切な使用は、放射窓を粉塵やエアロゾルで永続的に汚染し、すべての将来の使用でレーザー出力を低下させ、将来のプロトコルを静かに変更する可能性があります。機器のケアの責任を引き受けます。", cs_fallback:"これら3つの責任を受け入れない場合は、上記カタログから別のチップを選択してください。", cs_accept:"これら3つの責任を読み、受け入れました", cs_diam:"測定スポット直径(mm)", cs_diam_ph:"例: 4.5", cs_notes:"オプションのメモ", cs_notes_ph:"測定方法、バリアの種類など", cs_area_lbl:"計算された面積" },
+    ko: { welcome:"PBM 치과 — 광생체조절, 저출력 치료 및 PDT. 기기와 치료 대상을 알려주세요.", areaTitle:'치료 영역', dental:'치과', physio:'물리치료', medical:'의료', comingJuly:'2026년 7월 출시', deviceTitle:'PBM 기기', otherLabel:'기타 — 설명', archLabel:'구조', archLaser:'레이저 핸드피스', archLED:'LED 클러스터', indicationTitle:'적응증', indPlaceholder:'또는 적응증 설명…', notesPh:'임상 메모 — 연령, 부위, 이전 치료, 금기…', btn:'PBM 프로토콜 받기', thorWarn:'THOR는 자체 Treatment Library가 있습니다. 네이티브 권장사항으로 안내합니다.', tipTitle:'팁/핸드피스 (정확한 선량 필수)', specsTitle:'기기 사양 (지식베이스에서)', customLaserTitle:'레이저 사양 (필수)', customLedTitle:'LED 클러스터 사양 (필수)', f_brand:'브랜드', f_model:'모델', f_wl:'파장 (nm)', f_maxPow:'최대 출력 (W)', f_spot:'스팟 (mm²) 또는 직경 (µm)', f_spotMm2:'스팟 사이즈 (mm²)', f_diamUm:'섬유/팁 직경 (µm)', f_mode:'발진 모드', f_modeCW:'CW', f_modePulsed:'펄스', f_nLeds:'LED 개수', f_ledDiam:'각 LED 직경 (mm)', f_powerLed:'LED당 출력 (mW)', f_wls:'파장 (nm) — 쉼표로 구분', f_spacing:'LED 간격 (mm, 중심에서 중심)', f_arrayDim:'어레이 치수 (예: 10×10 cm)', f_simul:'파장 동시 발사?', yes:'예', no:'아니오' , cs_toggle:"사용자 정의 스팟 사용 (고급)", cs_title:"사용자 정의 스팟 오버라이드 — 고급 임상 기법", cs_intro:"임상적으로 알려진 기법: 팁이 삽입되지 않은 외과용 핸드피스를 멸균 투명 배리어로 덮어 사용. 교체 가능한 광섬유 팁이 있는 다이오드 기기에 적용. 제조사 승인 구성이 아닙니다. 이 옵션 사용 시 세 가지 책임을 수락합니다:", cs_risk1_t:"측정 정확도", cs_risk1_d:"스팟 직경을 측정하고, 모든 계산이 측정 정확도에 의존함을 수락합니다.", cs_risk2_t:"멸균 배리어", cs_risk2_d:"핸드피스가 멸균 투명 배리어로 덮일 것을 확인합니다. 배리어 없는 직접 점막 접촉은 교차 오염 위험이 있습니다.", cs_risk3_t:"장비 보호", cs_risk3_d:"배리어 없이(또는 손상된 배리어로) 부적절한 사용은 방출 창을 먼지나 에어로졸로 영구 오염시켜 모든 향후 사용에서 레이저 출력을 저하시키고 향후 프로토콜을 조용히 변경할 수 있습니다. 장비 관리 책임을 집니다.", cs_fallback:"이 세 가지 책임을 수락하지 않는 경우 위 카탈로그에서 다른 팁을 선택하세요.", cs_accept:"이 세 가지 책임을 읽고 수락했습니다", cs_diam:"측정된 스팟 직경 (mm)", cs_diam_ph:"예: 4.5", cs_notes:"선택적 메모", cs_notes_ph:"측정 방법, 배리어 유형 등", cs_area_lbl:"계산된 면적" }
   },
   indications: {
     en: ['Herpes labial','Aphthous ulcers','Oral mucositis','TMD/TMJ','Dentin hypersensitivity','Post-implant','Paresthesia','Xerostomia','Burning mouth','Lichen planus','Wound healing','Post-extraction'],
@@ -3609,6 +3632,9 @@ const pbmState = {
   otherBrand:'', otherModel:'', otherWl:'', otherMaxPow:'', otherSpotMm2:'', otherDiamUm:'', otherMode:'',
   // Other led_cluster fields:
   otherLedBrand:'', otherLedModel:'', otherLedWls:'', otherLedCount:'', otherLedDiam:'', otherLedPowerEach:'', otherLedSpacing:'', otherLedArrayDim:'', otherLedSimul:'',
+  // Indication
+  // Custom spot override
+  customSpotEnabled:false, customSpotAccepted:false, customSpotMm:'', customSpotNotes:'',
   // Indication
   indication:'', indFree:'', notes:''
 };
@@ -3775,6 +3801,73 @@ function buildPbmSetup(){
               }
             };
           }, 0);
+        }
+
+        // Custom Spot Override accordion (only for eligible diode devices)
+        if(PBM_CUSTOM_SPOT_ELIGIBLE.has(preset.id)){
+          const csWrap = document.createElement('div');
+          csWrap.className = 'pbm-cs-wrap';
+          const csToggle = document.createElement('div');
+          csToggle.className = 'pbm-cs-toggle' + (pbmState.customSpotEnabled ? ' open' : '');
+          csToggle.innerHTML = `<span class="pbm-cs-toggle-arrow">${pbmState.customSpotEnabled ? '▼' : '▶'}</span> ${ui.cs_toggle}`;
+          csToggle.onclick = () => {
+            pbmState.customSpotEnabled = !pbmState.customSpotEnabled;
+            if(!pbmState.customSpotEnabled){
+              pbmState.customSpotAccepted = false;
+            }
+            buildPbmSetup();
+          };
+          csWrap.appendChild(csToggle);
+
+          if(pbmState.customSpotEnabled){
+            const panel = document.createElement('div');
+            panel.className = 'pbm-cs-panel';
+            const diam = parseFloat(pbmState.customSpotMm) || 0;
+            const area_mm2 = diam > 0 ? (Math.PI * (diam/2) * (diam/2)).toFixed(4) : '—';
+            panel.innerHTML = `
+              <div class="pbm-cs-title">⚠️ ${ui.cs_title}</div>
+              <div class="pbm-cs-intro">${ui.cs_intro}</div>
+              <ol class="pbm-cs-risks">
+                <li><strong>${ui.cs_risk1_t}</strong> — ${ui.cs_risk1_d}</li>
+                <li><strong>${ui.cs_risk2_t}</strong> — ${ui.cs_risk2_d}</li>
+                <li><strong>${ui.cs_risk3_t}</strong> — ${ui.cs_risk3_d}</li>
+              </ol>
+              <div class="pbm-cs-fallback">${ui.cs_fallback}</div>
+              <label class="pbm-cs-accept">
+                <input type="checkbox" id="pbmCsAccept" ${pbmState.customSpotAccepted ? 'checked' : ''}>
+                <span>${ui.cs_accept}</span>
+              </label>
+              <div class="pbm-cs-form ${pbmState.customSpotAccepted ? '' : 'disabled'}">
+                <label class="pbm-field">
+                  <span>${ui.cs_diam}</span>
+                  <input type="number" step="0.1" id="pbmCsDiam" value="${pbmState.customSpotMm || ''}" placeholder="${ui.cs_diam_ph}" ${pbmState.customSpotAccepted ? '' : 'disabled'}>
+                </label>
+                <div class="pbm-field pbm-cs-area">
+                  <span>${ui.cs_area_lbl}</span>
+                  <div class="pbm-cs-area-val" id="pbmCsArea">${area_mm2} mm²</div>
+                </div>
+                <label class="pbm-field pbm-field-full">
+                  <span>${ui.cs_notes}</span>
+                  <input type="text" id="pbmCsNotes" value="${pbmState.customSpotNotes || ''}" placeholder="${ui.cs_notes_ph}" ${pbmState.customSpotAccepted ? '' : 'disabled'}>
+                </label>
+              </div>`;
+            csWrap.appendChild(panel);
+            setTimeout(()=>{
+              const ck = $('pbmCsAccept');
+              if(ck) ck.onchange = e => { pbmState.customSpotAccepted = e.target.checked; buildPbmSetup(); };
+              const dEl = $('pbmCsDiam');
+              if(dEl) dEl.oninput = e => {
+                pbmState.customSpotMm = e.target.value;
+                const d = parseFloat(e.target.value) || 0;
+                const a = d > 0 ? (Math.PI * (d/2) * (d/2)).toFixed(4) : '—';
+                const aEl = $('pbmCsArea');
+                if(aEl) aEl.textContent = a + ' mm²';
+              };
+              const nEl = $('pbmCsNotes');
+              if(nEl) nEl.oninput = e => { pbmState.customSpotNotes = e.target.value; };
+            }, 0);
+          }
+          detailSec.appendChild(csWrap);
         }
       } else if(preset.arch === 'led_cluster'){
         // LED cluster summary card (read-only from KB)
@@ -3993,8 +4086,13 @@ function buildPbmMessage(){
     if(p){
       parts.push(`Device: ${p.name} (${p.wl}) [arch=${p.arch}]`);
       if(p.arch === 'laser_handpiece'){
-        // Append tip details
-        if(pbmState.tipId === '__other__'){
+        // Custom Spot Override takes priority over selected tip
+        if(pbmState.customSpotEnabled && pbmState.customSpotAccepted && pbmState.customSpotMm && PBM_CUSTOM_SPOT_ELIGIBLE.has(p.id)){
+          const d = parseFloat(pbmState.customSpotMm);
+          const area_mm2 = (Math.PI * (d/2) * (d/2)).toFixed(4);
+          const notes = pbmState.customSpotNotes ? ` Operator notes: ${pbmState.customSpotNotes}.` : '';
+          parts.push(`Tip/Handpiece: CUSTOM SPOT OVERRIDE — bare surgical handpiece (no tip inserted), measured spot diameter ${d} mm, computed spot area ${area_mm2} mm², sterile transparent barrier confirmed, operator-accepted risks: (1) measurement accuracy, (2) sterile barrier, (3) equipment protection.${notes}`);
+        } else if(pbmState.tipId === '__other__'){
           const spot = pbmState.otherSpotMm2 || 'unspecified';
           const diam = pbmState.otherDiamUm ? ` (${pbmState.otherDiamUm} µm diameter)` : '';
           parts.push(`Tip/Handpiece: custom — spot ${spot} mm²${diam}`);
@@ -4207,6 +4305,7 @@ function startNewPbmConsultation(){
     area:'dental', preset:null, tipId:null, otherArch:'',
     otherBrand:'', otherModel:'', otherWl:'', otherMaxPow:'', otherSpotMm2:'', otherDiamUm:'', otherMode:'',
     otherLedBrand:'', otherLedModel:'', otherLedWls:'', otherLedCount:'', otherLedDiam:'', otherLedPowerEach:'', otherLedSpacing:'', otherLedArrayDim:'', otherLedSimul:'',
+    customSpotEnabled:false, customSpotAccepted:false, customSpotMm:'', customSpotNotes:'',
     indication:'', indFree:'', notes:''
   });
   hist.pbm = [];
