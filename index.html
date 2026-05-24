@@ -2013,12 +2013,12 @@
 </div>
 
 <div class="tabs">
-  <div class="tab active" data-tab="home"       onclick="goTab('home')">Home</div>
-  <div class="tab"        data-tab="devices"    onclick="goTab('devices')">Devices</div>
-  <div class="tab"        data-tab="protocols"  onclick="goTab('protocols')">Protocols</div>
-  <div class="tab"        data-tab="validate"   onclick="goTab('validate')">Validate</div>
-  <div class="tab"        data-tab="calculator" onclick="goTab('calculator')">Calculator</div>
-  <div class="tab"        data-tab="pbm"        onclick="goTab('pbm')">PBM</div>
+  <div class="tab active" id="tabHome" data-tab="home"       onclick="goTab('home')">Home</div>
+  <div class="tab"        id="tabDev"  data-tab="devices"    onclick="goTab('devices')">Devices</div>
+  <div class="tab"        id="tabPro"  data-tab="protocols"  onclick="goTab('protocols')">Protocols</div>
+  <div class="tab"        id="tabVal"  data-tab="validate"   onclick="goTab('validate')">Validate</div>
+  <div class="tab"        id="tabCal"  data-tab="calculator" onclick="goTab('calculator')">Calculator</div>
+  <div class="tab"        id="tabPbm"  data-tab="pbm"        onclick="goTab('pbm')">PBM</div>
 </div>
 
 <div class="plan-bar">
@@ -2235,7 +2235,7 @@ const HOOKS = {
 
 const L = {
   en: {
-    status:'ready', homeTitle:'Where do you want\nto <span class="accent">start?</span>',
+    status:'ready', tabs:{home:'Home',dev:'Devices',pro:'Protocols',val:'Validate',cal:'Calculator',pbm:'PBM'}, homeTitle:'Where do you want\nto <span class="accent">start?</span>',
     homeSub:'Identify, prescribe, validate and calculate parameters before any laser-assisted procedure.',
     langLbl:'Language',
     langNote:'The assistant will respond in this language throughout your consultation.',
@@ -2291,7 +2291,7 @@ const L = {
     }
   },
   es: {
-    status:'listo', homeTitle:'¿Con qué quieres\n<span class="accent">empezar?</span>',
+    status:'listo', tabs:{home:'Inicio',dev:'Equipos',pro:'Protocolos',val:'Validar',cal:'Calculadora',pbm:'PBM'}, homeTitle:'¿Con qué quieres\n<span class="accent">empezar?</span>',
     homeSub:'Identifica, prescribe, valida y calcula parámetros antes de cualquier procedimiento con láser.',
     langLbl:'Idioma',
     langNote:'El asistente responderá en este idioma durante toda tu consulta.',
@@ -2347,7 +2347,7 @@ const L = {
     }
   },
   pt: {
-    status:'pronto', homeTitle:'Por onde você quer\n<span class="accent">começar?</span>',
+    status:'pronto', tabs:{home:'Início',dev:'Equipamentos',pro:'Protocolos',val:'Validar',cal:'Calculadora',pbm:'PBM'}, homeTitle:'Por onde você quer\n<span class="accent">começar?</span>',
     homeSub:'Identifique, prescreva, valide e calcule parâmetros antes de qualquer procedimento a laser.',
     langLbl:'Idioma',
     langNote:'O assistente responderá neste idioma durante toda a sua consulta.',
@@ -2403,7 +2403,7 @@ const L = {
     }
   },
   ja: {
-    status:'準備完了', homeTitle:'<span class="accent">どこから</span>\n始めますか？',
+    status:'準備完了', tabs:{home:'ホーム',dev:'機器',pro:'プロトコル',val:'検証',cal:'計算',pbm:'PBM'}, homeTitle:'<span class="accent">どこから</span>\n始めますか？',
     homeSub:'レーザー処置の前に、識別・処方・検証・パラメータ計算を行います。',
     langLbl:'言語',
     langNote:'アシスタントはこの言語で回答します。',
@@ -2459,7 +2459,7 @@ const L = {
     }
   },
   ko: {
-    status:'준비완료', homeTitle:'<span class="accent">어디서</span>\n시작하겠어요?',
+    status:'준비완료', tabs:{home:'홈',dev:'기기',pro:'프로토콜',val:'검증',cal:'계산기',pbm:'PBM'}, homeTitle:'<span class="accent">어디서</span>\n시작하겠어요?',
     homeSub:'레이저 시술 전에 장비 식별, 프로토콜, 설정 검증, 파라미터 계산을 수행합니다.',
     langLbl:'언어',
     langNote:'어시스턴트가 이 언어로 답변합니다.',
@@ -2988,6 +2988,7 @@ function applyLang(){
   $('cProName').textContent=l.cProName;$('cProDesc').textContent=l.cProDesc;
   $('cValName').textContent=l.cValName;$('cValDesc').textContent=l.cValDesc;
   $('cCalName').textContent=l.cCalName;$('cCalDesc').textContent=l.cCalDesc; $('cPbmName').textContent=l.cPbmName; $('cPbmDesc').textContent=l.cPbmDesc;
+  if(l.tabs){const t=l.tabs;$('tabHome').textContent=t.home;$('tabDev').textContent=t.dev;$('tabPro').textContent=t.pro;$('tabVal').textContent=t.val;$('tabCal').textContent=t.cal;$('tabPbm').textContent=t.pbm;}
   $('devTitle').textContent=l.devTitle;$('devSub').textContent=l.devSub;
   $('proTitle').textContent=l.proTitle;$('proSub').textContent=l.proSub;
   $('valTitle').textContent=l.valTitle;$('valSub').textContent=l.valSub;
