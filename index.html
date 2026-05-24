@@ -3591,6 +3591,8 @@ const PBM_CLUSTER_SPECS = {
   }
 };
 
+function localizeWl(wl){const t={en:{intraoral:'intraoral',wearable:'wearable',pad:'pad'},es:{intraoral:'intraoral',wearable:'wearable',pad:'parche'},pt:{intraoral:'intraoral',wearable:'wearable',pad:'pad'},ja:{intraoral:'口腔内',wearable:'ウェアラブル',pad:'パッド'},ko:{intraoral:'구강내',wearable:'착용형',pad:'패드'}}[lang]||{};let out=wl;for(const k in t){out=out.replace(new RegExp('\\b'+k+'\\b','g'),t[k]);}return out;}
+
 const PBM = {
   presets: [
     // LED clusters (3) — specs come from PBM_CLUSTER_SPECS
@@ -3600,7 +3602,7 @@ const PBM = {
     // Lasers (8) — require tip selection from PBM_TIPS
     { id:'epic_10',     name:'Biolase EPIC 10',          wl:'940 nm',                      arch:'laser_handpiece' },
     { id:'epic_x',      name:'Biolase EPIC X',           wl:'940 nm',                      arch:'laser_handpiece' },
-    { id:'soga_triple', name:'Soga Diodo Triple',        wl:'450 / 650 / 980 nm',          arch:'laser_handpiece' },
+    { id:'soga_triple', name:'Soga Triple Diode',        wl:'450 / 650 / 980 nm',          arch:'laser_handpiece' },
     { id:'pioon_h1',    name:'PIOON H1',                 wl:'980 nm',                      arch:'laser_handpiece' },
     { id:'fotona_ndyag',name:'Fotona LightWalker Nd:YAG',wl:'1064 nm fr-pulse',            arch:'laser_handpiece' },
     { id:'periolase',   name:'PerioLase MVP-7',          wl:'1064 nm fr-pulse',            arch:'laser_handpiece' },
@@ -3732,7 +3734,7 @@ function buildPbmSetup(){
   PBM.presets.forEach(p => {
     const c = document.createElement('div');
     c.className = 'pbm-preset' + (pbmState.preset === p.id ? ' sel' : '');
-    c.innerHTML = `<div class="pbm-preset-name">${p.name}</div><div class="pbm-preset-wl">${p.wl}</div>`;
+    c.innerHTML = `<div class="pbm-preset-name">${p.name}</div><div class="pbm-preset-wl">${localizeWl(p.wl)}</div>`;
     c.onclick = () => {
       pbmState.preset = p.id;
       pbmState.tipId = null;
