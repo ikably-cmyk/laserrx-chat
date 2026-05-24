@@ -1923,6 +1923,21 @@
 .pbm-field input,.pbm-field select{padding:8px 10px;border:1.5px solid rgba(27,38,59,0.2);border-radius:8px;background:#fff;font-size:13px;font-family:'Space Mono',monospace;color:#1B263B}
 .pbm-field input:focus,.pbm-field select:focus{outline:none;border-color:#1B263B}
 .pbm-field-full{grid-column:1/-1}
+
+/* PBM v1.2 — iOS switch + emission mode chips */
+.pbm-field-switch{display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:6px 0}
+.pbm-field-switch > span{margin-bottom:0;flex:1}
+.pbm-switch{position:relative;display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none;flex-shrink:0}
+.pbm-switch input{opacity:0;width:0;height:0;position:absolute}
+.pbm-switch-slider{position:relative;display:inline-block;width:48px;height:26px;background:rgba(27,38,59,0.22);border-radius:26px;transition:background .2s}
+.pbm-switch-slider::before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 2px 4px rgba(0,0,0,0.18)}
+.pbm-switch input:checked + .pbm-switch-slider{background:#1B263B}
+.pbm-switch input:checked + .pbm-switch-slider::before{transform:translateX(22px)}
+.pbm-switch-label{font-family:'Space Mono',monospace;font-size:12px;color:#1B263B;min-width:32px;text-align:left}
+.pbm-mode-chips{display:flex;gap:6px;margin-top:4px}
+.pbm-mode-chip{padding:8px 16px;border:1.5px solid rgba(27,38,59,0.2);border-radius:8px;background:#fff;font-family:'Space Mono',monospace;font-size:13px;color:#1B263B;cursor:pointer;transition:.15s;user-select:none}
+.pbm-mode-chip:hover{border-color:#1B263B}
+.pbm-mode-chip.sel{background:#1B263B;color:#fff;border-color:#1B263B}
 </style>
 </head>
 <body data-tab="home">
@@ -3812,11 +3827,13 @@ function buildPbmSetup(){
         <label class="pbm-field"><span>${ui.f_maxPow}</span><input type="number" step="0.01" id="pbmOL_maxPow" value="${pbmState.otherMaxPow || ''}" placeholder="e.g., 0.5"></label>
         <label class="pbm-field"><span>${ui.f_spotMm2}</span><input type="number" step="0.001" id="pbmOL_spotMm2" value="${pbmState.otherSpotMm2 || ''}" placeholder="e.g., 0.503"></label>
         <label class="pbm-field"><span>${ui.f_diamUm} <em>(auto)</em></span><input type="number" step="10" id="pbmOL_diamUm" value="${pbmState.otherDiamUm || ''}" placeholder="e.g., 300"></label>
-        <label class="pbm-field pbm-field-full"><span>${ui.f_mode}</span><select id="pbmOL_mode">
-          <option value="">—</option>
-          <option value="CW" ${pbmState.otherMode==='CW'?'selected':''}>${ui.f_modeCW}</option>
-          <option value="Pulsed" ${pbmState.otherMode==='Pulsed'?'selected':''}>${ui.f_modePulsed}</option>
-        </select></label>`;
+        <div class="pbm-field pbm-field-full">
+          <span>${ui.f_mode}</span>
+          <div class="pbm-mode-chips">
+            <div class="pbm-mode-chip ${pbmState.otherMode==='CW'?'sel':''}" data-mode="CW">${ui.f_modeCW}</div>
+            <div class="pbm-mode-chip ${pbmState.otherMode==='Pulsed'?'sel':''}" data-mode="Pulsed">${ui.f_modePulsed}</div>
+          </div>
+        </div>`;
       formSec.appendChild(grid);
       wrap.appendChild(formSec);
       setTimeout(()=>{
@@ -3835,7 +3852,12 @@ function buildPbmSetup(){
             if(sM){ sM.value = area_mm2.toFixed(4); pbmState.otherSpotMm2 = sM.value; }
           }
         };
-        const mEl = $('pbmOL_mode'); if(mEl) mEl.onchange = e => { pbmState.otherMode = e.target.value; };
+        document.querySelectorAll('.pbm-mode-chip').forEach(c => {
+          c.onclick = () => {
+            pbmState.otherMode = c.dataset.mode;
+            document.querySelectorAll('.pbm-mode-chip').forEach(x => x.classList.toggle('sel', x.dataset.mode === pbmState.otherMode));
+          };
+        });
         // THOR warning if brand contains THOR
         const bEl = $('pbmOL_brand');
         if(bEl) bEl.addEventListener('input', e => {
@@ -3867,11 +3889,14 @@ function buildPbmSetup(){
         <label class="pbm-field"><span>${ui.f_powerLed}</span><input type="number" step="1" id="pbmOLed_power" value="${pbmState.otherLedPowerEach || ''}" placeholder="e.g., 250"></label>
         <label class="pbm-field"><span>${ui.f_spacing}</span><input type="number" step="0.1" id="pbmOLed_spacing" value="${pbmState.otherLedSpacing || ''}" placeholder="e.g., 12"></label>
         <label class="pbm-field pbm-field-full"><span>${ui.f_arrayDim}</span><input type="text" id="pbmOLed_arrayDim" value="${pbmState.otherLedArrayDim || ''}" placeholder="e.g., 30×30 cm"></label>
-        <label class="pbm-field pbm-field-full"><span>${ui.f_simul}</span><select id="pbmOLed_simul">
-          <option value="">—</option>
-          <option value="yes" ${pbmState.otherLedSimul==='yes'?'selected':''}>${ui.yes}</option>
-          <option value="no"  ${pbmState.otherLedSimul==='no' ?'selected':''}>${ui.no}</option>
-        </select></label>`;
+        <div class="pbm-field pbm-field-full pbm-field-switch">
+          <span>${ui.f_simul}</span>
+          <label class="pbm-switch">
+            <input type="checkbox" id="pbmOLed_simul" ${pbmState.otherLedSimul==='yes'?'checked':''}>
+            <span class="pbm-switch-slider"></span>
+            <span class="pbm-switch-label" id="pbmOLed_simulLbl">${pbmState.otherLedSimul==='yes' ? ui.yes : ui.no}</span>
+          </label>
+        </div>`;
       formSec.appendChild(grid);
       wrap.appendChild(formSec);
       setTimeout(()=>{
@@ -3880,7 +3905,10 @@ function buildPbmSetup(){
         bind('pbmOLed_wls','otherLedWls'); bind('pbmOLed_count','otherLedCount');
         bind('pbmOLed_diam','otherLedDiam'); bind('pbmOLed_power','otherLedPowerEach');
         bind('pbmOLed_spacing','otherLedSpacing'); bind('pbmOLed_arrayDim','otherLedArrayDim');
-        const s = $('pbmOLed_simul'); if(s) s.onchange = e => { pbmState.otherLedSimul = e.target.value; };
+        const s = $('pbmOLed_simul'); if(s) s.onchange = e => {
+          pbmState.otherLedSimul = e.target.checked ? 'yes' : 'no';
+          const lbl = $('pbmOLed_simulLbl'); if(lbl) lbl.textContent = e.target.checked ? ui.yes : ui.no;
+        };
       }, 0);
     }
   }
@@ -4058,7 +4086,7 @@ function sendPbmSetup(){
     if(data.country) window.LRX_COUNTRY = data.country;
     hist.pbm.push(`Assistant: ${reply}`);
     addAI('pbm', reply);
-    addNextCard('pbm');
+    addPbmNewConsultationCard();
     done();
   })
   .catch(err => {
@@ -4153,6 +4181,38 @@ function addUpgradeCard(mod){
       <a class="upg-btn upg-elite" href="${eliteLink}" target="_blank">${u.elite}</a>
     </div>`;
   msgs.appendChild(d);scrollBot();
+}
+
+
+function addPbmNewConsultationCard(){
+  const msgs = $('pbmMsgs'); if(!msgs) return;
+  const labels = {
+    en:{label:'NEXT', title:'New PBM consultation', desc:'Start fresh — different device, indication, or patient'},
+    es:{label:'SIGUIENTE', title:'Nueva consulta PBM', desc:'Empezar de nuevo — otro equipo, indicación o paciente'},
+    pt:{label:'PRÓXIMO', title:'Nova consulta PBM', desc:'Começar do zero — outro equipamento, indicação ou paciente'},
+    ja:{label:'次へ', title:'新しいPBM相談', desc:'最初から — 別の機器、適応、または患者'},
+    ko:{label:'다음', title:'새 PBM 상담', desc:'처음부터 — 다른 기기, 적응증 또는 환자'}
+  };
+  const L = labels[lang] || labels.en;
+  const d = document.createElement('div');
+  d.className = 'next-card';
+  d.innerHTML = `<div style="flex:1"><div class="next-label">${L.label}</div><div class="next-title">${L.title}</div><div class="next-desc">${L.desc}</div></div><div class="next-arrow">→</div>`;
+  d.onclick = startNewPbmConsultation;
+  msgs.appendChild(d);
+  scrollBot();
+}
+
+function startNewPbmConsultation(){
+  Object.assign(pbmState, {
+    area:'dental', preset:null, tipId:null, otherArch:'',
+    otherBrand:'', otherModel:'', otherWl:'', otherMaxPow:'', otherSpotMm2:'', otherDiamUm:'', otherMode:'',
+    otherLedBrand:'', otherLedModel:'', otherLedWls:'', otherLedCount:'', otherLedDiam:'', otherLedPowerEach:'', otherLedSpacing:'', otherLedArrayDim:'', otherLedSimul:'',
+    indication:'', indFree:'', notes:''
+  });
+  hist.pbm = [];
+  sessionCreditUsed = false;
+  $('pbmMsgs').innerHTML = '';
+  buildPbmSetup();
 }
 
 function handleDevPhoto(e){
