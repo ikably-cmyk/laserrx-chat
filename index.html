@@ -1861,6 +1861,11 @@
 .home-tile.t-pbm.locked .tile-num,
 .home-tile.t-pbm.locked .tile-name,
 .home-tile.t-pbm.locked .tile-desc{color:#bbb}
+.home-tile.t-academy{background:linear-gradient(135deg,#E0A458 0%,#C67E36 100%);border:1px solid #C67E36;position:relative}
+.home-tile.t-academy .tile-num{color:#5C3D14}
+.home-tile.t-academy .tile-name{color:#1B263B;font-weight:700}
+.home-tile.t-academy .tile-desc{color:#5C3D14}
+body.night .home-tile.t-academy{background:linear-gradient(135deg,#C67E36 0%,#9A5E22 100%)}
 .tile-badge-new{display:inline-block;padding:1px 6px;border-radius:8px;background:#22c55e;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.5px;margin-left:6px;vertical-align:middle}
 .tile-lock{position:absolute;top:10px;right:12px;font-size:18px;line-height:1}
 .tile-lock.hidden{display:none}
@@ -2076,6 +2081,11 @@
         <div class="tile-desc" id="cPbmDesc">Photobiomodulation, LLLT &amp; PDT</div>
         <div class="tile-lock hidden" id="cPbmLock">🔒</div>
       </div>
+      <div class="home-tile t-academy full" id="cAcadTile" onclick="openAcademy()">
+        <div class="tile-num">MOD · 06 <span class="tile-badge-new">NEW</span></div>
+        <div class="tile-name" id="cAcadName">Academy</div>
+        <div class="tile-desc" id="cAcadDesc">Learn laser dentistry, step by step</div>
+      </div>
     </div>
 
     <!-- Duplicate language selector removed — header lang selector handles this -->
@@ -2242,7 +2252,7 @@ const L = {
     cDevName:'Identify a device',   cDevDesc:'What laser do I have?',
     cProName:'Laser protocols',     cProDesc:'How do I use it for X?',
     cValName:'Validate settings',   cValDesc:'Are my parameters correct?',
-    cCalName:'Parameter calculator',cCalDesc:'Give me the exact numbers', cPbmName:'PBM Dental', cPbmDesc:'Photobiomodulation, LLLT & PDT',
+    cCalName:'Parameter calculator',cCalDesc:'Give me the exact numbers', cPbmName:'PBM Dental', cPbmDesc:'Photobiomodulation, LLLT & PDT', cAcadName:'Academy', cAcadDesc:'Learn laser dentistry, step by step',
     devTitle:'Device Identifier',   devSub:'Identify your laser device',
     proTitle:'Protocol Consultant', proSub:'Find the right protocol',
     valTitle:'Validate Settings',   valSub:'Check your parameters before you treat',
@@ -2298,7 +2308,7 @@ const L = {
     cDevName:'Identificar dispositivo', cDevDesc:'¿Qué láser tengo?',
     cProName:'Protocolos láser',        cProDesc:'¿Cómo lo uso para X?',
     cValName:'Validar parámetros',      cValDesc:'¿Tengo los parámetros correctos?',
-    cCalName:'Calculadora de parámetros',cCalDesc:'Dame los números exactos', cPbmName:'PBM Dental', cPbmDesc:'Fotobiomodulación, LLLT y PDT',
+    cCalName:'Calculadora de parámetros',cCalDesc:'Dame los números exactos', cPbmName:'PBM Dental', cPbmDesc:'Fotobiomodulación, LLLT y PDT', cAcadName:'Academy', cAcadDesc:'Aprende odontología láser, paso a paso',
     devTitle:'Identificador',           devSub:'Identifica tu dispositivo láser',
     proTitle:'Consultor de Protocolos', proSub:'Encuentra el protocolo correcto',
     valTitle:'Validar Parámetros',      valSub:'Verifica tus parámetros antes de tratar',
@@ -2354,7 +2364,7 @@ const L = {
     cDevName:'Identificar dispositivo', cDevDesc:'Qual laser eu tenho?',
     cProName:'Protocolos laser',        cProDesc:'Como uso para X?',
     cValName:'Validar parâmetros',      cValDesc:'Meus parâmetros estão corretos?',
-    cCalName:'Calculadora de parâmetros',cCalDesc:'Me dê os números exatos', cPbmName:'PBM Dental', cPbmDesc:'Fotobiomodulação, LLLT e PDT',
+    cCalName:'Calculadora de parâmetros',cCalDesc:'Me dê os números exatos', cPbmName:'PBM Dental', cPbmDesc:'Fotobiomodulação, LLLT e PDT', cAcadName:'Academy', cAcadDesc:'Aprenda odontologia a laser, passo a passo',
     devTitle:'Identificador',           devSub:'Identifique seu dispositivo laser',
     proTitle:'Consultor de Protocolos', proSub:'Encontre o protocolo certo',
     valTitle:'Validar Parâmetros',      valSub:'Verifique seus parâmetros antes de tratar',
@@ -2410,7 +2420,7 @@ const L = {
     cDevName:'デバイスを識別', cDevDesc:'どのレーザーを持っていますか？',
     cProName:'レーザープロトコル', cProDesc:'どのように使いますか？',
     cValName:'設定を検証', cValDesc:'パラメータは正しいですか？',
-    cCalName:'パラメータ計算機', cCalDesc:'正確な数値を計算', cPbmName:'PBM歯科', cPbmDesc:'光生体調節、LLLT、PDT',
+    cCalName:'パラメータ計算機', cCalDesc:'正確な数値を計算', cPbmName:'PBM歯科', cPbmDesc:'光生体調節、LLLT、PDT', cAcadName:'アカデミー', cAcadDesc:'歯科レーザーを段階的に学ぶ',
     devTitle:'デバイス識別', devSub:'レーザーデバイスを識別',
     proTitle:'プロトコルコンサルタント', proSub:'正しいプロトコルを見つける',
     valTitle:'設定の検証', valSub:'治療前にパラメータを確認',
@@ -2466,7 +2476,7 @@ const L = {
     cDevName:'기기 식별', cDevDesc:'어떤 레이저가 있나요?',
     cProName:'레이저 프로토콜', cProDesc:'어떻게 사용하나요?',
     cValName:'설정 검증', cValDesc:'파라미터가 맞나요?',
-    cCalName:'파라미터 계산기', cCalDesc:'정확한 수치 계산', cPbmName:'PBM 치과', cPbmDesc:'광생체조절, LLLT, PDT',
+    cCalName:'파라미터 계산기', cCalDesc:'정확한 수치 계산', cPbmName:'PBM 치과', cPbmDesc:'광생체조절, LLLT, PDT', cAcadName:'아카데미', cAcadDesc:'치과 레이저를 단계별로 학습',
     devTitle:'기기 식별', devSub:'레이저 기기를 식별하세요',
     proTitle:'프로토콜 컨설턴트', proSub:'올바른 프로토콜 찾기',
     valTitle:'설정 검증', valSub:'치료 전 파라미터를 확인하세요',
@@ -2929,6 +2939,7 @@ function scrollToMsg(el){setTimeout(()=>{el.scrollIntoView({block:'start',behavi
 function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,96)+'px';}
 
 function setPlanBar(plan,credits){
+  window.LRX_PLAN = plan || window.LRX_PLAN || 'Free';
   const planLabel=t('plans')[plan]||plan||'Free';
   $('planTxt').textContent=planLabel;
   const cn=Number(credits);
@@ -2988,6 +2999,8 @@ function applyLang(){
   $('cProName').textContent=l.cProName;$('cProDesc').textContent=l.cProDesc;
   $('cValName').textContent=l.cValName;$('cValDesc').textContent=l.cValDesc;
   $('cCalName').textContent=l.cCalName;$('cCalDesc').textContent=l.cCalDesc; $('cPbmName').textContent=l.cPbmName; $('cPbmDesc').textContent=l.cPbmDesc;
+  var _an=document.getElementById('cAcadName'); if(_an&&l.cAcadName)_an.textContent=l.cAcadName;
+  var _ad=document.getElementById('cAcadDesc'); if(_ad&&l.cAcadDesc)_ad.textContent=l.cAcadDesc;
   if(l.tabs){const t=l.tabs;$('tabHome').textContent=t.home;$('tabDev').textContent=t.dev;$('tabPro').textContent=t.pro;$('tabVal').textContent=t.val;$('tabCal').textContent=t.cal;$('tabPbm').textContent=t.pbm;}
   $('devTitle').textContent=l.devTitle;$('devSub').textContent=l.devSub;
   $('proTitle').textContent=l.proTitle;$('proSub').textContent=l.proSub;
@@ -3652,6 +3665,17 @@ function openPbmTab(ev){
     return;
   }
   goTab('pbm');
+}
+
+function openAcademy(){
+  // Academy is a standalone module: navigate the embed to the lesson page (same origin),
+  // carrying the user's email + plan. Free hook lesson opens for everyone.
+  var base = 'https://ikably-cmyk.github.io/laserrx-academy/lesson.html';
+  var u = new URLSearchParams();
+  u.set('lesson','the_rope');
+  if(EMAIL) u.set('email', EMAIL);
+  u.set('plan', window.LRX_PLAN || 'Free');
+  window.location.href = base + '?' + u.toString();
 }
 
 function applyPbmTileGating(plan){
