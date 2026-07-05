@@ -1869,6 +1869,23 @@ body.night .home-tile.t-academy{background:linear-gradient(135deg,#C67E36 0%,#9A
 .tile-badge-new{display:inline-block;padding:1px 6px;border-radius:8px;background:#22c55e;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.5px;margin-left:6px;vertical-align:middle}
 .tile-lock{position:absolute;top:10px;right:12px;font-size:18px;line-height:1}
 .tile-lock.hidden{display:none}
+/* ─── Academy catalog (Blindaje B) — bottom sheet + lesson rows ─── */
+.acad-catalog-overlay{position:fixed;inset:0;background:rgba(13,27,42,0.55);z-index:9998;display:flex;align-items:flex-end;justify-content:center}
+.acad-catalog-overlay.hidden{display:none}
+.acad-catalog-sheet{background:var(--bg);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(13,27,42,0.28);max-height:86vh;overflow-y:auto}
+.acad-catalog-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.acad-catalog-title{font-size:17px;font-weight:700;color:var(--navy)}
+.acad-catalog-tagline{font-size:12.5px;color:var(--steel);margin-top:2px}
+.acad-catalog-close{font-size:18px;cursor:pointer;color:var(--steel);padding:0 2px;line-height:1}
+.acad-catalog-body{display:flex;flex-direction:column;gap:10px}
+.acad-lesson-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:var(--white);border:1px solid var(--hairline);border-radius:12px;padding:14px 15px;cursor:pointer;transition:border-color .15s,transform .1s;font-family:inherit}
+.acad-lesson-row:hover{border-color:var(--amber)}
+.acad-lesson-row:active{transform:scale(0.99)}
+.acad-lesson-text{display:flex;flex-direction:column;min-width:0}
+.acad-lesson-title{font-size:15px;font-weight:700;color:var(--navy);display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.acad-lesson-sub{font-size:12.5px;color:var(--steel);margin-top:3px;line-height:1.4}
+.acad-lesson-badge{display:inline-block;padding:2px 8px;border-radius:8px;background:rgba(224,164,88,0.15);color:#C67E36;border:1px solid var(--amber);font-size:10px;font-weight:700;letter-spacing:0.3px;white-space:nowrap}
+.acad-lesson-arrow{color:var(--amber);font-size:16px;flex-shrink:0}
 :root{--pbm:#2d4a6b}
 
 /* PBM setup area */
@@ -2111,6 +2128,22 @@ body.night .home-tile.t-academy{background:linear-gradient(135deg,#C67E36 0%,#9A
         <span style="font-size:18px;cursor:pointer;color:var(--steel)" onclick="closeAddDevice()">✕</span>
       </div>
       <div id="addDevBody"></div>
+    </div>
+  </div>
+
+  <!-- ACADEMY CATALOG (Blindaje B) — lesson list; the "🔒 Academy" badge is
+       cosmetic (driven by academy_access). The real gate is the 402 that the
+       content endpoint returns to lesson.html; every row navigates there. -->
+  <div class="acad-catalog-overlay hidden" id="academyCatalogOverlay" onclick="closeAcademyCatalog(event)">
+    <div class="acad-catalog-sheet" onclick="event.stopPropagation()">
+      <div class="acad-catalog-head">
+        <div>
+          <div class="acad-catalog-title">LaserRx Academy</div>
+          <div class="acad-catalog-tagline" id="acadCatTagline">Learn laser dentistry, step by step</div>
+        </div>
+        <span class="acad-catalog-close" onclick="closeAcademyCatalog()">✕</span>
+      </div>
+      <div class="acad-catalog-body" id="acadCatBody"></div>
     </div>
   </div>
 
@@ -3667,15 +3700,65 @@ function openPbmTab(ev){
   goTab('pbm');
 }
 
+/* ===== Academy catalog (Blindaje B) ==================================
+   index.html has no lesson data of its own — this is a small curated list.
+   window.LRX_ACADEMY (from registerUser) drives ONLY the cosmetic
+   "🔒 Academy" badge; the real gate is the 402 the content endpoint returns
+   to lesson.html. Every row navigates to lesson.html regardless: free opens,
+   paid-with-access opens (200), paid-without-access hits the 402 lock. */
+const ACADEMY_BASE = 'https://ikably-cmyk.github.io/laserrx-academy/lesson.html';
+const ACADEMY_LESSONS = [
+  { id:'the_rope', tier:'free',
+    title:'The Rope',
+    sub:'Pulse width & peak power — same energy, different bend' },
+  { id:'alp_bone_mineralization', tier:'paid',
+    title:'Alkaline Phosphatase',
+    sub:'How ALP turns a collagen scaffold into mineralized bone' }
+];
+// Catalog chrome is translated (en/es/pt); lesson titles/subs stay in the
+// lesson's own language (EN), matching the lessons themselves.
+const ACADEMY_CAT_UI = {
+  en:{ tagline:'Learn laser dentistry, step by step',  badge:'Academy' },
+  es:{ tagline:'Aprende odontología láser, paso a paso', badge:'Academy' },
+  pt:{ tagline:'Aprenda odontologia a laser, passo a passo', badge:'Academy' }
+};
+function escAcad(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
 function openAcademy(){
-  // Academy is a standalone module: navigate the embed to the lesson page (same origin),
-  // carrying the user's email + plan. Free hook lesson opens for everyone.
-  var base = 'https://ikably-cmyk.github.io/laserrx-academy/lesson.html';
+  renderAcademyCatalog();
+  $('academyCatalogOverlay').classList.remove('hidden');
+}
+function closeAcademyCatalog(e){
+  if(!e || e.target === $('academyCatalogOverlay')) $('academyCatalogOverlay').classList.add('hidden');
+}
+function renderAcademyCatalog(){
+  const ui = ACADEMY_CAT_UI[lang] || ACADEMY_CAT_UI.en;
+  $('acadCatTagline').textContent = ui.tagline;
+  const hasAccess = !!window.LRX_ACADEMY;   // cosmetic only — never a security gate
+  let html = '';
+  ACADEMY_LESSONS.forEach(function(les){
+    const paid = les.tier !== 'free';
+    const badge = (paid && !hasAccess)
+      ? ' <span class="acad-lesson-badge">🔒 '+escAcad(ui.badge)+'</span>'
+      : '';
+    html += '<button class="acad-lesson-row" onclick="openAcademyLesson(\''+les.id+'\')">'+
+              '<span class="acad-lesson-text">'+
+                '<span class="acad-lesson-title">'+escAcad(les.title)+badge+'</span>'+
+                '<span class="acad-lesson-sub">'+escAcad(les.sub)+'</span>'+
+              '</span>'+
+              '<span class="acad-lesson-arrow">→</span>'+
+            '</button>';
+  });
+  $('acadCatBody').innerHTML = html;
+}
+function openAcademyLesson(id){
+  // Navigate to the lesson; free opens, paid-with-access opens, paid-without
+  // hits the 402 lock inside lesson.html. plan/email are UX only.
   var u = new URLSearchParams();
-  u.set('lesson','the_rope');
+  u.set('lesson', id);
   if(EMAIL) u.set('email', EMAIL);
   u.set('plan', window.LRX_PLAN || 'Free');
-  window.location.href = base + '?' + u.toString();
+  window.location.href = ACADEMY_BASE + '?' + u.toString();
 }
 
 function applyPbmTileGating(plan){
@@ -4530,6 +4613,10 @@ function registerUser(){
       if(data && data.plan && data.credits!==undefined){
         setPlanBar(data.plan, data.credits);
         if(data.country) window.LRX_COUNTRY = data.country;
+        // Blindaje B: academy_access (true | "") drives ONLY the cosmetic Academy
+        // catalog badge. The real paid-lesson gate is the 402 the content endpoint
+        // returns to lesson.html — never trust this value for security.
+        window.LRX_ACADEMY = data.academy_access;
         // If user has 0 credits, show upgrade card on home immediately
         if(Number(data.credits)===0){
           const homeEl=document.getElementById('tab-home');
