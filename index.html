@@ -3724,6 +3724,33 @@ const ACADEMY_CAT_UI = {
 };
 function escAcad(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
+// Single source of order: catalog.json in the academy repo (same origin, root-relative).
+// The catalog groups ids by track; we flatten in track order for the flat app list.
+// Falls back to the hardcoded ACADEMY_LESSONS above if it can't load.
+var ACADEMY_CATALOG = null;
+var ACADEMY_TRACK_ORDER = ['foundations','clinical','library'];
+(function loadAcademyCatalog(){
+  try{
+    fetch('/laserrx-academy/catalog.json', { cache:'no-cache' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(c){ ACADEMY_CATALOG = (c && c.tracks && c.meta) ? c : null; })
+      .catch(function(){ ACADEMY_CATALOG = null; });
+  }catch(e){ ACADEMY_CATALOG = null; }
+})();
+function academyLessonList(){
+  if (ACADEMY_CATALOG){
+    var out = [];
+    ACADEMY_TRACK_ORDER.forEach(function(tk){
+      (ACADEMY_CATALOG.tracks[tk] || []).forEach(function(lid){
+        var m = ACADEMY_CATALOG.meta[lid];
+        if (m) out.push({ id:lid, tier:m.tier, title:m.title, sub:m.sub });
+      });
+    });
+    if (out.length) return out;
+  }
+  return ACADEMY_LESSONS;   // fallback: hardcoded list
+}
+
 function openAcademy(){
   renderAcademyCatalog();
   $('academyCatalogOverlay').classList.remove('hidden');
@@ -3736,7 +3763,7 @@ function renderAcademyCatalog(){
   $('acadCatTagline').textContent = ui.tagline;
   const hasAccess = !!window.LRX_ACADEMY;   // cosmetic only — never a security gate
   let html = '';
-  ACADEMY_LESSONS.forEach(function(les){
+  academyLessonList().forEach(function(les){   // catalog.json order, or ACADEMY_LESSONS fallback
     const paid = les.tier !== 'free';
     const badge = (paid && !hasAccess)
       ? ' <span class="acad-lesson-badge">🔒 '+escAcad(ui.badge)+'</span>'
