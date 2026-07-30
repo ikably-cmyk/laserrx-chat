@@ -3517,7 +3517,588 @@ function buildDiodeComplement(ui){const DIODE_WLS=['450 nm','650 nm (PDT)','810 
 
 function buildProtoMessage(){const ui=PROTO.ui[lang]||PROTO.ui.en;const parts=[];PROTO.groups.forEach(grp=>{const grpLabel=typeof grp.label==='string'?grp.label:grp.label[lang]||grp.label.en;const sel=proState.selections[grp.id],sub=proState.subs[grp.id],note=proState.selections[grp.id+'_note'];let val=sel?sel:ui.noSel;if(sub)val+=` — ${sub}`;if(note)val+=` (${note})`;parts.push(`${grpLabel}: ${val}`);});let procStr='';if(proState.procId){procStr=proState.procId;if(proState.procSub)procStr+=` → ${proState.procSub}`;}else if(proState.procOther){procStr=proState.procOther;}if(procStr){const procTitle=(PROTO.ui[lang]||PROTO.ui.en).procTitle.replace('?','').replace('¿','').trim();parts.push(`${procTitle}: ${procStr}`);}if(proState.notes)parts.push(`Clinical notes: ${proState.notes}`);if(proState.selections['diode_cmp'])parts.push(`Complementary diode: ${proState.selections['diode_cmp']}`);const devCtx=buildMyDevicesContext();if(devCtx&&!proState.notes.includes('devices'))parts.push(devCtx);return parts.join('. ');}
 
-function sendProtoSetup(){const msg=buildProtoMessage();if(!msg.trim())return;removeChips('protocols');addUser('protocols',msg);hist.protocols.push(`User: ${msg}`);const history=hist.protocols.slice(-12).join('\n');showTyping('protocols');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});}
+// ═══════════════════════════════════════════════════════════════════════════
+// PASO 3 · STREAMING SSE — solo Protocols, detrás de flag, apagado por defecto
+// ───────────────────────────────────────────────────────────────────────────
+// Trasplante del cliente beta (worker/chat.html) al cliente de producción.
+// Contrato del Worker, ya desplegado y verificado — se respeta tal cual:
+//   POST /issue  {k}                                   → {token, exp, rexp}
+//   POST /renew  Bearer                                → {token, ...}
+//   POST /stream Bearer + {q, lang, history, is_first_message, module}
+//   eventos SSE: status | meta | kb_miss | delta | error | done
+//
+// Diferencias deliberadas respecto al beta:
+//   · Los errores van a las TARJETAS que ya existen en producción, no a la
+//     pantalla fatal del beta: 402 → addPbmGatingCard, 403 → addUpgradeCard.
+//   · El acabado de la burbuja pasa por finishAI (paso 2) en las TRES rutas:
+//     done, evento error y catch del lector. Sin eso el cursor late bajo una
+//     respuesta truncada en cuanto .streaming tenga CSS.
+//   · `history` se calcula ANTES de apilar el turno en curso. El camino
+//     no-streaming manda el mensaje duplicado (dentro de `history` y en
+//     `last_message`); aquí no, porque el contrato ya lleva `q` aparte.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const STREAM_WORKER    = 'https://laserrx-stream.ikably.workers.dev';
+const STREAM_MODS      = ['protocols'];          // los otros tres NO se tocan
+const STREAM_ALLOWLIST = ['ikably@gmail.com'];
+const STREAM_HIST_MAX  = 20;
+
+// ── Flag. Apagado por defecto. Tres condiciones, todas necesarias:
+//    módulo permitido · Row ID presente (/issue lo cambia por token) · flag on
+//    y correo en la lista. window.LRX_STREAM_FORCE lo fuerza desde consola.
+function streamAllowed(mod){
+  if (STREAM_MODS.indexOf(mod) === -1) return false;
+  if (!K) return false;
+  if (window.LRX_STREAM_FORCE === true)  return true;
+  if (window.LRX_STREAM_FORCE === false) return false;
+  let on = false;
+  try { on = localStorage.getItem('lrx_stream') === '1'; } catch(e){}
+  if (!on) return false;
+  const quien = String(DISPLAY_EMAIL || EMAIL || '').trim().toLowerCase();
+  return STREAM_ALLOWLIST.indexOf(quien) !== -1;
+}
+
+// ── hist.* guarda 'User: …' / 'Assistant: …' en un elemento por turno. El
+//    contrato quiere [{role,content}]. Se mapea sobre el ARRAY, no sobre el
+//    string unido: una respuesta con saltos de línea sigue siendo un elemento.
+function histToMessages(arr, n){
+  const out = [];
+  (arr || []).slice(-n).forEach(linea => {
+    const s = String(linea == null ? '' : linea);
+    let role = 'user', content = s;
+    if (s.indexOf('User: ') === 0)           { role = 'user';      content = s.slice(6);  }
+    else if (s.indexOf('Assistant: ') === 0) { role = 'assistant'; content = s.slice(11); }
+    content = content.trim();
+    if (content) out.push({ role: role, content: content });
+  });
+  return out;
+}
+
+// ── Transporte. Único punto por el que pasan las tres rutas, para que el
+//    simulador pueda interceptarlas sin backend.
+function strFetch(ruta, opts){
+  const sim = window.LRX_SSE_SIM;
+  if (sim && sim._cola && sim._cola[ruta] && sim._cola[ruta].length){
+    return sim._respuesta(sim._cola[ruta].shift());
+  }
+  return fetch(STREAM_WORKER + ruta, opts);
+}
+
+// ── Token
+let strToken = '';
+let strRenewTimer = null;
+
+// El token del Worker NO es un JWT: el payload es el PRIMER segmento.
+function strClaims(tok){
+  try { return JSON.parse(atob(String(tok).split('.')[0].replace(/-/g,'+').replace(/_/g,'/'))); }
+  catch(e){ return null; }
+}
+
+// Renovación PROACTIVA: 2 min antes de exp, invisible.
+function strScheduleRenew(){
+  clearTimeout(strRenewTimer);
+  const c = strClaims(strToken);
+  if (!c || !c.exp) return;
+  const ms = (c.exp * 1000) - Date.now() - 120000;
+  strRenewTimer = setTimeout(() => { strRenew().catch(()=>{}); }, Math.max(ms, 5000));
+}
+
+async function strIssue(k){
+  const r = await strFetch('/issue', {
+    method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ k: k })
+  });
+  const e = await r.json().catch(()=>({}));
+  if (!r.ok)    throw new Error(e.error || 'issue_failed');
+  if (!e.token) throw new Error('issue_failed');
+  return e.token;
+}
+
+async function strRenew(){
+  const r = await strFetch('/renew', { method:'POST', headers:{ authorization:'Bearer ' + strToken } });
+  if (!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.error || 'renew_failed'); }
+  const j = await r.json().catch(()=>({}));
+  if (!j.token) throw new Error('renew_failed');
+  strToken = j.token;
+  strScheduleRenew();
+  return strToken;
+}
+
+// ── Textos. `conn` es palabra por palabra el del catch de hoy, extendido a
+//    los 5 idiomas del producto (es · en · pt · ja · ko). No hay fr ni it.
+function strTxt(){
+  const T = {
+    en:{ conn:'Connection error. Please try again.',
+         endT:'Session ended',            endM:'Your session expired. Reopen the module to continue.', endC:'Reopen',
+         capT:'Too many queries in a row', capM:'Wait a moment and try again.',                        capC:'Retry' },
+    es:{ conn:'Error de conexión. Intenta de nuevo.',
+         endT:'Sesión terminada',          endM:'Tu sesión expiró. Vuelve a abrir el módulo para continuar.', endC:'Reabrir',
+         capT:'Demasiadas consultas seguidas', capM:'Espera un momento y vuelve a intentarlo.',              capC:'Reintentar' },
+    pt:{ conn:'Erro de conexão. Tente novamente.',
+         endT:'Sessão encerrada',          endM:'Sua sessão expirou. Reabra o módulo para continuar.',   endC:'Reabrir',
+         capT:'Muitas consultas seguidas', capM:'Aguarde um momento e tente novamente.',                 capC:'Tentar de novo' },
+    ja:{ conn:'接続エラーが発生しました。もう一度お試しください。',
+         endT:'セッションが終了しました',   endM:'セッションの有効期限が切れました。モジュールを開き直してください。', endC:'開き直す',
+         capT:'連続したクエリが多すぎます', capM:'少し待ってからもう一度お試しください。',                 capC:'再試行' },
+    ko:{ conn:'연결 오류가 발생했습니다. 다시 시도해 주세요.',
+         endT:'세션이 종료되었습니다',      endM:'세션이 만료되었습니다. 모듈을 다시 열어 주세요.',        endC:'다시 열기',
+         capT:'연속 요청이 너무 많습니다',  capM:'잠시 기다렸다가 다시 시도해 주세요.',                    capC:'다시 시도' }
+  };
+  return T[lang] || T.en;
+}
+
+// ── Tarjeta de aviso. Reutiliza las clases de addUpgradeCard: cero CSS nuevo.
+function addStreamNoticeCard(mod, titulo, texto, etiqueta, accion){
+  const msgs = msgEl(mod); if(!msgs) return;
+  const d = document.createElement('div');
+  d.className = 'upgrade-card';
+  const h = document.createElement('div'); h.className = 'upg-title'; h.textContent = titulo;
+  const p = document.createElement('div'); p.className = 'upg-desc';  p.textContent = texto;
+  d.appendChild(h); d.appendChild(p);
+  if (accion){
+    const b = document.createElement('a');
+    b.className = 'upg-btn upg-pro'; b.href = '#'; b.textContent = etiqueta;
+    b.onclick = (ev) => { ev.preventDefault(); d.remove(); accion(); };
+    d.appendChild(b);
+  }
+  msgs.appendChild(d); scrollBot();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Camino con streaming
+// ═══════════════════════════════════════════════════════════════════════════
+function protoStream(msg, ctx){
+  let burbuja = null, acc = '', deltas = 0, eventos = 0, cerrado = false;
+  let metaPlan = null, metaCredits, seguidor = null;
+
+  // ── Seguimiento de la cola. El texto crece sobre una burbuja que ya existe,
+  //    así que sin esto el usuario ve las primeras líneas y el resto crece
+  //    fuera de pantalla. Se pega al fondo SOLO mientras el usuario esté al
+  //    fondo: si subió a releer, `pegado` se apaga solo y no se le arrastra.
+  //    Vuelve a engancharse si él mismo baja. Un rAF pendiente como mucho.
+  function crearSeguidor(){
+    const c = $('content');
+    if (!c || !c.addEventListener) return { tick(){}, soltar(){} };
+    let pegado = true, pendiente = 0;
+    const alFondo = () => (c.scrollHeight - c.scrollTop - c.clientHeight) <= 80;
+    const onScroll = () => { pegado = alFondo(); };
+    c.addEventListener('scroll', onScroll, { passive:true });
+    return {
+      tick(){
+        if (!pegado || pendiente) return;
+        pendiente = requestAnimationFrame(() => {
+          pendiente = 0;
+          if (pegado) c.scrollTop = c.scrollHeight;
+        });
+      },
+      soltar(){
+        if (pendiente){ cancelAnimationFrame(pendiente); pendiente = 0; }
+        try { c.removeEventListener('scroll', onScroll); } catch(e){}
+      }
+    };
+  }
+
+  // Sin scrollToMsg aquí a propósito: pondría el TOPE de la burbuja arriba del
+  // todo y el seguidor tiraría acto seguido hacia abajo. El typing ya dejó la
+  // vista al fondo, que es de donde tiene que arrancar el seguimiento.
+  const asegurarBurbuja = () => {
+    if (!burbuja){
+      hideTyping('protocols');
+      burbuja = addAIBubble('protocols');
+      seguidor = crearSeguidor();
+    }
+    return burbuja;
+  };
+
+  // REQUISITO 4 · el único sitio que acaba la burbuja. finishAI es idempotente,
+  // así que llamarlo desde CUALQUIER ruta es seguro y no duplica post-procesos.
+  // Suelta también el seguidor: es el único que registra un listener.
+  const acabar = () => {
+    if (seguidor){ seguidor.soltar(); seguidor = null; }
+    if (burbuja) finishAI(burbuja, 'protocols');
+  };
+
+  const errorGenerico = () => {
+    acabar(); hideTyping('protocols');
+    if (!burbuja) addAI('protocols', strTxt().conn);
+    done();
+  };
+
+  const sesionTerminada = () => {
+    acabar(); hideTyping('protocols');
+    const T = strTxt();
+    addStreamNoticeCard('protocols', T.endT, T.endM, T.endC, () => { try{ location.reload(); }catch(e){} });
+    done();
+  };
+
+  const topeSesion = () => {
+    acabar(); hideTyping('protocols');
+    const T = strTxt();
+    addStreamNoticeCard('protocols', T.capT, T.capM, T.capC, () => {
+      showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
+      intentar(false);
+    });
+    done();
+  };
+
+  // REQUISITO 5 · nadie se queda sin respuesta. Solo si NO llegó ni un evento:
+  // en cuanto llega uno, n8n ya cobró y reintentar por el camino viejo cobraría
+  // dos veces.
+  const caerALegado = (motivo) => {
+    console.warn('[stream] fallback al camino no-streaming:', motivo);
+    window.LRX_STREAM_FELL_BACK = motivo;
+    protoLegacy(msg, ctx);
+  };
+
+  // REQUISITO 6 · lo que produccion ya hace tras responder y el beta no.
+  const cerrarBien = (truncado) => {
+    if (cerrado) return; cerrado = true;
+    acabar(); hideTyping('protocols');
+    const reply = (acc || '').trim();
+    if (!burbuja) addAI('protocols', reply || '—');
+    if (truncado) console.warn('[stream] el flujo terminó sin evento done');
+    if (metaPlan && metaCredits !== undefined) setPlanBar(metaPlan, metaCredits);
+    hist.protocols.push(`Assistant: ${reply || '—'}`);
+    const diodoSel = proState.selections['diodo'] || '', erbioSel = proState.selections['erbio'] || '';
+    lastProtocol.laserType = erbioSel || diodoSel || '';
+    lastProtocol.procedure = proState.procId ? (proState.procSub ? `${proState.procId} → ${proState.procSub}` : proState.procId) : '';
+    lastProtocol.power = ''; lastProtocol.frequency = ''; lastProtocol.tipDiameter = '';
+    lastDeviceContext.active = false; lastDeviceContext.label = '';
+    addNextCard('protocols'); addChips('protocols'); done();
+  };
+
+  async function intentar(esReintento){
+    // ── token
+    if (!strToken){
+      try { strToken = await strIssue(K); strScheduleRenew(); }
+      catch(err){
+        const code = String((err && err.message) || '');
+        // Estos dos NO caen al legado: son veredictos sobre la cuenta, y el
+        // camino viejo devolvería lo mismo con otra cara.
+        if (code === 'not_a_member'){ hideTyping('protocols'); addAI('protocols', strTxt().conn); done(); return; }
+        if (code === 'plan_excluded'){ hideTyping('protocols'); addUpgradeCard('protocols'); done(); return; }
+        return caerALegado('issue: ' + code);
+      }
+    }
+
+    // ── apertura del flujo
+    let res;
+    try {
+      res = await strFetch('/stream', {
+        method:'POST',
+        headers:{ authorization:'Bearer ' + strToken, 'content-type':'application/json' },
+        body: JSON.stringify({
+          q: msg, lang: lang, history: ctx.previos,
+          is_first_message: ctx.primero, module: 'protocols'
+        })
+      });
+    } catch(e){
+      return eventos === 0 ? caerALegado('stream inalcanzable') : errorGenerico();
+    }
+
+    // ── Renovación REACTIVA. Un 401 nunca cobró crédito: el cobro ocurre en
+    //    n8n, después de verificar el token. Reintentar es seguro, UNA vez.
+    if (res.status === 401){
+      const e = await res.json().catch(()=>({}));
+      if (e.error === 'token_expired' && !esReintento){
+        try { await strRenew(); return intentar(true); }
+        catch(x){ return sesionTerminada(); }
+      }
+      return sesionTerminada();                    // chain_expired y el resto
+    }
+    // Los dos topes fallan distinto: session_cap se cura esperando, chain_cap
+    // exige cadena nueva.
+    if (res.status === 429){
+      const e = await res.json().catch(()=>({}));
+      return e.error === 'session_cap' ? topeSesion() : sesionTerminada();
+    }
+    // El gating llega normalmente como evento SSE; por HTTP también se acepta.
+    if (res.status === 402 || res.status === 403){
+      const e = await res.json().catch(()=>({}));
+      acabar(); hideTyping('protocols');
+      if (res.status === 402) addPbmGatingCard('protocols', e); else addUpgradeCard('protocols');
+      done(); return;
+    }
+    if (!res.ok || !res.body){
+      return eventos === 0 ? caerALegado('stream HTTP ' + res.status) : errorGenerico();
+    }
+
+    // ── consumo del SSE
+    const rd = res.body.getReader(), dc = new TextDecoder();
+    let buf = '';
+    try {
+      for(;;){
+        const r = await rd.read();
+        if (r.done) break;
+        buf += dc.decode(r.value, { stream:true });
+        let nl;
+        while ((nl = buf.indexOf('\n\n')) >= 0){
+          const raw = buf.slice(0, nl); buf = buf.slice(nl + 2);
+          const ev = (raw.match(/^event:\s*(.+)$/m) || [])[1];
+          const dl = (raw.match(/^data:\s*(.+)$/m)  || [])[1];
+          if (!ev || !dl) continue;
+          let d; try { d = JSON.parse(dl); } catch(x){ continue; }
+          eventos++;
+
+          if (ev === 'status'){ /* producción no tiene barra de etapas */ }
+          else if (ev === 'meta'){
+            if (d.plan) metaPlan = d.plan;
+            if (d.credits !== undefined) metaCredits = d.credits;
+            if (d.country) window.LRX_COUNTRY = d.country;
+            window.LRX_LAST_META = d;
+          }
+          else if (ev === 'kb_miss'){
+            console.warn('[stream] kb_miss', d); window.LRX_LAST_KB_MISS = d;
+          }
+          else if (ev === 'delta'){
+            deltas++; acc += (d.text || '');
+            streamRender(asegurarBurbuja(), acc, true);
+            seguidor.tick();       // el rAF del seguidor se registra DESPUÉS
+                                   // del de streamRender, así que lee el alto
+                                   // ya repintado, no el anterior.
+          }
+          else if (ev === 'error'){
+            // REQUISITO 4 · ruta 2
+            try { await rd.cancel(); } catch(x){}
+            acabar(); hideTyping('protocols');
+            if (d.code === 402)      addPbmGatingCard('protocols', d);
+            else if (d.code === 403) addUpgradeCard('protocols');
+            else if (!burbuja)       addAI('protocols', d.message || strTxt().conn);
+            done(); return;
+          }
+          else if (ev === 'done'){
+            // REQUISITO 4 · ruta 1
+            return cerrarBien(false);
+          }
+        }
+      }
+    } catch(e){
+      // REQUISITO 4 · ruta 3 — el flujo se cortó a media respuesta.
+      acabar(); hideTyping('protocols');
+      if (!burbuja) addAI('protocols', strTxt().conn);
+      done(); console.error('[stream] lector', e); return;
+    }
+    // REQUISITO 4 · ruta 4 — el bucle terminó LIMPIAMENTE y sin evento 'done'.
+    // Es alcanzable sin que se lance nada: si en el Worker falla el send del
+    // error porque el writer ya está cerrado, el finally cierra el flujo y aquí
+    // llega un read() con done:true sin haber visto ningún 'done'. No hay
+    // excepción que capturar, así que ni el catch ni el manejador de error
+    // disparan. Incondicional y antes de cerrarBien: la invariante "al salir
+    // del bucle la burbuja está acabada" se lee aquí, no en las tripas de otra
+    // función. Idempotente, no duplica post-procesos.
+    acabar();
+    // La respuesta es real aunque incompleta: se cierra bien en vez de dejar
+    // la UI ocupada.
+    cerrarBien(true);
+  }
+
+  window.LRX_STREAM_STATE = () => ({ deltas: deltas, eventos: eventos, acc: acc.length,
+                                     burbuja: !!burbuja, cerrado: cerrado, token: !!strToken });
+  intentar(false);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Camino no-streaming — cuerpo de sendProtoSetup de hoy, sin cambios. Asume
+// que el preámbulo (burbuja de usuario, hist, typing, busy) ya corrió.
+// ═══════════════════════════════════════════════════════════════════════════
+function protoLegacy(msg, ctx){
+  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero})}).then(res=>{if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
+}
+
+function sendProtoSetup(){
+  const msg = buildProtoMessage();
+  if (!msg.trim()) return;
+  removeChips('protocols');
+  addUser('protocols', msg);
+  hist.protocols.push(`User: ${msg}`);
+  const historyTxt = hist.protocols.slice(-12).join('\n');   // formato legado, intacto
+  showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
+  const primero = isFirstMessage();      // UNA sola vez: muta sessionCreditUsed
+  const ctx = { historyTxt: historyTxt, primero: primero };
+  if (streamAllowed('protocols')){
+    // sin el turno en curso: el contrato ya lo lleva aparte, en `q`
+    ctx.previos = histToMessages(hist.protocols.slice(0,-1), STREAM_HIST_MAX);
+    protoStream(msg, ctx);
+  } else {
+    protoLegacy(msg, ctx);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIMULADOR DE SSE — ejercita las rutas de error sin backend y sin provocarlas.
+// Intercepta strFetch por ruta, con una cola por ruta (para el reintento tras
+// renew, que hace DOS llamadas a /stream).
+//
+//   LRX_SSE_SIM.correr('sin_creditos')     ← guion completo
+//   LRX_SSE_SIM.guiones                    ← lista de guiones
+//   LRX_STREAM_STATE()                     ← {deltas, eventos, acc, cerrado}
+// ═══════════════════════════════════════════════════════════════════════════
+window.LRX_SSE_SIM = {
+  _cola: { '/issue':[], '/renew':[], '/stream':[] },
+
+  limpiar(){ this._cola = { '/issue':[], '/renew':[], '/stream':[] }; return this; },
+  responder(ruta, resp){ (this._cola[ruta] = this._cola[ruta] || []).push(resp); return this; },
+
+  // Construye un cuerpo SSE a partir de [{event, data}]
+  cuerpo(lista){ return lista.map(e => 'event: ' + e.event + '\ndata: ' + JSON.stringify(e.data) + '\n\n').join(''); },
+
+  // Token falso decodificable por strClaims (payload = PRIMER segmento).
+  token(seg){
+    const p = btoa(JSON.stringify({ exp: Math.floor(Date.now()/1000) + (seg || 1200) }))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    return p + '.firmafalsa';
+  },
+
+  _respuesta(s){
+    if (s.lanzar) return Promise.reject(new Error(s.lanzar));
+    const status = s.status || 200;
+    let cuerpo = null;
+    if (s.sse){
+      // Trocea en pedazos ARBITRARIOS, cortando eventos por la mitad: así se
+      // ejercita de verdad el buffer del lector, no un camino feliz alineado.
+      const tam = s.trozo || 24, trozos = [];
+      for (let i = 0; i < s.sse.length; i += tam) trozos.push(s.sse.slice(i, i + tam));
+      // `vivo` corta el bombeo cuando el lector cancela (ruta del evento
+      // error): sin esto el temporizador sigue y cierra un controlador ya
+      // cerrado. Es del simulador, no del cliente, pero rompe la prueba igual.
+      let vivo = true;
+      cuerpo = new ReadableStream({
+        cancel(){ vivo = false; },
+        start(c){
+          const enc = new TextEncoder(); let i = 0;
+          const empujar = () => {
+            if (!vivo) return;
+            if (i >= trozos.length){
+              try { if (s.cortar) c.error(new Error('flujo cortado por el simulador')); else c.close(); }
+              catch(x){}
+              return;
+            }
+            try { c.enqueue(enc.encode(trozos[i++])); } catch(x){ vivo = false; return; }
+            setTimeout(empujar, s.retrasoMs === undefined ? 8 : s.retrasoMs);
+          };
+          setTimeout(empujar, 0);
+        }
+      });
+    }
+    return Promise.resolve({
+      ok: status >= 200 && status < 300,
+      status: status,
+      body: cuerpo,
+      json: () => Promise.resolve(s.json || {})
+    });
+  },
+
+  _texto(){
+    return '## Protocolo\n\nPrimera línea de la respuesta simulada.\n\n'
+         + '| Parámetro | Valor |\n|---|---|\n| uno | dos |\n| tres | cuatro |\n\n'
+         + '1️⃣ Fase 1\n\nContenido de la fase.\n\n'
+         + '**Justificación Clínica**\n\nTexto de justificación simulado.\n';
+  },
+
+  guiones: {
+    ok(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token(), exp:0, rexp:0 } } },
+      { ruta:'/stream', resp:{ status:200, sse: S.cuerpo([
+          { event:'status', data:{ stage:'auth' } },
+          { event:'meta',   data:{ plan:'Pro', credits:97, router_empty:false } },
+          { event:'delta',  data:{ text: S._texto().slice(0,60) } },
+          { event:'delta',  data:{ text: S._texto().slice(60) } },
+          { event:'done',   data:{ ok:true } }
+        ]) } }
+    ]; },
+    sin_creditos(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:200, sse: S.cuerpo([
+          { event:'meta',  data:{ plan:'Free', credits:0 } },
+          { event:'error', data:{ code:402, message:'sin créditos', upgrade_options:{} } }
+        ]) } }
+    ]; },
+    plan_no_incluido(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:200, sse: S.cuerpo([
+          { event:'error', data:{ code:403, message:'plan no cubre el módulo' } }
+        ]) } }
+    ]; },
+    error_generico(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:200, sse: S.cuerpo([
+          { event:'delta', data:{ text:'Texto parcial antes del fallo.' } },
+          { event:'error', data:{ code:500, message:'fallo del upstream' } }
+        ]) } }
+    ]; },
+    token_expirado(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:401, json:{ error:'token_expired' } } },
+      { ruta:'/renew',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:200, sse: S.cuerpo([
+          { event:'meta',  data:{ plan:'Pro', credits:96 } },
+          { event:'delta', data:{ text:'Respuesta tras renovar el token.' } },
+          { event:'done',  data:{ ok:true } }
+        ]) } }
+    ]; },
+    cadena_expirada(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:401, json:{ error:'chain_expired' } } }
+    ]; },
+    tope_sesion(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:429, json:{ error:'session_cap' } } }
+    ]; },
+    tope_cadena(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:429, json:{ error:'chain_cap' } } }
+    ]; },
+    cortado(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:200, cortar:true, sse: S.cuerpo([
+          { event:'meta',  data:{ plan:'Pro', credits:95 } },
+          { event:'delta', data:{ text:'## Protocolo\n\nRespuesta que se corta a mitad' } }
+        ]) } }
+    ]; },
+    // Cierre LIMPIO tras dos deltas y sin 'done'. No lanza nada: el lector ve
+    // read() con done:true. Es la cuarta ruta de salida — la que no pasa ni
+    // por el catch ni por el manejador de error.
+    cierre_sin_done(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:200, sse: S.cuerpo([
+          { event:'meta',  data:{ plan:'Pro', credits:94 } },
+          { event:'delta', data:{ text:'## Protocolo\n\nPrimer delta.' } },
+          { event:'delta', data:{ text:'\n\nSegundo delta, y el flujo cierra aquí.' } }
+        ]) } }
+    ]; },
+    issue_falla(S){ return [
+      { ruta:'/issue', resp:{ status:500, json:{ error:'boom' } } }
+    ]; },
+    issue_inalcanzable(S){ return [
+      { ruta:'/issue', resp:{ lanzar:'red caída' } }
+    ]; },
+    no_socio(S){ return [
+      { ruta:'/issue', resp:{ status:403, json:{ error:'not_a_member' } } }
+    ]; },
+    plan_excluido(S){ return [
+      { ruta:'/issue', resp:{ status:403, json:{ error:'plan_excluded' } } }
+    ]; }
+  },
+
+  // Monta el guion y dispara el camino de streaming con un preámbulo idéntico
+  // al de sendProtoSetup, sin depender del formulario ni del flag.
+  correr(nombre){
+    const g = this.guiones[nombre];
+    if (!g){ console.error('guion desconocido. Disponibles:', Object.keys(this.guiones).join(', ')); return; }
+    this.limpiar();
+    g(this).forEach(x => this.responder(x.ruta, x.resp));
+    strToken = '';                      // fuerza el /issue del guion
+    const msg = 'SIMULACIÓN · ' + nombre;
+    removeChips('protocols'); addUser('protocols', msg);
+    hist.protocols.push(`User: ${msg}`);
+    const historyTxt = hist.protocols.slice(-12).join('\n');
+    const previos    = histToMessages(hist.protocols.slice(0,-1), STREAM_HIST_MAX);
+    showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
+    protoStream(msg, { previos: previos, historyTxt: historyTxt, primero: false });
+    return 'corriendo ' + nombre + ' — mira LRX_STREAM_STATE()';
+  },
+
+  todos(){ return Object.keys(this.guiones); }
+};
 
 // ── DEVICES DATA ──
 const DEVICES={ui:{en:{typeLabel:'What type of laser?',brandLabel:'Brand',modelLabel:'Model',needLabel:'What do you need?',searchPh:'Not listed? Search or type brand...',otherPh:'Describe your device...',showMore:'+ more ▾',showLess:'▲ less',btn:'Identify device',noType:'(not specified)',photoTitle:'Upload a photo of your device',photoSub:'I\'ll identify brand, model and wavelength from the photo',orText:'or fill in what you know',needsPhoto:'Photo ready',ledTypeLabel:'Device type',ledBrandLabel:'Brand',ledSpecsLabel:'Device specs (if unknown brand)'},es:{typeLabel:'¿Qué tipo de láser?',brandLabel:'Marca',modelLabel:'Modelo',needLabel:'¿Qué necesitas?',searchPh:'¿No está? Busca o escribe la marca...',otherPh:'Describe tu dispositivo...',showMore:'+ más ▾',showLess:'▲ menos',btn:'Identificar dispositivo',noType:'(no especificado)',photoTitle:'Sube una foto de tu equipo',photoSub:'Identifico marca, modelo y longitud de onda por la foto',orText:'o escribe lo que sabes',needsPhoto:'Foto lista',ledTypeLabel:'Tipo de dispositivo',ledBrandLabel:'Marca',ledSpecsLabel:'Especificaciones (si marca desconocida)'},pt:{typeLabel:'Que tipo de laser?',brandLabel:'Marca',modelLabel:'Modelo',needLabel:'O que você precisa?',searchPh:'Não listado? Busque ou escreva a marca...',otherPh:'Descreva seu dispositivo...',showMore:'+ mais ▾',showLess:'▲ menos',btn:'Identificar dispositivo',noType:'(não especificado)',photoTitle:'Envie uma foto do seu equipamento',photoSub:'Identifico marca, modelo e comprimento de onda pela foto',orText:'ou preencha o que você sabe',needsPhoto:'Foto pronta',ledTypeLabel:'Tipo de dispositivo',ledBrandLabel:'Marca',ledSpecsLabel:'Especificações (se marca desconhecida)'},ja:{typeLabel:'レーザーの種類は？',brandLabel:'ブランド',modelLabel:'モデル',needLabel:'何が必要ですか？',searchPh:'リストにない場合は検索...',otherPh:'デバイスを説明...',showMore:'+ もっと見る ▾',showLess:'▲ 少なく',btn:'デバイスを識別',noType:'（未指定）',photoTitle:'機器の写真をアップロード',photoSub:'写真からブランド・モデル・波長を識別します',orText:'またはわかる情報を入力',needsPhoto:'写真準備完了',ledTypeLabel:'デバイスタイプ',ledBrandLabel:'ブランド',ledSpecsLabel:'デバイス仕様'},ko:{typeLabel:'레이저 종류는?',brandLabel:'브랜드',modelLabel:'모델',needLabel:'무엇이 필요합니까?',searchPh:'목록에 없으면 검색...',otherPh:'기기 설명...',showMore:'+ 더보기 ▾',showLess:'▲ 접기',btn:'기기 식별',noType:'（미지정）',photoTitle:'기기 사진을 업로드하세요',photoSub:'사진에서 브랜드, 모델, 파장을 식별합니다',orText:'또는 아는 정보를 입력하세요',needsPhoto:'사진 준비됨',ledTypeLabel:'기기 유형',ledBrandLabel:'브랜드',ledSpecsLabel:'기기 사양'}},types:{en:['Diode','Erbium','CO₂','Nd:YAG','LED / PBM','Other'],es:['Diodo','Erbio','CO₂','Nd:YAG','LED / PBM','Otro'],pt:['Diodo','Érbio','CO₂','Nd:YAG','LED / PBM','Outro'],ja:['ダイオード','エルビウム','CO₂','Nd:YAG','LED / PBM','その他'],ko:['다이오드','어븀','CO₂','Nd:YAG','LED / PBM','기타']},brands:{'450 nm':{top:['Soga','Pion','Elexxion','Dentsply Sirona'],all:['Soga','Pion','Elexxion','Dentsply Sirona']},'810 nm':{top:['AMD Lasers','Dentsply Sirona','Doctor Smile','Zolar'],all:['AMD Lasers','Dentsply Sirona','Doctor Smile','Zolar','A.R.C. Laser','Gigaa Optronics','KaVo','Pion']},'940 nm':{top:['Biolase','Dentsply Sirona','Elexxion','Doctor Smile'],all:['Biolase','Dentsply Sirona','Elexxion','Doctor Smile']},'980 nm':{top:['Soga','Pion','Fotona','Dentsply Sirona'],all:['Soga','Pion','Fotona','Dentsply Sirona','A.R.C. Laser','J. Morita','Lasotronix','Elexxion','Doctor Smile','Gigaa Optronics','NV Microdent']},'1064 nm free running pulse':{top:['PerioLase MVP-7','Fotona','Deka','Quanta System'],all:['PerioLase MVP-7','Fotona','Deka','Quanta System']},'Er,Cr:YSGG 2780 nm':{top:['Biolase'],all:['Biolase']},'Er:YAG 2940 nm':{top:['Fotona','KaVo','Deka','Soga'],all:['Fotona','KaVo','Deka','Soga','Light Instruments','J. Morita','A.R.C. Laser','Alma Lasers','Quanta System','Elexxion']},'10,600 nm':{top:['Deka','Elexxion','Aesculight','Doctor Smile'],all:['Deka','Elexxion','Aesculight','Doctor Smile']},'1064 nm':{top:['PerioLase MVP-7','Fotona','Deka','Quanta System'],all:['PerioLase MVP-7','Fotona','Deka','Quanta System']}},models:{'Soga':['I Laser I','I Laser I Plus','I Laser II','H2O Laser','iLaser 1'],'Pion':['Mercury-Dual','Mercury 3','S3','Helipen Blue','Helipen Red','H1'],'Biolase':['Epic X','Epic Q','Epic 10','Epic Pro','Epic Hygiene','iLase','ezlase 940','Waterlase Express','Waterlase iPlus','Waterlase iPlus 2.0','Waterlase MDX','Waterlase MD'],'Fotona':['LightWalker AT','LightWalker AT-S','LightWalker TT','Versa','Fidelis Plus III'],'Dentsply Sirona':['SIROLaser Blue','SIROLaser Advance'],'AMD Lasers':['Picasso','Picasso Lite'],'Doctor Smile':['Wiser','Lambda SC','Lambda Plus','Lambda CO₂'],'KaVo':['MASTERlase','KEY Laser 3+','KEY Laser 4'],'Deka':['Smart 2940D','Er:YAG Dental Pro','SmartUS CO₂','Nd:YAG Dental'],'A.R.C. Laser':['FoxII','OfficeLase'],'Elexxion':['Claros Nano','Claros','Delos','Duros','Arcus'],'Gigaa Optronics':['CHEESE Mini','CHEESE 4W','CHEESE 7W','CHEESE 10W'],'PerioLase MVP-7':['PerioLase MVP-7'],'Convergent Dental (Solea)':['Solea'],'Quanta System':['Nd:YAG Dental','HF Dental Er:YAG'],'Light Instruments':['LightTouch','SlimLine'],'Alma Lasers':['OpusDuo'],'Lasotronix':['Smart M Pro'],'NV Microdent':['NV Pro3'],'J. Morita':['ReLase','Er:YAG Dental'],'Zolar':['Photon Plus'],'Aesculight':['Aesculight CO₂ Dental']},needs:{en:['Full tech profile','Clinical protocols','Compare devices','Other'],es:['Ficha técnica completa','Protocolos clínicos','Comparar dispositivos','Otro'],pt:['Ficha técnica completa','Protocolos clínicos','Comparar dispositivos','Outro'],ja:['完全な技術プロファイル','臨床プロトコル','デバイスを比較','その他'],ko:['전체 기술 프로파일','임상 프로토콜','기기 비교','기타']},ledTypes:{en:['Wearable','Panel'],es:['Wearable','Panel'],pt:['Wearable','Painel'],ja:['ウェアラブル','パネル'],ko:['착용형','패널']},ledBrands:{Wearable:['Biolux Pro Mini','Biolux Pro Max','Biolux Pro Dent','Biolux Pro Lens','Biolux Research OrthoPulse','Erchonia EVRL','Erchonia FX635'],Panel:['Thor LX2','Thor LED Cluster','B-Cure Dental','Omega XP','Asahi Super Lizer']},ledSpecs:{en:['No. of LEDs','LED diameter (mm)','Wavelength(s) nm','Total power output (mW)'],es:['Número de LEDs','Diámetro de LED (mm)','Longitud(es) de onda nm','Potencia total (mW)'],pt:['Número de LEDs','Diâmetro do LED (mm)','Comprimento(s) de onda nm','Potência total (mW)'],ja:['LEDの数','LED径 (mm)','波長 nm','総出力 (mW)'],ko:['LED 수','LED 직경 (mm)','파장 nm','총 출력 (mW)']}};
