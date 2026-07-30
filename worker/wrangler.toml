@@ -1,0 +1,24 @@
+name = "laserrx-stream"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+
+[vars]
+N8N_BASE = "https://laserai.app.n8n.cloud/webhook"
+
+# Lista de origenes permitidos, separados por comas y SIN espacios alrededor
+# (el Worker hace trim de todos modos). El primero es el fallback que se
+# devuelve cuando el Origin entrante no esta en la lista.
+#
+# FUENTE DE VERDAD: este fichero. Con builds automaticos desde el repo, cada
+# deploy sobrescribe lo que haya en el panel de Settings, asi que editarlo alli
+# se pierde en el siguiente push.
+#
+# Origen de produccion verificado el 2026-07-30: el repo laserrx-chat NO tiene
+# CNAME y la API de Pages devuelve cname:null, asi que sirve desde
+# ikably-cmyk.github.io. Si algun dia se pone dominio custom, hay que cambiarlo
+# aqui: el Origin del navegador es esquema+host, nunca la ruta.
+ALLOWED_ORIGIN = "https://laserrx-chat-stream.pages.dev,https://ikably-cmyk.github.io"
+
+[[kv_namespaces]]
+binding = "OPENS"
+id      = "1b723d910a624561828fbd61ecc3a551"
