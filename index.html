@@ -3201,11 +3201,116 @@ function initMod(mod){
   else addChips(mod);
 }
 
-function addAI(mod,html){
-  const msgs=msgEl(mod);const d=document.createElement('div');d.className='msg msg-ai';d.innerHTML=fmt(html);msgs.appendChild(d);
-  if(mod==='protocols'||mod==='calculator'||mod==='validate'){setTimeout(()=>{postProcessTables(d);postProcessCollapsible(d);},50);}
-  scrollToMsg(d);
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER EN DOS FASES
+// ───────────────────────────────────────────────────────────────────────────
+// El camino de pintado se parte en dos para que el streaming pueda usar el
+// primero muchas veces sin disparar el segundo:
+//
+//   A · renderRaw / streamRender  →  fmt() y nada más. Repetible por delta.
+//   B · finishAI                  →  postProcessTables + postProcessCollapsible.
+//                                    UNA SOLA VEZ, al terminar.
+//
+// Por qué B no puede correr por chunk: postProcessCollapsible hace
+// el.innerHTML='' y reconstruye el mensaje entero. Ejecutado por delta destruye
+// el DOM en cada frame, resetea el estado abierto/cerrado de los acordeones y
+// parpadea. Es la razón de ser de esta separación.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Módulos cuyo markdown lleva tablas y secciones plegables.
+const POSTPROCESS_MODS = ['protocols','calculator','validate'];
+function needsFinish(mod){ return POSTPROCESS_MODS.indexOf(mod) !== -1; }
+
+// Crea la burbuja vacía y la cuelga del módulo. Devuelve el nodo para que el
+// llamante lo alimente.
+function addAIBubble(mod){
+  const msgs=msgEl(mod);
+  const d=document.createElement('div');
+  d.className='msg msg-ai';
+  msgs.appendChild(d);
+  d._acc=''; d._renders=0; d._finished=false; d._raf=0;
+  return d;
 }
+
+// ── A · pintado crudo ──────────────────────────────────────────────────────
+// Solo fmt(). Sin post-procesos. Idempotente: puede llamarse mil veces.
+//
+// holdTableRows: si el texto acumulado termina en una fila de tabla a medio
+// llegar (la última línea empieza por |), se recorta antes de pintar y vuelve
+// en el ciclo siguiente. Sin esto marked parsea la fila incompleta, la tabla se
+// redibuja entera en cada delta y parpadea. Solo aplica mientras `streaming`
+// es true: el pintado final tiene que llevar el texto íntegro.
+function renderRaw(bubble, acc, streaming){
+  let text = acc || '';
+  if(streaming && !text.endsWith('\n')){
+    const nl = text.lastIndexOf('\n');
+    const last = text.slice(nl+1);
+    if(/^\s*\|/.test(last)) text = text.slice(0, nl+1);
+  }
+  bubble.innerHTML = fmt(text);
+  bubble.classList.toggle('streaming', !!streaming);
+  bubble._renders = (bubble._renders|0) + 1;
+  return bubble._renders;
+}
+
+// Throttle con requestAnimationFrame: un frame pendiente por burbuja, nunca uno
+// por delta. El texto se guarda en la burbuja y el callback lee SIEMPRE el
+// último acumulado, así que soltar frames intermedios no pierde contenido.
+function streamRender(bubble, acc, streaming){
+  bubble._acc = acc || '';
+  bubble._streaming = (streaming !== false);
+  if(bubble._raf) return bubble._raf;
+  bubble._raf = requestAnimationFrame(()=>{
+    bubble._raf = 0;
+    renderRaw(bubble, bubble._acc, bubble._streaming);
+  });
+  return bubble._raf;
+}
+
+// ── B · acabado ────────────────────────────────────────────────────────────
+// Corre UNA SOLA VEZ por burbuja. Cancela cualquier frame pendiente, hace el
+// pintado final con el texto ÍNTEGRO (sin retener la fila de tabla) y aplica
+// los post-procesos, exactamente los mismos que hoy y en el mismo orden.
+function finishAI(bubble, mod){
+  if(!bubble || bubble._finished) return false;
+  bubble._finished = true;
+  if(bubble._raf){ cancelAnimationFrame(bubble._raf); bubble._raf = 0; }
+  if(bubble._acc) renderRaw(bubble, bubble._acc, false);
+  bubble.classList.remove('streaming');
+  if(needsFinish(mod)){ postProcessTables(bubble); postProcessCollapsible(bubble); }
+  bubble._finishes = (bubble._finishes|0) + 1;
+  return true;
+}
+
+// ── C · addAI = A seguida de B ─────────────────────────────────────────────
+// Comportamiento idéntico al anterior: pinta de una vez y, en los módulos que
+// lo necesitan, post-procesa a los 50 ms. Ese retardo se conserva tal cual.
+function addAI(mod,html){
+  const d=addAIBubble(mod);
+  d._acc = html || '';
+  renderRaw(d, d._acc, false);
+  if(needsFinish(mod)) setTimeout(()=>finishAI(d,mod),50); else finishAI(d,mod);
+  scrollToMsg(d);
+  return d;
+}
+
+// ── Banco de pruebas para el simulador de SSE ──────────────────────────────
+// Desde consola:
+//   const b = LRX_STREAM.open('protocols');
+//   LRX_STREAM.delta(b, '…trozo…');      // repetir por cada delta
+//   LRX_STREAM.finish(b, 'protocols');   // una sola vez, al final
+//   LRX_STREAM.stats(b);                 // {deltas, renders, finishes, …}
+// `renders` debe ser MUCHO menor que `deltas` (prueba del throttle) y
+// `finishes` debe ser exactamente 1 (prueba de que B no corre por chunk).
+window.LRX_STREAM = {
+  open(mod){ const b=addAIBubble(mod); b._deltas=0; scrollToMsg(b); return b; },
+  delta(b, chunk){ b._deltas=(b._deltas|0)+1; streamRender(b, (b._acc||'')+chunk, true); return b._acc.length; },
+  set(b, acc){ b._deltas=(b._deltas|0)+1; streamRender(b, acc, true); return acc.length; },
+  finish(b, mod){ return finishAI(b, mod); },
+  stats(b){ return {deltas:b._deltas|0, renders:b._renders|0, finishes:b._finishes|0,
+                    rafPendiente:!!b._raf, acc:(b._acc||'').length, terminado:!!b._finished,
+                    acordeones:b.querySelectorAll('.collapse-bar').length}; },
+};
 
 function addUser(mod,text){const msgs=msgEl(mod);const d=document.createElement('div');d.className='msg msg-user';d.textContent=text;msgs.appendChild(d);scrollBot();}
 
