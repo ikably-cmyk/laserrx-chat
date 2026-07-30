@@ -612,6 +612,9 @@
     .tdot:nth-child(2) { animation-delay: .2s; }
     .tdot:nth-child(3) { animation-delay: .4s; }
     @keyframes pulse { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
+    /* Etapa del streaming. Hereda el color de .typing en vez de fijar uno, para
+       que el modo noche lo siga solo: .typing ya cambia de color ahi. */
+    .tstage { font-size: 12px; opacity: .75; margin-left: 4px; }
 
     /* ─── NEXT CARD ─── */
     .next-card {
@@ -3584,6 +3587,10 @@ const STREAM_WORKER    = 'https://laserrx-stream.ikably.workers.dev';
 const STREAM_MODS      = ['protocols'];          // los otros tres NO se tocan
 const STREAM_ALLOWLIST = ['ikably@gmail.com'];
 const STREAM_HIST_MAX  = 20;
+// Respaldo por temporizador cuando una etapa se queda quieta. `let` y no `const`
+// a proposito: bajarlo desde consola es la unica forma de ver el texto de
+// respaldo sin esperar 12 s de reloj.
+let STREAM_STAGE_SLOW_MS = 12000;
 
 // ── Flag. Apagado por defecto. Tres condiciones, todas necesarias:
 //    módulo permitido · Row ID presente (/issue lo cambia por token) · flag on
@@ -3691,6 +3698,32 @@ function strTxt(){
   return T[lang] || T.en;
 }
 
+// ── Etapas. Copy DESCRIPTIVO de lo que hace la máquina, nunca promisorio sobre
+//    el resultado: "Consultando la base de conocimiento", no "buscando el
+//    protocolo adecuado para ti". Lo segundo sugiere que el sistema decide por
+//    el clínico y choca de frente con la neutralidad clínica del producto.
+//    `lento` es el respaldo por temporizador: constata un hecho, no promete.
+function stageTxt(){
+  const T = {
+    en:{ auth:'Verifying access',       routing:'Identifying the procedure',
+         loading_kb:'Consulting the knowledge base', generating:'Preparing the protocol',
+         lento:'Taking longer than usual' },
+    es:{ auth:'Verificando acceso',     routing:'Identificando el procedimiento',
+         loading_kb:'Consultando la base de conocimiento', generating:'Preparando el protocolo',
+         lento:'Tardando más de lo habitual' },
+    pt:{ auth:'Verificando acesso',     routing:'Identificando o procedimento',
+         loading_kb:'Consultando a base de conhecimento', generating:'Preparando o protocolo',
+         lento:'Demorando mais que o habitual' },
+    ja:{ auth:'アクセスを確認しています', routing:'処置を特定しています',
+         loading_kb:'ナレッジベースを参照しています', generating:'プロトコルを準備しています',
+         lento:'通常より時間がかかっています' },
+    ko:{ auth:'접근 권한을 확인하는 중',  routing:'시술을 확인하는 중',
+         loading_kb:'지식 베이스를 조회하는 중', generating:'프로토콜을 준비하는 중',
+         lento:'평소보다 오래 걸리고 있습니다' }
+  };
+  return T[lang] || T.en;
+}
+
 // ── Tarjeta de aviso. Reutiliza las clases de addUpgradeCard: cero CSS nuevo.
 function addStreamNoticeCard(mod, titulo, texto, etiqueta, accion){
   const msgs = msgEl(mod); if(!msgs) return;
@@ -3713,7 +3746,39 @@ function addStreamNoticeCard(mod, titulo, texto, etiqueta, accion){
 // ═══════════════════════════════════════════════════════════════════════════
 function protoStream(msg, ctx){
   let burbuja = null, acc = '', deltas = 0, eventos = 0, cerrado = false;
-  let metaPlan = null, metaCredits, seguidor = null;
+  let metaPlan = null, metaCredits, seguidor = null, etapaTimer = null;
+
+  // ── Cronómetro. Mide dónde se va el tiempo hasta el primer carácter de texto:
+  //    cuánto en /issue, cuánto en abrir /stream, y cuánto en cada etapa del
+  //    prepare. Sin este desglose, optimizar los 35 s es adivinar.
+  const T0 = Date.now();
+  const marcas = [];
+  const marca = (que) => { marcas.push({ que: que, ms: Date.now() - T0 }); };
+
+  const informe = (motivo) => {
+    const filas = marcas.map((m, i) => ({
+      fase: m.que,
+      'ms desde el envío': m.ms,
+      'ms en el tramo': i ? (m.ms - marcas[i-1].ms) : m.ms
+    }));
+    window.LRX_STREAM_CRONO = { motivo: motivo, total: marcas.length ? marcas[marcas.length-1].ms : 0,
+                                marcas: marcas.slice(), filas: filas };
+    try { console.table(filas); } catch(e) { console.log(filas); }
+    console.log('[stream] ' + motivo + ': ' + (window.LRX_STREAM_CRONO.total) + ' ms · '
+                + 'LRX_STREAM_CRONO para el detalle');
+  };
+
+  // Etapa que llega por SSE. Reinicia el respaldo: el Worker dispara routing a
+  // los 4 s y loading_kb a los 7 s con setTimeout, así que una etapa puede
+  // quedarse quieta y el usuario merece saber que sigue vivo.
+  const pararEtapas = () => { if (etapaTimer){ clearTimeout(etapaTimer); etapaTimer = null; } };
+  const marcarEtapa = (stage) => {
+    marca('status:' + stage);
+    const S = stageTxt();
+    if (S[stage]) setTypingStage('protocols', S[stage]);
+    pararEtapas();
+    etapaTimer = setTimeout(() => { setTypingStage('protocols', stageTxt().lento); }, STREAM_STAGE_SLOW_MS);
+  };
 
   // ── Seguimiento de la cola. El texto crece sobre una burbuja que ya existe,
   //    así que sin esto el usuario ve las primeras líneas y el resto crece
@@ -3758,6 +3823,7 @@ function protoStream(msg, ctx){
   // así que llamarlo desde CUALQUIER ruta es seguro y no duplica post-procesos.
   // Suelta también el seguidor: es el único que registra un listener.
   const acabar = () => {
+    pararEtapas();
     if (seguidor){ seguidor.soltar(); seguidor = null; }
     if (burbuja) finishAI(burbuja, 'protocols');
   };
@@ -3789,6 +3855,7 @@ function protoStream(msg, ctx){
   // en cuanto llega uno, n8n ya cobró y reintentar por el camino viejo cobraría
   // dos veces.
   const caerALegado = (motivo) => {
+    pararEtapas();
     console.warn('[stream] fallback al camino no-streaming:', motivo);
     window.LRX_STREAM_FELL_BACK = motivo;
     protoLegacy(msg, ctx);
@@ -3797,6 +3864,10 @@ function protoStream(msg, ctx){
   // REQUISITO 6 · lo que produccion ya hace tras responder y el beta no.
   const cerrarBien = (truncado) => {
     if (cerrado) return; cerrado = true;
+    marca(truncado ? 'cierre sin done' : 'done');
+    // Si no llegó ni un delta, el informe no salió antes y es justo el caso que
+    // más interesa medir: se fue todo el tiempo y no hubo texto.
+    if (deltas === 0) informe('terminó sin texto');
     acabar(); hideTyping('protocols');
     const reply = (acc || '').trim();
     if (!burbuja) addAI('protocols', reply || '—');
@@ -3814,7 +3885,7 @@ function protoStream(msg, ctx){
   async function intentar(esReintento){
     // ── token
     if (!strToken){
-      try { strToken = await strIssue(K); strScheduleRenew(); }
+      try { strToken = await strIssue(K); strScheduleRenew(); marca('issue'); }
       catch(err){
         const code = String((err && err.message) || '');
         // Estos dos NO caen al legado: son veredictos sobre la cuenta, y el
@@ -3836,6 +3907,7 @@ function protoStream(msg, ctx){
           is_first_message: ctx.primero, module: 'protocols'
         })
       });
+      marca(esReintento ? 'stream abierto (reintento)' : 'stream abierto');
     } catch(e){
       return eventos === 0 ? caerALegado('stream inalcanzable') : errorGenerico();
     }
@@ -3884,7 +3956,7 @@ function protoStream(msg, ctx){
           let d; try { d = JSON.parse(dl); } catch(x){ continue; }
           eventos++;
 
-          if (ev === 'status'){ /* producción no tiene barra de etapas */ }
+          if (ev === 'status'){ if (d.stage) marcarEtapa(d.stage); }
           else if (ev === 'meta'){
             if (d.plan) metaPlan = d.plan;
             if (d.credits !== undefined) metaCredits = d.credits;
@@ -3896,6 +3968,13 @@ function protoStream(msg, ctx){
           }
           else if (ev === 'delta'){
             deltas++; acc += (d.text || '');
+            if (deltas === 1){
+              // El primer delta se lleva por delante el indicador entero, texto
+              // de etapa incluido: asegurarBurbuja hace hideTyping.
+              pararEtapas();
+              marca('primer delta');
+              informe('tiempo hasta el primer texto');
+            }
             streamRender(asegurarBurbuja(), acc, true);
             seguidor.tick();       // el rAF del seguidor se registra DESPUÉS
                                    // del de streamRender, así que lee el alto
@@ -4097,6 +4176,29 @@ window.LRX_SSE_SIM = {
       { ruta:'/stream', resp:{ status:200, cortar:true, sse: S.cuerpo([
           { event:'meta',  data:{ plan:'Pro', credits:95 } },
           { event:'delta', data:{ text:'## Protocolo\n\nRespuesta que se corta a mitad' } }
+        ]) } }
+    ]; },
+    // Las cuatro etapas en orden, con el texto que le toca a cada una.
+    etapas(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:200, retrasoMs:12, sse: S.cuerpo([
+          { event:'status', data:{ stage:'auth'       } },
+          { event:'status', data:{ stage:'routing'    } },
+          { event:'status', data:{ stage:'loading_kb' } },
+          { event:'meta',   data:{ plan:'Pro', credits:93 } },
+          { event:'status', data:{ stage:'generating' } },
+          { event:'delta',  data:{ text:'## Protocolo\n\nTexto tras las cuatro etapas.' } },
+          { event:'done',   data:{ ok:true } }
+        ]) } }
+    ]; },
+    // Etapa que se queda quieta. Baja STREAM_STAGE_SLOW_MS antes de correrlo:
+    //   STREAM_STAGE_SLOW_MS = 800; LRX_SSE_SIM.correr('etapa_atascada')
+    etapa_atascada(S){ return [
+      { ruta:'/issue',  resp:{ status:200, json:{ token:S.token() } } },
+      { ruta:'/stream', resp:{ status:200, trozo:4, retrasoMs:400, sse: S.cuerpo([
+          { event:'status', data:{ stage:'loading_kb' } },
+          { event:'delta',  data:{ text:'Llegó tarde, pero llegó.' } },
+          { event:'done',   data:{ ok:true } }
         ]) } }
     ]; },
     // Cierre LIMPIO tras dos deltas y sin 'done'. No lanza nada: el lector ve
@@ -5266,6 +5368,21 @@ function addChips(mod){
 function removeChips(mod){const el=$(`chips-${mod}`);if(el)el.remove();}
 function showTyping(mod){const msgs=msgEl(mod);const d=document.createElement('div');d.className='typing';d.id=`typing-${mod}`;d.innerHTML='<div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>';msgs.appendChild(d);scrollBot();}
 function hideTyping(mod){const e=$(`typing-${mod}`);if(e)e.remove();}
+
+// Etapa del streaming, DENTRO del nodo de "escribiendo" y nunca dentro de la
+// burbuja: en la burbuja pasaria por fmt() y por los post-procesos, y acabaria
+// en hist y en la hoja como si fuera parte del protocolo. textContent, no
+// innerHTML: esto viene del Worker y no se pinta como markup.
+// Si el nodo ya no esta (el primer delta lo quito) es un no-op, que es justo lo
+// que tiene que pasar con un temporizador que llega tarde.
+function setTypingStage(mod, texto){
+  const e = $(`typing-${mod}`);
+  if (!e) return false;
+  let s = e.querySelector('.tstage');
+  if (!s){ s = document.createElement('span'); s.className = 'tstage'; e.appendChild(s); }
+  s.textContent = texto || '';
+  return true;
+}
 
 function addNextCard(mod){
   const ns=t('ns')[mod];if(!ns)return;
