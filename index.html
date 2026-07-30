@@ -2982,26 +2982,37 @@ function postProcessCollapsible(el) {
     ko:{phases:'상세 단계 파라미터',rationale:'임상적 근거',math:'계산 내역',expandAll:'⊞ 모두 펼치기',collapseAll:'⊟ 모두 접기'},
   }[lang]||{phases:'View detailed phase parameters',rationale:'Clinical rationale',math:'View calculation breakdown',expandAll:'⊞ Expand all',collapseAll:'⊟ Collapse all'};
 
+  const RX_PHASE     = /[0-9]️⃣|^(Phase|Fase)\s*[0-9]|^(フェーズ|ステージ|第)\s*[0-9]|^[0-9]\s*단계|^단계\s*[0-9]/i;
+  const RX_RATIONALE = /🧠|Clinical Rationale|Justificación Clínica|Justificativa Clínica|Fundamento Clínico|Racional Clínico|Rationale|臨床的根拠|임상적 근거/i;
+  const RX_MATH      = /Calculation notes|Math notes|Notas de cálculo|Desglose de cálculo|Math trail|Notas de cálculos/i;
+
   function makeCollapse(labelText,nodes){const wrap=document.createElement('div');const bar=document.createElement('div');bar.className='collapse-bar';bar.innerHTML='<span>'+labelText+'</span><span class="c-arrow">▶</span>';const body=document.createElement('div');body.className='collapse-body';nodes.forEach(n=>body.appendChild(n.cloneNode(true)));bar.onclick=()=>{bar.classList.toggle('open');body.classList.toggle('open');};wrap.appendChild(bar);wrap.appendChild(body);return{wrap,bar,body};}
 
   const allNodes=Array.from(el.childNodes),newEl=document.createElement('div');
   let phaseNodes=[],rationaleNodes=[],mathNodes=[],inPhase=false,inRationale=false,inMath=false,bars=[];
-  allNodes.forEach(node=>{const tag=node.nodeName,text=node.textContent||'';
-    const isPhaseHeader=(tag==='H2'||tag==='H3')&&/[1-9]️⃣|^Phase [1-9]|^Fase [1-9]/.test(text.trim());
-    const isRationale=(tag==='H2'||tag==='H3'||tag==='P')&&/🧠|Clinical Rationale|Justificación Clínica|Justificativa Clínica/.test(text);
-    const isMath=(tag==='H3'||tag==='P'||tag==='UL')&&/Calculation notes|Math notes|Notas de cálculo|Desglose de cálculo|Math trail/.test(text);
-    if(isPhaseHeader){inPhase=true;inRationale=false;inMath=false;phaseNodes.push(node);return;}
-    if(isRationale){inRationale=true;inPhase=false;inMath=false;rationaleNodes.push(node);return;}
-    if(isMath){inMath=true;inPhase=false;inRationale=false;mathNodes.push(node);return;}
-    if(inPhase){if(tag==='H2'||tag==='H3'){inPhase=false;}else{phaseNodes.push(node);return;}}
-    if(inRationale){rationaleNodes.push(node);return;}
-    if(inMath){if(/⚠️|💡|Clinical Interp|Interpretación/.test(text)&&(tag==='P'||tag==='BLOCKQUOTE')){inMath=false;}else{mathNodes.push(node);return;}}
+  let phaseAnchor=null,rationaleAnchor=null,mathAnchor=null,anchorSet={};
+
+  allNodes.forEach(node=>{const tag=node.nodeName,text=(node.textContent||'').trim();
+    const isHeading=(tag==='H2'||tag==='H3');
+    const isPhaseHeader=isHeading&&RX_PHASE.test(text);
+    const isRationale=(isHeading||tag==='P')&&RX_RATIONALE.test(text);
+    const isMath=(tag==='H3'||tag==='P'||tag==='UL')&&RX_MATH.test(text);
+    if(isPhaseHeader){if(!anchorSet.phase){phaseAnchor=newEl.lastChild;anchorSet.phase=1;}inPhase=true;inRationale=false;inMath=false;phaseNodes.push(node);return;}
+    if(isRationale){if(!anchorSet.rationale){rationaleAnchor=newEl.lastChild;anchorSet.rationale=1;}inRationale=true;inPhase=false;inMath=false;rationaleNodes.push(node);return;}
+    if(isMath){if(!anchorSet.math){mathAnchor=newEl.lastChild;anchorSet.math=1;}inMath=true;inPhase=false;inRationale=false;mathNodes.push(node);return;}
+    if(inPhase){if(isHeading){inPhase=false;}else if(tag==='HR'){phaseNodes.push(node);inPhase=false;return;}else{phaseNodes.push(node);return;}}
+    if(inRationale){if(isHeading){inRationale=false;}else if(tag==='HR'){rationaleNodes.push(node);inRationale=false;return;}else{rationaleNodes.push(node);return;}}
+    if(inMath){if(isHeading){inMath=false;}else if(tag==='HR'){mathNodes.push(node);inMath=false;return;}else{mathNodes.push(node);return;}}
     newEl.appendChild(node.cloneNode(true));});
+
   if(!phaseNodes.length&&!rationaleNodes.length&&!mathNodes.length)return;
+
+  function place(wrap,anchor){if(anchor&&anchor.parentNode===newEl)newEl.insertBefore(wrap,anchor.nextSibling);else newEl.insertBefore(wrap,newEl.firstChild);}
+  if(phaseNodes.length){const c=makeCollapse(lbl.phases,phaseNodes);place(c.wrap,phaseAnchor);bars.push({bar:c.bar,body:c.body});}
+  if(rationaleNodes.length){const c=makeCollapse(lbl.rationale,rationaleNodes);place(c.wrap,rationaleAnchor);bars.push({bar:c.bar,body:c.body});}
+  if(mathNodes.length){const c=makeCollapse(lbl.math,mathNodes);place(c.wrap,mathAnchor);bars.push({bar:c.bar,body:c.body});}
+
   const expandBtn=document.createElement('div');expandBtn.className='expand-all-btn';expandBtn.innerHTML='<span class="ea-txt">'+lbl.expandAll+'</span>';expandBtn.dataset.expanded='false';newEl.insertBefore(expandBtn,newEl.firstChild);
-  if(phaseNodes.length){const{wrap,bar,body}=makeCollapse(lbl.phases,phaseNodes);let insertAfter=null;Array.from(newEl.childNodes).forEach(n=>{if(n.className&&n.className.includes&&n.className.includes('table-wrap'))insertAfter=n;});if(insertAfter)newEl.insertBefore(wrap,insertAfter.nextSibling);else newEl.appendChild(wrap);bars.push({bar,body});}
-  if(rationaleNodes.length){const{wrap,bar,body}=makeCollapse(lbl.rationale,rationaleNodes);newEl.appendChild(wrap);bars.push({bar,body});}
-  if(mathNodes.length){const{wrap,bar,body}=makeCollapse(lbl.math,mathNodes);newEl.appendChild(wrap);bars.push({bar,body});}
   expandBtn.onclick=()=>{const isExp=expandBtn.dataset.expanded==='true';bars.forEach(({bar,body})=>{if(isExp){bar.classList.remove('open');body.classList.remove('open');}else{bar.classList.add('open');body.classList.add('open');}});expandBtn.dataset.expanded=isExp?'false':'true';expandBtn.querySelector('.ea-txt').textContent=isExp?lbl.expandAll:lbl.collapseAll;};
   if(!bars.length)expandBtn.style.display='none';
   el.innerHTML='';Array.from(newEl.childNodes).forEach(n=>el.appendChild(n));
