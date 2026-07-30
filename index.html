@@ -2656,13 +2656,71 @@ let devMode = 'my';
 let devicesLoading = false;
 let devicesLoadedCallback = null;
 
+// ── Normalización en lectura del campo `type` ──────────────────────────────
+// La columna saved_devices tiene DOS escritores con contratos distintos:
+//   · Devices v5 (backend) escribe las cinco cadenas canónicas en inglés:
+//     "Diode", "Erbium", "Nd:YAG", "CO2", "LED".
+//   · La UI de favoritos de este archivo escribía la etiqueta LOCALIZADA que
+//     el usuario eligió en DEVICES.types: "Érbio", "エルビウム", "어븀"...
+//
+// Los filtros del complemento de diodo comparaban la etiqueta en crudo contra
+// las formas inglesa y castellana del erbio. "Érbio".toLowerCase() conserva el
+// acento y no hacía match; las formas japonesa y coreana tampoco. Resultado:
+// pt, ja y ko se quedaban sin la pregunta del diodo, y es/en pasaban por
+// casualidad. Hay DOS rutas distintas hacia ese filtro y ambas tenían el fallo:
+// la de favoritos, que lee savedDevices[].type y se arregla aquí, y la de
+// lastDeviceContext, que lee la etiqueta compuesta y se arregla en su sitio.
+//
+// Aquí canonizamos AL LEER: de este punto en adelante `d.type` es siempre una
+// de las cinco cadenas de v5, venga del idioma que venga. El cliente converge
+// al contrato del backend y los datos se corrigen solos la próxima vez que el
+// usuario toque favoritos.
+//
+// NO se referencia DEVICES a propósito: esa constante se declara más abajo en
+// el archivo y leerla desde aquí puede caer en su zona muerta temporal.
+const DEV_TYPE_ALIASES = {
+  diode:'Diode', diodo:'Diode', 'ダイオード':'Diode', '다이오드':'Diode',
+  erbium:'Erbium', erbio:'Erbium', 'エルビウム':'Erbium', '어븀':'Erbium',
+  'nd:yag':'Nd:YAG', ndyag:'Nd:YAG',
+  co2:'CO2',
+  led:'LED', 'led/pbm':'LED', pbm:'LED'
+};
+
+function canonDeviceType(d){
+  if (!d || typeof d !== 'object') return '';
+  // Sin acentos, sin espacios, en minúsculas. El plegado de diacríticos es lo
+  // que rescata "Érbio"; en ja/ko no aplica y por eso van literales en la tabla.
+  const crudo = String(d.type == null ? '' : d.type)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/\s+/g, '').replace(/₂/g, '2');
+  if (DEV_TYPE_ALIASES[crudo]) return DEV_TYPE_ALIASES[crudo];
+
+  // Respaldo por longitud de onda. v5 guarda wl como "Er:YAG 2940 nm",
+  // "Er,Cr:YSGG 2780 nm", "940 nm", "450 / 650 / 980 nm". Cubre el type vacío,
+  // el idioma no contemplado y el "Otro" que el usuario eligió a mano.
+  const wl = String(d.wl == null ? '' : d.wl).toLowerCase();
+  if (/2780|2940|ysgg|er:?yag|erbi/.test(wl)) return 'Erbium';
+  if (/co2|co₂|10,?600/.test(wl))             return 'CO2';
+  if (/led|pbm/.test(wl))                     return 'LED';
+  if (/diod/.test(wl))                        return 'Diode';
+  if (/1064/.test(wl))                        return 'Nd:YAG';
+  if (/450|650|810|940|980/.test(wl))         return 'Diode';
+  return '';
+}
+
 async function loadSavedDevices() {
   if (!HAS_IDENT) { renderMyDevices(); return; }
   devicesLoading = true;
   try {
     const res = await fetch(`${HOOKS_DEVFAV.get}?email=${encodeURIComponent(EMAIL)}${K_QS}`);
     const data = await res.json();
-    savedDevices = JSON.parse(data.saved_devices || '[]');
+    const lista = JSON.parse(data.saved_devices || '[]');
+    savedDevices = Array.isArray(lista) ? lista.map(function(d){
+      if (!d || typeof d !== 'object') return d;
+      const k = canonDeviceType(d);
+      if (k) d.type = k;
+      return d;
+    }) : [];
   } catch { savedDevices = []; }
   devicesLoading = false;
   renderMyDevices();
@@ -3552,7 +3610,24 @@ procSubRow.classList.remove('hidden');if(!proc.subs.length){if(devPreselect==='e
   procSec.appendChild(procRow);procSec.appendChild(procSubRow);procSec.appendChild(diodeCmpContainer);
   const procOtherFld=document.createElement('input');procOtherFld.type='text';procOtherFld.className='chip-other-field';procOtherFld.placeholder=ui.otherPh;procOtherFld.style.marginTop='6px';procOtherFld.oninput=()=>{proState.procOther=procOtherFld.value.trim();};procSec.appendChild(procOtherFld);wrap.appendChild(procSec);
   const notesSec=document.createElement('div');notesSec.className='setup-section';const notesLbl=document.createElement('div');notesLbl.className='setup-section-title';notesLbl.textContent=`📋 ${ui.notesLbl}`;notesSec.appendChild(notesLbl);const notesFld=document.createElement('textarea');notesFld.className='chip-other-field notes-field';notesFld.placeholder=ui.notesPh;notesFld.rows=2;if(proState.notes){notesFld.value=proState.notes;notesFld.style.borderColor='var(--navy)';}notesFld.oninput=()=>{proState.notes=notesFld.value.trim();};notesSec.appendChild(notesFld);wrap.appendChild(notesSec);
-  const devLabel=(lastDeviceContext.active&&lastDeviceContext.label)?lastDeviceContext.label.toLowerCase():'';const devPreselect=devLabel.includes('erbium')||devLabel.includes('erbio')||devLabel.includes('érbio')||devLabel.includes('er,cr')||devLabel.includes('er:yag')?'erbio':devLabel.includes('co₂')||devLabel.includes('co2')?'otros':devLabel.includes('diode')||devLabel.includes('diodo')||devLabel.includes('940')||devLabel.includes('980')||devLabel.includes('810')?'diodo':null;
+  // Segunda ruta hacia el complemento de diodo. No lee savedDevices[].type
+  // sino la etiqueta compuesta de lastDeviceContext, así que la normalización
+  // de canonDeviceType no la alcanza. Se pliegan los diacríticos —eso cubre
+  // "érbio" sin listarlo aparte— y se añaden las formas japonesa y coreana,
+  // que faltaban.
+  // 650 nm queda FUERA de la rama de diodo a propósito: es longitud habitual de
+  // PBM y un LED/PBM de 650 acabaría preseleccionando diodo y ocultando el
+  // selector de equipo. 450 nm sí entra: no colisiona con nada y es la de los
+  // diodos azules del catálogo.
+  // El ORDEN de las comprobaciones y los valores devueltos son
+  // los mismos de antes: Nd:YAG sigue sin preseleccionar nada a propósito,
+  // porque devPreselect no nulo oculta el selector de equipo más abajo.
+  const devLabelRaw=(lastDeviceContext.active&&lastDeviceContext.label)?String(lastDeviceContext.label):'';
+  const devLabel=devLabelRaw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/₂/g,'2');
+  const devPreselect=(/erbium|erbio|er,cr|er:?yag|ysgg|2780|2940/.test(devLabel)||/エルビウム|어븀/.test(devLabelRaw))?'erbio'
+    :(/co2|10,?600/.test(devLabel))?'otros'
+    :(/diode|diodo|450|810|940|980/.test(devLabel)||/ダイオード|다이오드/.test(devLabelRaw))?'diodo'
+    :null;
   const hideEquipment=devPreselect||savedDevices.length>0;
   if(!hideEquipment){const sep=document.createElement('div');sep.className='setup-separator';sep.innerHTML=`<div class="setup-separator-line"></div><span class="setup-separator-label">${ui.sepLabel}</span><div class="setup-separator-line"></div>`;wrap.appendChild(sep);const equipWrap=document.createElement('div');equipWrap.className='setup-equipment';PROTO.groups.forEach(grp=>{const grpLabel=typeof grp.label==='string'?grp.label:grp.label[lang]||grp.label.en;const noLabel=typeof grp.noLabel==='string'?grp.noLabel:grp.noLabel[lang]||grp.noLabel.en;const grpDiv=document.createElement('div');grpDiv.className='setup-equip-group';const lbl=document.createElement('div');lbl.className='setup-equip-label';lbl.textContent=`${grp.icon} ${grpLabel}`;grpDiv.appendChild(lbl);const chipRow=document.createElement('div');chipRow.className='chips';const subRow=document.createElement('div');subRow.className='sub-chips hidden';grp.chips.forEach(chip=>{const chipLabel=typeof chip.label==='string'?chip.label:chip.label[lang]||chip.label.en;const c=document.createElement('div');c.className='chip';c.textContent=chipLabel;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');delete proState.selections[grp.id];delete proState.subs[grp.id];subRow.innerHTML='';subRow.classList.add('hidden');}else{chipRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.selections[grp.id]=chipLabel;delete proState.subs[grp.id];subRow.innerHTML='';if(chip.subs&&chip.subs.length){chip.subs.forEach(sub=>{const isOtherSub=['Other','Otro','Outro'].includes(sub);const s=document.createElement('div');s.className='chip chip-sub';s.textContent=isOtherSub?(lang==='es'?'Otro':lang==='pt'?'Outro':'Other'):sub;s.onclick=e=>{e.stopPropagation();subRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.subs[grp.id]=s.textContent;};subRow.appendChild(s);});subRow.classList.remove('hidden');}}};chipRow.appendChild(c);});const noChip=document.createElement('div');noChip.className='chip chip-none';noChip.textContent=noLabel;noChip.onclick=()=>{chipRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));noChip.classList.add('sel');proState.selections[grp.id]=noLabel;delete proState.subs[grp.id];subRow.innerHTML='';subRow.classList.add('hidden');};chipRow.appendChild(noChip);grpDiv.appendChild(chipRow);grpDiv.appendChild(subRow);const otherFld=document.createElement('input');otherFld.type='text';otherFld.className='chip-other-field';otherFld.placeholder=ui.otherPh;otherFld.style.marginTop='4px';otherFld.oninput=()=>{if(otherFld.value.trim())proState.selections[grp.id+'_note']=otherFld.value.trim();else delete proState.selections[grp.id+'_note'];};grpDiv.appendChild(otherFld);equipWrap.appendChild(grpDiv);});wrap.appendChild(equipWrap);}
   const btn=document.createElement('button');btn.className='proto-send-btn';btn.textContent=ui.btn;btn.onclick=sendProtoSetup;wrap.appendChild(btn);msgs.appendChild(wrap);setTimeout(()=>{const c=$('content');c.scrollTop=0;},60);
