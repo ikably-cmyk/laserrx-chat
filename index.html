@@ -2984,24 +2984,87 @@ function postProcessCollapsible(el) {
 
   function makeCollapse(labelText,nodes){const wrap=document.createElement('div');const bar=document.createElement('div');bar.className='collapse-bar';bar.innerHTML='<span>'+labelText+'</span><span class="c-arrow">▶</span>';const body=document.createElement('div');body.className='collapse-body';nodes.forEach(n=>body.appendChild(n.cloneNode(true)));bar.onclick=()=>{bar.classList.toggle('open');body.classList.toggle('open');};wrap.appendChild(bar);wrap.appendChild(body);return{wrap,bar,body};}
 
+  // ── Detectores de apertura de sección ────────────────────────────────────
+  // Fase: [0-9], no [1-9]. La "Fase 0" (preparación / anestesia) existe en los
+  // protocolos y con [1-9] se quedaba FUERA del acordeón mientras las 1-3
+  // entraban: media respuesta plegada y media no.
+  const reFase = /^[0-9]️⃣|^Phase\s+[0-9]|^Fase\s+[0-9]/;
+  // Justificación: el modelo emite "Fundamento Clínico", no "Justificación
+  // Clínica", que era lo único que se buscaba.
+  //
+  // Anclado al principio del texto (con emoji o markdown opcional delante), y
+  // SIN las alternativas sueltas "Fundamento" y "Racional": el detector acepta
+  // tag==='P' —hace falta, porque el modelo a veces emite la justificación como
+  // párrafo en negrita en vez de encabezado— y con la palabra suelta un párrafo
+  // de cuerpo como "Fundamento de esta elección: el diodo penetra menos…" abría
+  // la sección a mitad del mensaje y se tragaba la pregunta de cierre.
+  // Reproducido en pruebas. Las alternativas exigen el sintagma completo.
+  const reRat  = /^(?:[\s#*_>]|🧠|🔬)*(?:Clinical\s+Rationale|Rationale|Justificaci[óo]n\s+Cl[íi]nica|Justificativa\s+Cl[íi]nica|Fundamento\s+Cl[íi]nico)\b/i;
+  const reMath = /Calculation notes|Math notes|Notas de c[áa]lculo|Desglose de c[áa]lculo|Math trail/i;
+
   const allNodes=Array.from(el.childNodes),newEl=document.createElement('div');
   let phaseNodes=[],rationaleNodes=[],mathNodes=[],inPhase=false,inRationale=false,inMath=false,bars=[];
-  allNodes.forEach(node=>{const tag=node.nodeName,text=node.textContent||'';
-    const isPhaseHeader=(tag==='H2'||tag==='H3')&&/[1-9]️⃣|^Phase [1-9]|^Fase [1-9]/.test(text.trim());
-    const isRationale=(tag==='H2'||tag==='H3'||tag==='P')&&/🧠|Clinical Rationale|Justificación Clínica|Justificativa Clínica/.test(text);
-    const isMath=(tag==='H3'||tag==='P'||tag==='UL')&&/Calculation notes|Math notes|Notas de cálculo|Desglose de cálculo|Math trail/.test(text);
-    if(isPhaseHeader){inPhase=true;inRationale=false;inMath=false;phaseNodes.push(node);return;}
-    if(isRationale){inRationale=true;inPhase=false;inMath=false;rationaleNodes.push(node);return;}
-    if(isMath){inMath=true;inPhase=false;inRationale=false;mathNodes.push(node);return;}
-    if(inPhase){if(tag==='H2'||tag==='H3'){inPhase=false;}else{phaseNodes.push(node);return;}}
-    if(inRationale){rationaleNodes.push(node);return;}
-    if(inMath){if(/⚠️|💡|Clinical Interp|Interpretación/.test(text)&&(tag==='P'||tag==='BLOCKQUOTE')){inMath=false;}else{mathNodes.push(node);return;}}
+  // Anclas de posición. El código anterior buscaba el último .table-wrap para
+  // colocar el acordeón, pero postProcessTables() corre ANTES y ya sustituyó
+  // esos nodos por tarjetas: la búsqueda no encontraba nada, insertAfter quedaba
+  // null y el acordeón caía al final del mensaje, detrás de la pregunta de
+  // cierre. Ahora se ancla en el nodo que precedía a la sección en el documento
+  // original, que es estable frente a lo que hagan los post-procesos previos.
+  let anchorPhase=null,anchorRat=null,anchorMath=null,seenPhase=false,seenRat=false,seenMath=false;
+
+  const cerrar=()=>{inPhase=false;inRationale=false;inMath=false;};
+  const seccionAbierta=()=>inPhase||inRationale||inMath;
+  const empujar=(node)=>{ if(inPhase)phaseNodes.push(node); else if(inRationale)rationaleNodes.push(node); else mathNodes.push(node); };
+
+  allNodes.forEach(node=>{const tag=node.nodeName,text=(node.textContent||'').trim();
+    const isPhaseHeader=(tag==='H2'||tag==='H3')&&reFase.test(text);
+    const isRationale=(tag==='H2'||tag==='H3'||tag==='P')&&reRat.test(text);
+    const isMath=(tag==='H3'||tag==='P'||tag==='UL')&&reMath.test(text);
+
+    // <hr> CIERRA la sección abierta y se DESCARTA: no entra en el acordeón ni
+    // vuelve al cuerpo. Su única función es delimitar, y dentro de un bloque
+    // plegado no separa nada — dejaba 4 reglas horizontales sueltas al final
+    // del acordeón de fases y 1 en el de justificación.
+    //
+    // Sin este cierre la justificación seguía tragando nodos hasta el final del
+    // mensaje, incluida la pregunta de cierre. Es también el cierre estructural
+    // del bloque de cálculos, que antes dependía de encontrar un emoji (⚠️/💡):
+    // la KB ya no lleva emojis, así que ese cierre no disparaba nunca.
+    //
+    // Un <hr> SIN sección abierta no entra aquí y sigue su curso al cuerpo
+    // visible, donde sí separa contenido.
+    if(tag==='HR'&&seccionAbierta()){cerrar();return;}
+
+    if(isPhaseHeader){cerrar();inPhase=true;if(!seenPhase){seenPhase=true;anchorPhase=newEl.lastChild;}phaseNodes.push(node);return;}
+    if(isRationale){cerrar();inRationale=true;if(!seenRat){seenRat=true;anchorRat=newEl.lastChild;}rationaleNodes.push(node);return;}
+    if(isMath){cerrar();inMath=true;if(!seenMath){seenMath=true;anchorMath=newEl.lastChild;}mathNodes.push(node);return;}
+
+    // Un encabezado que no abre sección cierra la que hubiera abierta, y NO se
+    // consume: pertenece al cuerpo visible del mensaje.
+    if(seccionAbierta()&&(tag==='H1'||tag==='H2'||tag==='H3')){cerrar();}
+    else if(seccionAbierta()){empujar(node);return;}
+
     newEl.appendChild(node.cloneNode(true));});
   if(!phaseNodes.length&&!rationaleNodes.length&&!mathNodes.length)return;
   const expandBtn=document.createElement('div');expandBtn.className='expand-all-btn';expandBtn.innerHTML='<span class="ea-txt">'+lbl.expandAll+'</span>';expandBtn.dataset.expanded='false';newEl.insertBefore(expandBtn,newEl.firstChild);
-  if(phaseNodes.length){const{wrap,bar,body}=makeCollapse(lbl.phases,phaseNodes);let insertAfter=null;Array.from(newEl.childNodes).forEach(n=>{if(n.className&&n.className.includes&&n.className.includes('table-wrap'))insertAfter=n;});if(insertAfter)newEl.insertBefore(wrap,insertAfter.nextSibling);else newEl.appendChild(wrap);bars.push({bar,body});}
-  if(rationaleNodes.length){const{wrap,bar,body}=makeCollapse(lbl.rationale,rationaleNodes);newEl.appendChild(wrap);bars.push({bar,body});}
-  if(mathNodes.length){const{wrap,bar,body}=makeCollapse(lbl.math,mathNodes);newEl.appendChild(wrap);bars.push({bar,body});}
+  // Coloca cada acordeón donde empezaba su sección. Si la sección abría el
+  // mensaje no hay ancla previa: va justo detrás del botón de expandir.
+  //
+  // Las tres secciones suelen ir seguidas, sin nodos de cuerpo entre ellas, así
+  // que COMPARTEN ancla. Insertar cada una en ancla.nextSibling las dejaría en
+  // orden INVERSO, porque la segunda se colaría delante de la primera. Por eso
+  // se toma como referencia la posterior en el documento entre el ancla y el
+  // último acordeón ya insertado.
+  let ultimo=null;
+  const colocar=(wrap,ancla)=>{
+    let ref=(ancla&&ancla.parentNode===newEl)?ancla:null;
+    if(ultimo&&(!ref||(ref.compareDocumentPosition(ultimo)&Node.DOCUMENT_POSITION_FOLLOWING)))ref=ultimo;
+    newEl.insertBefore(wrap,ref?ref.nextSibling:expandBtn.nextSibling);
+    ultimo=wrap;
+  };
+  if(phaseNodes.length){const{wrap,bar,body}=makeCollapse(lbl.phases,phaseNodes);colocar(wrap,anchorPhase);bars.push({bar,body});}
+  if(rationaleNodes.length){const{wrap,bar,body}=makeCollapse(lbl.rationale,rationaleNodes);colocar(wrap,anchorRat);bars.push({bar,body});}
+  if(mathNodes.length){const{wrap,bar,body}=makeCollapse(lbl.math,mathNodes);colocar(wrap,anchorMath);bars.push({bar,body});}
   expandBtn.onclick=()=>{const isExp=expandBtn.dataset.expanded==='true';bars.forEach(({bar,body})=>{if(isExp){bar.classList.remove('open');body.classList.remove('open');}else{bar.classList.add('open');body.classList.add('open');}});expandBtn.dataset.expanded=isExp?'false':'true';expandBtn.querySelector('.ea-txt').textContent=isExp?lbl.expandAll:lbl.collapseAll;};
   if(!bars.length)expandBtn.style.display='none';
   el.innerHTML='';Array.from(newEl.childNodes).forEach(n=>el.appendChild(n));
