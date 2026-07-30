@@ -2279,6 +2279,48 @@ if (K) {
   try { K = SANE((sessionStorage.getItem('laserrx_k') || '').trim()); } catch(e) { K = ''; }
 }
 
+// -- Interruptor del streaming por URL. Un flag que solo se enciende desde la
+//    consola no existe en un movil, y LaserRx se usa a pie de sillon. Se entra UNA
+//    vez con ?stream=1 (o #stream=1) y queda encendido en ESE dispositivo; stream=0
+//    lo apaga. Mismo patron que k: leer, guardar, limpiar la URL.
+//
+//    TIENE que ir ANTES del borrado del hash de aqui abajo: ese borra el hash
+//    ENTERO cuando hay k, y se llevaria por delante un #stream= sin leerlo.
+//
+//    Provisional: cuando esto salga del beta el interruptor va en la pantalla de
+//    ajustes. Una URL no es una preferencia, es una puerta trasera.
+let STREAM_URL_OVERRIDE = null;
+(function(){
+  let v = '';
+  try {
+    const HS_S = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+    v = (HS_S.get('stream') || '').trim();
+  } catch(e) {}
+  if (!v) { try { v = (QS.get('stream') || '').trim(); } catch(e) {} }
+  if (v !== '1' && v !== '0') return;
+
+  // localStorage y no sessionStorage: el interruptor debe sobrevivir a cerrar la
+  // pestana, o habria que volver a entrar con la URL cada vez. Es lo contrario que
+  // k, que muere con la pestana a proposito porque es una identidad.
+  try {
+    if (v === '1') localStorage.setItem('lrx_stream', '1');
+    else           localStorage.removeItem('lrx_stream');
+  } catch(e) {}
+
+  // Respaldo en memoria: dentro de un iframe de terceros Safari puede negar el
+  // almacenamiento, y sin esto entrar por URL no serviria de nada justo ahi.
+  STREAM_URL_OVERRIDE = (v === '1');
+
+  // Limpiar SOLO el parametro stream, conservando todo lo demas -- email, module
+  // y un posible k que aun no se ha borrado.
+  try {
+    const q = new URLSearchParams(location.search); q.delete('stream');
+    const h = new URLSearchParams((location.hash || '').replace(/^#/, '')); h.delete('stream');
+    const qs = q.toString(), hs = h.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + (hs ? '#' + hs : ''));
+  } catch(e) {}
+})();
+
 // Borrar el hash SOLO si sessionStorage funciona. Perder k es peor que dejarlo en la
 // URL de un iframe que el usuario no ve en la barra de direcciones.
 if (K && SS_OK && location.hash) {
@@ -3553,6 +3595,9 @@ function streamAllowed(mod){
   if (window.LRX_STREAM_FORCE === false) return false;
   let on = false;
   try { on = localStorage.getItem('lrx_stream') === '1'; } catch(e){}
+  // Lo que dijo la URL de ESTA carga manda: es lo único que funciona cuando el
+  // navegador niega el almacenamiento dentro del iframe.
+  if (STREAM_URL_OVERRIDE !== null) on = STREAM_URL_OVERRIDE;
   if (!on) return false;
   const quien = String(DISPLAY_EMAIL || EMAIL || '').trim().toLowerCase();
   return STREAM_ALLOWLIST.indexOf(quien) !== -1;
