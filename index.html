@@ -5616,6 +5616,13 @@ function send(){
     clearDevPhoto();
   }const history=hist[mod].slice(-12).join('\n');
   showTyping(mod);busy=true;$('sendBtn').disabled=true;
+  // ── Follow-ups de Protocols por streaming. Mismo preámbulo que sendProtoSetup:
+  //    historyTxt CON el turno en curso (legado), previos SIN él (el contrato lo
+  //    lleva aparte en `q`). primero:false — el follow-up no cobra crédito.
+  if(mod==='protocols' && streamAllowed('protocols')){
+    protoStream(text,{previos:histToMessages(hist.protocols.slice(0,-1),STREAM_HIST_MAX),historyTxt:history,primero:false});
+    return;
+  }
   fetch(HOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:text,history,language:lang,is_first_message:false})})
   .then(res=>{if(res.status===401){hideTyping(mod);return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard(mod,d&&d.message);done();return null;});}if(res.status===402){hideTyping(mod);return res.json().then(d=>{addPbmGatingCard(mod,d);done();return null;});}if(res.status===403){hideTyping(mod);addUpgradeCard(mod);done();return null;}return res.json();})
   .then(data=>{if(!data)return;hideTyping(mod);const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist[mod].push(`Assistant: ${reply}`);addAI(mod,reply);addNextCard(mod);addChips(mod);done();})
