@@ -2730,7 +2730,11 @@ async function loadSavedDevices() {
 async function saveSavedDevices() {
   if (!HAS_IDENT) return;
   try {
-    await fetch(HOOKS_DEVFAV.save, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ...K_FIELD, email:EMAIL, saved_devices:JSON.stringify(savedDevices) }) });
+    const res = await fetch(HOOKS_DEVFAV.save, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ...K_FIELD, email:EMAIL, saved_devices:JSON.stringify(savedDevices) }) });
+    if (res.status === 401) {
+      const d = await res.json().catch(() => ({}));
+      addSessionExpiredCard(curTab, d && d.message);
+    }
   } catch(e) { console.error('Save devices error:', e); }
 }
 
@@ -3560,7 +3564,7 @@ function sendValidateSetup(){
   hist.validate.push(`User: ${msg}`);const history=hist.validate.slice(-12).join('\n');
   showTyping('validate');busy=true;$('sendBtn').disabled=true;
   fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||''})})
-  .then(res=>{if(res.status===402){hideTyping('validate');return res.json().then(d=>{addPbmGatingCard('validate',d);done();return null;});}if(res.status===403){hideTyping('validate');addUpgradeCard('validate');done();return null;}return res.json();})
+  .then(res=>{if(res.status===401){hideTyping('validate');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('validate',d&&d.message);done();return null;});}if(res.status===402){hideTyping('validate');return res.json().then(d=>{addPbmGatingCard('validate',d);done();return null;});}if(res.status===403){hideTyping('validate');addUpgradeCard('validate');done();return null;}return res.json();})
   .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
   .catch(err=>{hideTyping('validate');addAI('validate',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
 }
@@ -3804,9 +3808,15 @@ function addStreamNoticeCard(mod, titulo, texto, etiqueta, accion){
   const msgs = msgEl(mod); if(!msgs) return;
   const d = document.createElement('div');
   d.className = 'upgrade-card';
-  const h = document.createElement('div'); h.className = 'upg-title'; h.textContent = titulo;
+  // Titulo opcional: con 401 el backend manda UNA frase ya traducida y va en
+  // .upg-desc, que es donde viven las frases en las tarjetas de 402 y 403. Un
+  // .upg-title vacio solo dejaria un hueco.
+  if (titulo){
+    const h = document.createElement('div'); h.className = 'upg-title'; h.textContent = titulo;
+    d.appendChild(h);
+  }
   const p = document.createElement('div'); p.className = 'upg-desc';  p.textContent = texto;
-  d.appendChild(h); d.appendChild(p);
+  d.appendChild(p);
   if (accion){
     const b = document.createElement('a');
     b.className = 'upg-btn upg-pro'; b.href = '#'; b.textContent = etiqueta;
@@ -3814,6 +3824,31 @@ function addStreamNoticeCard(mod, titulo, texto, etiqueta, accion){
     d.appendChild(b);
   }
   msgs.appendChild(d); scrollBot();
+}
+
+// ── 401 · SESSION_EXPIRED ──────────────────────────────────────────────────
+// Los backends de chat exigen el Row ID y responden 401 con
+// {error:true, code:"SESSION_EXPIRED", message:"..."}. El `message` YA viene
+// traducido desde n8n en es/en/pt/ja/ko, asi que aqui no se inventa copy ni se
+// traduce nada: se pinta tal cual llega.
+//
+// Misma tarjeta que 402 y 403 — addStreamNoticeCard usa las clases
+// .upgrade-card / .upg-desc / .upg-btn que ya existen. Cero CSS nuevo y cero
+// identidad visual nueva.
+//
+// La etiqueta del boton reutiliza strTxt().endC ('Reabrir' / 'Reopen' /
+// 'Reabrir' / '開き直す' / '다시 열기'), que ya vive en el fichero en los cinco
+// idiomas. Es lo unico que no puede venir del backend, porque el backend manda
+// una frase, no un boton.
+//
+// NO se borra localStorage y NO se redirige solo: recargar lo decide el usuario
+// pulsando. Perder la sesion no debe llevarse por delante nada mas.
+function addSessionExpiredCard(mod, message){
+  // saveSavedDevices no tiene modulo de chat propio; si el destino no tiene
+  // lista de mensajes se cae a 'devices', que es donde vive Mis Equipos.
+  const destino = msgEl(mod) ? mod : 'devices';
+  addStreamNoticeCard(destino, '', String(message == null ? '' : message),
+                      strTxt().endC, () => { try { location.reload(); } catch(e){} });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4100,7 +4135,7 @@ function protoStream(msg, ctx){
 // que el preámbulo (burbuja de usuario, hist, typing, busy) ya corrió.
 // ═══════════════════════════════════════════════════════════════════════════
 function protoLegacy(msg, ctx){
-  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero})}).then(res=>{if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
+  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
 }
 
 function sendProtoSetup(){
@@ -5324,6 +5359,7 @@ function sendPbmSetup(){
     })
   })
   .then(res => {
+    if(res.status === 401){ hideTyping('pbm'); return res.json().catch(()=>({})).then(d=>{ addSessionExpiredCard('pbm', d && d.message); done(); return null; }); }
     if(res.status === 402){ hideTyping('pbm'); addPbmUpsellCard(); done(); return null; }
     if(res.status === 403){ hideTyping('pbm'); addUpgradeCard('pbm'); done(); return null; }
     return res.json();
@@ -5568,7 +5604,7 @@ function send(){
   }const history=hist[mod].slice(-12).join('\n');
   showTyping(mod);busy=true;$('sendBtn').disabled=true;
   fetch(HOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:text,history,language:lang,is_first_message:false})})
-  .then(res=>{if(res.status===402){hideTyping(mod);return res.json().then(d=>{addPbmGatingCard(mod,d);done();return null;});}if(res.status===403){hideTyping(mod);addUpgradeCard(mod);done();return null;}return res.json();})
+  .then(res=>{if(res.status===401){hideTyping(mod);return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard(mod,d&&d.message);done();return null;});}if(res.status===402){hideTyping(mod);return res.json().then(d=>{addPbmGatingCard(mod,d);done();return null;});}if(res.status===403){hideTyping(mod);addUpgradeCard(mod);done();return null;}return res.json();})
   .then(data=>{if(!data)return;hideTyping(mod);const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist[mod].push(`Assistant: ${reply}`);addAI(mod,reply);addNextCard(mod);addChips(mod);done();})
   .catch(err=>{hideTyping(mod);const errMsg=lang==='es'?'Error de conexión. Intenta de nuevo.':lang==='pt'?'Erro de conexão. Tente novamente.':'Connection error. Please try again.';addAI(mod,errMsg);done();console.error(err);});
 }
