@@ -2428,7 +2428,13 @@ const HOOKS = {
   devices:    'https://laserai.app.n8n.cloud/webhook/laserrx-chat-devices',
   devices_photo: 'https://laserai.app.n8n.cloud/webhook/laserrx-chat-devices-v4',
   protocols:  'https://laserai.app.n8n.cloud/webhook/laserrx-chat-protocols',
-  validate:   'https://laserai.app.n8n.cloud/webhook/laserrx-chat-validate',
+  // CUTOVER 2026-08-02: Validate v4 (Anthropic directo, M5zqmyOYHiNNeDZN).
+  // El path viejo era laserrx-chat-validate (MindStudio, VSCdxI65hTZ1b73Q), que
+  // sigue ACTIVO a proposito: el rollback es devolver esta linea y nada mas, sin
+  // tener que acordarse de reactivar nada bajo presion.
+  // Un solo endpoint para texto y foto: los dos webhooks de v4 son identicos
+  // salvo el path y todo aguas abajo decide por tiene_foto, no por el endpoint.
+  validate:   'https://laserai.app.n8n.cloud/webhook/laserrx-chat-validate-v4',
   calculator: 'https://laserai.app.n8n.cloud/webhook/laserrx-chat-calculator',
   pbm:        'https://laserai.app.n8n.cloud/webhook/laserrx-chat-pbm'
 };
@@ -4142,7 +4148,7 @@ function sendValidateSetup(){
   removeChips('validate');addUser('validate',msg);
   hist.validate.push(`User: ${msg}`);const history=hist.validate.slice(-12).join('\n');
   showTyping('validate');busy=true;$('sendBtn').disabled=true;
-  fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||'',procedure_id:valState.procIdStable||'',procedure_sub_id:(valState.procSubIdx===null||valState.procSubIdx===undefined)?'':String(valState.procSubIdx),procedure_es:valState.procEs||'',procedure_sub_es:valState.procSubEs||'',wavelength:valState.wavelength||'',tip:valState.tip||'',power:valState.power||'',freq:valState.freq||'',pulse:valState.pulse||'',water:valState.water||'',air:valState.air||'',notes:valState.notes||''})})
+  fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||'',procedure_id:valState.procIdStable||'',procedure_sub_id:(valState.procSubIdx===null||valState.procSubIdx===undefined)?'':String(valState.procSubIdx),procedure_es:valState.procEs||'',procedure_sub_es:valState.procSubEs||'',procedure_other:valState.procOther||'',wavelength:valState.wavelength||'',tip:valState.tip||'',power:valState.power||'',freq:valState.freq||'',pulse:valState.pulse||'',water:valState.water||'',air:valState.air||'',notes:valState.notes||''})})
   .then(res=>{if(res.status===401){hideTyping('validate');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('validate',d&&d.message);done();return null;});}if(res.status===402){hideTyping('validate');return res.json().then(d=>{addPbmGatingCard('validate',d);done();return null;});}if(res.status===403){hideTyping('validate');addUpgradeCard('validate');done();return null;}return res.json();})
   .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
   .catch(err=>{hideTyping('validate');addAI('validate',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
@@ -4624,7 +4630,11 @@ function protoStream(msg, ctx){
           procedure_id: proState.procIdStable || '',
           procedure_sub_id: (proState.procSubIdx===null||proState.procSubIdx===undefined) ? '' : String(proState.procSubIdx),
           procedure_es: proState.procEs || '',
-          procedure_sub_es: proState.procSubEs || ''
+          procedure_sub_es: proState.procSubEs || '',
+          // Chip "Otro": los cuatro identificadores van vacios a proposito y el
+          // procedimiento lo escribe el usuario. Sin este campo el servidor no
+          // tiene forma de saberlo salvo leyendo last_message.
+          procedure_other: proState.procOther || ''
         })
       });
       marca(esReintento ? 'stream abierto (reintento)' : 'stream abierto');
@@ -4745,7 +4755,7 @@ function protoStream(msg, ctx){
 // que el preámbulo (burbuja de usuario, hist, typing, busy) ya corrió.
 // ═══════════════════════════════════════════════════════════════════════════
 function protoLegacy(msg, ctx){
-  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero,procedure_id:proState.procIdStable||'',procedure_sub_id:(proState.procSubIdx===null||proState.procSubIdx===undefined)?'':String(proState.procSubIdx),procedure_es:proState.procEs||'',procedure_sub_es:proState.procSubEs||''})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
+  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero,procedure_id:proState.procIdStable||'',procedure_sub_id:(proState.procSubIdx===null||proState.procSubIdx===undefined)?'':String(proState.procSubIdx),procedure_es:proState.procEs||'',procedure_sub_es:proState.procSubEs||'',procedure_other:proState.procOther||''})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
 }
 
 function sendProtoSetup(){
