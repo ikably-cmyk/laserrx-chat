@@ -282,6 +282,13 @@ async function handleStream(request, env, ctx) {
     procedure_sub_id: S80(body.procedure_sub_id),
     procedure_es: S80(body.procedure_es),
     procedure_sub_es: S80(body.procedure_sub_es),
+    // procedure_other: el chip "Otro" manda los cuatro identificadores vacios a
+    // proposito, y sin este campo el procedimiento solo viajaria dentro de `q`.
+    procedure_other: S80(body.procedure_other),
+    // wavelength: la necesita la primera tabla del subworkflow de PubMed para
+    // resolver la FAMILIA del laser. Sin ella la consulta cae al texto libre y
+    // encuentra bastante menos — medido contra Validate, que si la manda.
+    wavelength: S80(body.wavelength),
   };
 
   const { readable, writable } = new TransformStream();
@@ -367,6 +374,33 @@ async function pump(writer, {
     });
     await send('status', { stage: 'generating' });
 
+    // ── Nota de KB faltante, EN PARALELO con Anthropic ─────────────────────
+    // router_empty ya se sabe aquí, ANTES de llamar al modelo. Esperar la nota
+    // en este punto pondría hasta diez segundos de pantalla muerta antes del
+    // primer token, en el único módulo que streamea: el peor sitio posible.
+    // Así que se dispara sin await y se recoge solo si el modelo abre con el
+    // marcador. En el caso normal nadie la espera y se descarta; en el de hueco
+    // el usuario paga únicamente lo que a PubMed le quede por terminar.
+    //
+    // La nota la compone hOq2KX1zxFjmFYak y SOLO ese workflow. Esto no compone
+    // nada: pide y espera.
+    let notaKB = null;
+    const pedirNota = () => fetch(`${env.N8N_BASE}/internal-kbnote`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-internal-secret': env.N8N_INTERNAL_SECRET },
+      body: JSON.stringify({
+        procedure_id: proc.procedure_id,
+        wavelength: proc.wavelength,
+        // Respaldo para cuando no hay identificador (el chip "Otro"). Va en el
+        // idioma del usuario, así que lo normal es que PubMed no encuentre nada
+        // y salga la variante "sin resultados": fallar hacia el silencio es
+        // exactamente lo que se quiere aquí.
+        procedure_en: proc.procedure_other || proc.procedure_es,
+        language: prep.lang || lang,
+      }),
+    }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (prep.router_empty) notaKB = pedirNota();
+
     // ── Anthropic. El payload llega INTACTO desde n8n: los dos breakpoints de
     //    cache_control van tal cual. El Worker no lo reescribe.
     const payload = { ...prep.payload, stream: true };
@@ -392,8 +426,12 @@ async function pump(writer, {
     let trimming = false;   // tras quitar el marcador, come el salto de línea que lo sigue
                             // aunque llegue en un chunk POSTERIOR (el modelo puede trocear
                             // el marcador carácter a carácter).
+    let suprimido = false;  // hueco de KB con nota: lo que el modelo siga escribiendo
+                            // no se pinta. Un protocolo compuesto SIN KB validada es
+                            // justo lo que el producto no puede enseñar.
 
     const flush = async (chunk) => {
+      if (suprimido) return;
       if (decided) {
         if (trimming) {
           chunk = chunk.replace(/^\s+/, '');
@@ -412,6 +450,22 @@ async function pump(writer, {
         held = held.replace(/^\s+/, '');
         if (held) trimming = false;
         await send('kb_miss', { lang: prep.lang || lang });
+
+        // Se recoge la nota que ya venía en camino. Si el router NO vino vacío
+        // no se pidió antes —el modelo marcó el hueco por su cuenta—, así que
+        // se pide ahora y se paga entera: es el caso raro, no el normal.
+        if (!notaKB) notaKB = pedirNota();
+        const n = await notaKB;
+        if (n && typeof n.nota === 'string' && n.nota.trim()) {
+          suprimido = true;
+          held = '';
+          full = n.nota.trim();
+          await send('delta', { text: full });
+          return;
+        }
+        // Sin nota se sigue como hasta hoy: se emite lo que el modelo escribió.
+        // No es lo ideal, pero es el comportamiento que ya había y no se
+        // empeora nada.
       }
       if (held) { full += held; await send('delta', { text: held }); held = ''; }
     };

@@ -4246,6 +4246,38 @@ procSubRow.classList.remove('hidden');if(!proc.subs.length){if(devPreselect==='e
 
 function buildDiodeComplement(ui){const DIODE_WLS=['450 nm','650 nm (PDT)','810 nm','940 nm','980 nm','1064 nm frp','1064 nm (diodo)'];const wrap=document.createElement('div');wrap.style.cssText='background:var(--bg);border:1px solid var(--light);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;';const q=document.createElement('div');q.style.cssText="font-size:10px;font-family:'Space Mono',monospace;color:var(--navy);font-weight:700;line-height:1.4;";q.textContent=ui.diodeCmpQ;wrap.appendChild(q);const row=document.createElement('div');row.className='chips';DIODE_WLS.forEach(wl=>{const c=document.createElement('div');c.className='chip chip-sub';c.textContent=wl;c.onclick=e=>{e.stopPropagation();row.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.selections['diode_cmp']=wl;};row.appendChild(c);});const noC=document.createElement('div');noC.className='chip chip-sub chip-none';noC.textContent=ui.noDiode;noC.onclick=e=>{e.stopPropagation();row.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));noC.classList.add('sel');proState.selections['diode_cmp']=ui.noDiode;};row.appendChild(noC);wrap.appendChild(row);return wrap;}
 
+// La longitud de onda que Protocols manda al servidor. La necesita la primera
+// tabla del subworkflow de PubMed para resolver la FAMILIA del láser; sin ella
+// la consulta cae al texto libre y encuentra bastante menos.
+//
+// El formulario permite UNA selección por grupo, así que puede haber varias a
+// la vez —erbio y diodo de complemento, por ejemplo—. Se manda la PRINCIPAL con
+// la misma precedencia que ya usa `lastProtocol.laserType`: erbio antes que
+// diodo antes que otros. Los chips de "No tengo X" se descartan: son una
+// respuesta, no un equipo.
+//
+// Cuando Protocols oculta el selector de equipo —porque viene de Devices o hay
+// equipos guardados— no hay selección que leer, y se cae a esas dos fuentes en
+// ese orden.
+function protoWavelength(){
+  const sel = proState.selections || {};
+  // Se descartan los "No tengo X" en TODOS los idiomas, no solo en el actual:
+  // la selección guarda la ETIQUETA, y si el usuario cambia de idioma a media
+  // sesión la etiqueta vieja se colaría como si fuera un equipo. Medido.
+  const noes = [];
+  PROTO.groups.forEach(g => {
+    if (typeof g.noLabel === 'string') noes.push(g.noLabel);
+    else Object.keys(g.noLabel).forEach(k => noes.push(g.noLabel[k]));
+  });
+  const principal = ['erbio','diodo','otros']
+    .map(k => sel[k])
+    .filter(v => v && noes.indexOf(v) === -1)[0];
+  if (principal) return principal;
+  if (lastDeviceContext.active && lastDeviceContext.label) return lastDeviceContext.label;
+  if (savedDevices.length && savedDevices[0].wl) return savedDevices[0].wl;
+  return '';
+}
+
 function buildProtoMessage(){const ui=PROTO.ui[lang]||PROTO.ui.en;const parts=[];PROTO.groups.forEach(grp=>{const grpLabel=typeof grp.label==='string'?grp.label:grp.label[lang]||grp.label.en;const sel=proState.selections[grp.id],sub=proState.subs[grp.id],note=proState.selections[grp.id+'_note'];let val=sel?sel:ui.noSel;if(sub)val+=` — ${sub}`;if(note)val+=` (${note})`;parts.push(`${grpLabel}: ${val}`);});let procStr='';if(proState.procId){procStr=proState.procId;if(proState.procSub)procStr+=` → ${proState.procSub}`;}else if(proState.procOther){procStr=proState.procOther;}if(procStr){const procTitle=(PROTO.ui[lang]||PROTO.ui.en).procTitle.replace('?','').replace('¿','').trim();parts.push(`${procTitle}: ${procStr}`);}if(proState.notes)parts.push(`Clinical notes: ${proState.notes}`);if(proState.selections['diode_cmp'])parts.push(`Complementary diode: ${proState.selections['diode_cmp']}`);const devCtx=buildMyDevicesContext();if(devCtx&&!proState.notes.includes('devices'))parts.push(devCtx);return parts.join('. ');}
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -4634,7 +4666,8 @@ function protoStream(msg, ctx){
           // Chip "Otro": los cuatro identificadores van vacios a proposito y el
           // procedimiento lo escribe el usuario. Sin este campo el servidor no
           // tiene forma de saberlo salvo leyendo last_message.
-          procedure_other: proState.procOther || ''
+          procedure_other: proState.procOther || '',
+          wavelength: protoWavelength()
         })
       });
       marca(esReintento ? 'stream abierto (reintento)' : 'stream abierto');
@@ -4755,7 +4788,7 @@ function protoStream(msg, ctx){
 // que el preámbulo (burbuja de usuario, hist, typing, busy) ya corrió.
 // ═══════════════════════════════════════════════════════════════════════════
 function protoLegacy(msg, ctx){
-  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero,procedure_id:proState.procIdStable||'',procedure_sub_id:(proState.procSubIdx===null||proState.procSubIdx===undefined)?'':String(proState.procSubIdx),procedure_es:proState.procEs||'',procedure_sub_es:proState.procSubEs||'',procedure_other:proState.procOther||''})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
+  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero,procedure_id:proState.procIdStable||'',procedure_sub_id:(proState.procSubIdx===null||proState.procSubIdx===undefined)?'':String(proState.procSubIdx),procedure_es:proState.procEs||'',procedure_sub_es:proState.procSubEs||'',procedure_other:proState.procOther||'',wavelength:protoWavelength()})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
 }
 
 function sendProtoSetup(){
