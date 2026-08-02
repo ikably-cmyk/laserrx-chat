@@ -321,6 +321,14 @@ async function pump(writer, {
   let kbMiss = false;
   let usage = {};
   let prep = null;
+  // AQUI y no dentro del try: el `finally` las lee para componer el finalize, y
+  // un `let` declarado dentro del try NO es visible desde el finally. Estuvieron
+  // dentro y el efecto no fue un campo vacio sino MUCHO peor: el JSON.stringify
+  // lanzaba ReferenceError, el ctx.waitUntil no llegaba a ejecutarse y se perdia
+  // el finalize ENTERO — Consultations, el correo de KB faltante y KB_Gaps— en
+  // TODOS los turnos, tambien los normales.
+  let kbPmids = '';
+  let kbHits = 0;
 
   try {
     // Etapas mapeadas al pre-stream real medido en producción (exec 4399, 8.89 s):
@@ -385,8 +393,6 @@ async function pump(writer, {
     // La nota la compone hOq2KX1zxFjmFYak y SOLO ese workflow. Esto no compone
     // nada: pide y espera.
     let notaKB = null;
-    let kbPmids = '';
-    let kbHits = 0;
     const pedirNota = () => fetch(`${env.N8N_BASE}/internal-kbnote`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-internal-secret': env.N8N_INTERNAL_SECRET },
