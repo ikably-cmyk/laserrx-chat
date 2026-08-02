@@ -44,7 +44,11 @@
          y por BORDE: punteado el que el usuario puede llenar, sólido tenue el
          que no tiene arreglo. */
       --vr-ok:        #3B6D11;  --vr-ok-bg:    #EFF6E5;
-      --vr-warn:      #B47410;  --vr-warn-bg:  #FAEEDA;
+      /* El ámbar sube de #B47410 a #8F5C0C: medido sobre estilos computados,
+         el anterior daba 3.69:1 en el valor y 3.36:1 en la insignia, los dos
+         por debajo de 4.5:1. Es el único de los tres de siempre que cambia de
+         color en modo día, y se cambia a sabiendas. */
+      --vr-warn:      #8F5C0C;  --vr-warn-bg:  #FAEEDA;
       --vr-fail:      #A8261C;  --vr-fail-bg:  #FAEAEA;
       --vr-miss:      #3F4E60;  --vr-miss-bg:  #E8EBEF;  --vr-miss-edge:  #7C8B9C;
       --vr-noref:     #5E6B7A;  --vr-noref-bg: #F0F1EE;  --vr-noref-edge: #A9B3BE;
@@ -3060,25 +3064,31 @@ const VR_ICON_NULL = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none
 const SVG_GOTA='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 3 L18 11.5 A6.5 6.5 0 1 1 6 11.5 Z"/></svg>';
 const SVG_AIRE='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 13h15a3 3 0 1 1-3 3"/><path d="M3 18h8"/></svg>';
 
-// La insignia es corta porque comparte fila con el valor en una pantalla de
-// 375 px. La frase que DISTINGUE los dos grises va debajo, en el cuerpo: uno se
-// arregla contestándole al agente y el otro no se arregla.
-// OK/WARN/FAIL siguen con su token inglés, como hoy.
+// Las cinco insignias son CÓDIGOS DE ESTADO y van en inglés en los cinco
+// idiomas, igual que la cabecera Status que el prompt de v4 deja literal. Un
+// FAIL junto a un FALTA no es un semáforo, es dos vocabularios en la misma
+// pantalla. MISSING no se abrevia a MISS: en inglés se lee como verbo y pierde
+// el sentido de "falta el dato".
+// Lo que sí se traduce es todo lo demás de la tarjeta —nombre del parámetro,
+// valores, referencia— y la frase que DISTINGUE los dos grises, que va debajo
+// en el cuerpo: uno se arregla contestándole al agente y el otro no se arregla.
+const VR_BADGE = { OK:'OK', WARN:'WARN', FAIL:'FAIL', MISSING:'MISSING', NO_REF:'NO REF' };
+
 const VR_L10N = {
-  es:{ MISSING:{badge:'FALTA',    note:'No indicaste este dato.'},
-       NO_REF: {badge:'SIN REF',  note:'El protocolo validado no especifica este parámetro.'},
+  es:{ MISSING:{note:'No indicaste este dato.'},
+       NO_REF: {note:'El protocolo validado no especifica este parámetro.'},
        water:'Agua', air:'Aire' },
-  en:{ MISSING:{badge:'MISSING',  note:'You did not provide this value.'},
-       NO_REF: {badge:'NO REF',   note:'The validated protocol does not state this parameter.'},
+  en:{ MISSING:{note:'You did not provide this value.'},
+       NO_REF: {note:'The validated protocol does not state this parameter.'},
        water:'Water', air:'Air' },
-  pt:{ MISSING:{badge:'FALTA',    note:'Você não informou este dado.'},
-       NO_REF: {badge:'SEM REF',  note:'O protocolo validado não especifica este parâmetro.'},
+  pt:{ MISSING:{note:'Você não informou este dado.'},
+       NO_REF: {note:'O protocolo validado não especifica este parâmetro.'},
        water:'Água', air:'Ar' },
-  ja:{ MISSING:{badge:'未入力',    note:'この値は入力されていません。'},
-       NO_REF: {badge:'基準なし',  note:'検証済みプロトコルにこのパラメータの規定はありません。'},
+  ja:{ MISSING:{note:'この値は入力されていません。'},
+       NO_REF: {note:'検証済みプロトコルにこのパラメータの規定はありません。'},
        water:'水', air:'空気' },
-  ko:{ MISSING:{badge:'미입력',    note:'이 값을 입력하지 않으셨습니다.'},
-       NO_REF: {badge:'기준 없음', note:'검증된 프로토콜에 이 파라미터가 명시되어 있지 않습니다.'},
+  ko:{ MISSING:{note:'이 값을 입력하지 않으셨습니다.'},
+       NO_REF: {note:'검증된 프로토콜에 이 파라미터가 명시되어 있지 않습니다.'},
        water:'물', air:'공기' }
 };
 
@@ -3142,7 +3152,7 @@ function buildValidationCard(it, loc){
   const st  = it.status;
   const sty = VR_STYLE[st] || VR_STYLE_NULL;
   const icon = VR_ICON[st] || VR_ICON_NULL;
-  const badge = (st==='MISSING' || st==='NO_REF') ? loc[st].badge : (st || '—');
+  const badge = VR_BADGE[st] || '—';
   const note  = (st==='MISSING' || st==='NO_REF') ? loc[st].note  : '';
 
   // El texto viene del agente: se pinta como TEXTO, nunca como markup.
