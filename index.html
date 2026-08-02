@@ -985,6 +985,29 @@
       letter-spacing: -0.01em;
       width: 100%;
     }
+    /* ─── SPRAY: agua y aire, fila propia ───────────────────────────────
+       Van juntos porque asi se leen en la pantalla del laser. La etiqueta va
+       ENCIMA y siempre visible: el texto de ejemplo dentro del campo
+       desaparece al escribir, que es justo cuando el usuario deja de ver que
+       esta llenando. Confundir agua con aire en erbio es la diferencia entre
+       irrigar y secar. */
+    .validate-spray-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .validate-spray-row.hidden { display: none; }
+    /* El color es REFUERZO, no el unico distintivo: la etiqueta y el icono ya
+       los separan. Azul para el agua porque es la convencion de las pantallas
+       de los equipos; el aire queda neutro. Nunca blanco: sobre el fondo claro
+       desaparece. */
+    /* NO se toca el fondo del input: la regla base es `background: transparent`
+       con `color: var(--cream)` sobre la tarjeta oscura. Poner fondo claro deja
+       texto casi blanco sobre casi blanco y el valor tecleado se vuelve
+       invisible — justo en el campo donde eso no puede pasar. */
+    .validate-spray-row .validate-param-label { display: inline-flex; align-items: center; gap: 5px; }
+    .validate-spray-row .validate-param-label svg { flex: 0 0 auto; }
+    .spray-water { border-left: 3px solid #4FA3D9; }
+    .spray-water .validate-param-label { color: #7FC4F0; font-weight: 700; }
+    .spray-air   { border-left: 3px solid var(--steel); }
+    .spray-air .validate-param-label { color: var(--steel); font-weight: 700; }
+
     .validate-param-input::placeholder, .calc-param-input::placeholder {
       color: #4B5A75; font-weight: 400;
     }
@@ -2410,7 +2433,7 @@ const L = {
       wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
       tipChips:['200µm fiber','320µm fiber','400µm fiber','600µm fiber','800µm fiber','Radial tip','Other'],
       powerLbl:'Power (W)', freqLbl:'Frequency (Hz)',
-      pulseLbl:'Pulse mode', waterLbl:'Water / Air (%)',
+      pulseLbl:'Pulse mode', waterLbl:'Water / Air (%)', waterOnlyLbl:'Water (%)', airOnlyLbl:'Air (%)',
       pulsePh:'e.g. CW, H Mode, 60µs', waterPh:'e.g. 70% / 30%',
       imgLbl:'📷 Upload laser screen photo (optional)',
       imgPh:'Tap to upload a photo of your laser screen',
@@ -2466,7 +2489,7 @@ const L = {
       wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
       tipChips:['Fibra 200µm','Fibra 320µm','Fibra 400µm','Fibra 600µm','Fibra 800µm','Punta radial','Otro'],
       powerLbl:'Potencia (W)', freqLbl:'Frecuencia (Hz)',
-      pulseLbl:'Modo de pulso', waterLbl:'Agua / Aire (%)',
+      pulseLbl:'Modo de pulso', waterLbl:'Agua / Aire (%)', waterOnlyLbl:'Agua (%)', airOnlyLbl:'Aire (%)',
       pulsePh:'Ej: CW, H Mode, 60µs', waterPh:'Ej: 70% / 30%',
       imgLbl:'📷 Sube una foto de la pantalla del láser (opcional)',
       imgPh:'Toca para subir foto de tu pantalla',
@@ -2522,7 +2545,7 @@ const L = {
       wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
       tipChips:['Fibra 200µm','Fibra 320µm','Fibra 400µm','Fibra 600µm','Fibra 800µm','Ponta radial','Outro'],
       powerLbl:'Potência (W)', freqLbl:'Frequência (Hz)',
-      pulseLbl:'Modo de pulso', waterLbl:'Água / Ar (%)',
+      pulseLbl:'Modo de pulso', waterLbl:'Água / Ar (%)', waterOnlyLbl:'Água (%)', airOnlyLbl:'Ar (%)',
       pulsePh:'Ex: CW, H Mode, 60µs', waterPh:'Ex: 70% / 30%',
       imgLbl:'📷 Envie foto da tela do laser (opcional)',
       imgPh:'Toque para enviar foto da tela',
@@ -2578,7 +2601,7 @@ const L = {
       wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
       tipChips:['200µmファイバー','320µmファイバー','400µmファイバー','600µmファイバー','800µmファイバー','ラジアルチップ','その他'],
       powerLbl:'出力 (W)', freqLbl:'周波数 (Hz)',
-      pulseLbl:'パルスモード', waterLbl:'水 / 空気 (%)',
+      pulseLbl:'パルスモード', waterLbl:'水 / 空気 (%)', waterOnlyLbl:'水 (%)', airOnlyLbl:'空気 (%)',
       pulsePh:'例: CW、H Mode、60µs', waterPh:'例: 70% / 30%',
       imgLbl:'📷 レーザー画面の写真をアップロード（任意）',
       imgPh:'タップして写真をアップロード',
@@ -2634,7 +2657,7 @@ const L = {
       wlChips:['450 nm','810 nm','940 nm','980 nm','1064 nm','2780 nm Er,Cr:YSGG','2940 nm Er:YAG'],
       tipChips:['200µm 파이버','320µm 파이버','400µm 파이버','600µm 파이버','800µm 파이버','방사형 팁','기타'],
       powerLbl:'출력 (W)', freqLbl:'주파수 (Hz)',
-      pulseLbl:'펄스 모드', waterLbl:'물 / 공기 (%)',
+      pulseLbl:'펄스 모드', waterLbl:'물 / 공기 (%)', waterOnlyLbl:'물 (%)', airOnlyLbl:'공기 (%)',
       pulsePh:'예: CW, H Mode, 60µs', waterPh:'예: 70% / 30%',
       imgLbl:'📷 레이저 화면 사진 업로드 (선택사항)',
       imgPh:'탭하여 사진 업로드',
@@ -3469,7 +3492,7 @@ function addValidateSetup(){
     const c=document.createElement('div');c.className='chip chip-sub';c.textContent=wl;
     // Pre-select if matches My Devices wavelength
     if(devWl && (devWl.includes(wl.split(' ')[0]) || wl.includes(devWl.split(' ')[0]))) c.classList.add('sel');
-    c.onclick=e=>{e.stopPropagation();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.wavelength=wl;wlOther.value='';};
+    c.onclick=e=>{e.stopPropagation();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.wavelength=wl;wlOther.value='';updateSprayVisibility();};
     wlRow.appendChild(c);
   });
   wlSec.appendChild(wlRow);
@@ -3478,7 +3501,7 @@ function addValidateSetup(){
   wlOther.placeholder=lang2==='es'?'Ej: 980 nm, 2780 nm...':lang2==='pt'?'Ex: 980 nm, 2780 nm...':'e.g. 980 nm, 2780 nm...';
   wlOther.style.marginTop='6px';
   if(devWl && !wlChips.some(wl=>devWl.includes(wl.split(' ')[0])||wl.includes(devWl.split(' ')[0]))) wlOther.value=devWl;
-  wlOther.oninput=()=>{valState.wavelength=wlOther.value.trim();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));};
+  wlOther.oninput=()=>{valState.wavelength=wlOther.value.trim();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));updateSprayVisibility();};
   wlSec.appendChild(wlOther);
   wrap.appendChild(wlSec);
 
@@ -3502,13 +3525,33 @@ function addValidateSetup(){
   const paramSec=document.createElement('div');paramSec.className='setup-section';
   const paramTitle=document.createElement('div');paramTitle.className='setup-section-title';paramTitle.textContent='⚡ '+{en:'Current parameters',es:'Parámetros actuales',pt:'Parâmetros atuais',ja:'現在のパラメータ',ko:'현재 파라미터'}[lang];paramSec.appendChild(paramTitle);
   const paramGrid=document.createElement('div');paramGrid.className='validate-params-grid';
-  [{key:'power',lbl:ui.powerLbl,ph:'e.g. 1.5'},{key:'freq',lbl:ui.freqLbl,ph:'e.g. 30'},{key:'pulse',lbl:ui.pulseLbl,ph:ui.pulsePh},{key:'water',lbl:ui.waterLbl,ph:ui.waterPh}].forEach(({key,lbl,ph})=>{
+  [{key:'power',lbl:ui.powerLbl,ph:'e.g. 1.5'},{key:'freq',lbl:ui.freqLbl,ph:'e.g. 30'},{key:'pulse',lbl:ui.pulseLbl,ph:ui.pulsePh}].forEach(({key,lbl,ph})=>{
     const div=document.createElement('div');div.className='validate-param-field';
     const l=document.createElement('div');l.className='validate-param-label';l.textContent=lbl;
     const inp=document.createElement('input');inp.type='text';inp.className='validate-param-input';inp.placeholder=ph;inp.oninput=()=>{valState[key]=inp.value.trim();};
     div.appendChild(l);div.appendChild(inp);paramGrid.appendChild(div);
   });
-  paramSec.appendChild(paramGrid);wrap.appendChild(paramSec);
+  paramSec.appendChild(paramGrid);
+
+  // ── SPRAY: agua y aire, dos campos en su propia fila ──────────────────────
+  const sprayRow=document.createElement('div');sprayRow.className='validate-spray-row';sprayRow.id='valSprayRow';
+  // Iconos SVG, no emoji: cada sistema operativo dibuja el emoji distinto y el
+  // de aire se lee como una rafaga o cosas peores segun la fuente. Mismo estilo
+  // que las tarjetas de resultado: viewBox 24, currentColor, trazo cuadrado.
+  const SVG_GOTA='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 3 L18 11.5 A6.5 6.5 0 1 1 6 11.5 Z"/></svg>';
+  const SVG_AIRE='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 13h15a3 3 0 1 1-3 3"/><path d="M3 18h8"/></svg>';
+  [{key:'water',lbl:ui.waterOnlyLbl,cls:'spray-water',ph:'90',svg:SVG_GOTA},
+   {key:'air',  lbl:ui.airOnlyLbl,  cls:'spray-air',  ph:'30',svg:SVG_AIRE}].forEach(({key,lbl,cls,ph,svg})=>{
+    const d=document.createElement('div');d.className='validate-param-field '+cls;
+    const l=document.createElement('div');l.className='validate-param-label';
+    l.innerHTML=svg+'<span></span>';l.querySelector('span').textContent=lbl;
+    const inp=document.createElement('input');inp.type='text';inp.inputMode='numeric';inp.className='validate-param-input';
+    inp.id='valSpray_'+key;inp.placeholder=ph;inp.oninput=()=>{valState[key]=inp.value.trim();};
+    d.appendChild(l);d.appendChild(inp);sprayRow.appendChild(d);
+  });
+  paramSec.appendChild(sprayRow);
+  wrap.appendChild(paramSec);
+  updateSprayVisibility();
 
   // ── IMAGE UPLOAD ──
   const imgSec=document.createElement('div');imgSec.className='setup-section';
@@ -3563,6 +3606,37 @@ function canonSubEs(pid, idx){
   return (it&&it.subs&&it.subs[idx]!==undefined)?it.subs[idx]:'';
 }
 
+// ── Visibilidad de agua y aire por longitud de onda ─────────────────────────
+// Visibles en erbio (2780, 2940) y cuando el usuario ESCRIBE la longitud en el
+// campo libre: ahi no sabemos que equipo es y esconderlo seria adivinar.
+// Ocultos en 450, 810, 940, 980 y 1064, que no tienen spray.
+//
+// AL OCULTAR SE LIMPIAN LOS VALORES, en el estado y en los campos. Si alguien
+// llena 90/30 con 2940 y luego cambia el chip a 940, esos valores seguirian ahi
+// y se enviarian. El servidor trata el vacio como "no aplica", nunca como dato
+// faltante, asi que limpiar es lo correcto y no pierde informacion.
+const SPRAY_SIN = [450, 810, 940, 980, 1064];
+function sprayAplica(wl){
+  const t = String(wl == null ? '' : wl).trim();
+  if (!t) return true;                       // sin elegir todavia: no se esconde
+  const n = (t.match(/\d{3,4}/g) || []).map(Number);
+  if (!n.length) return true;                // texto libre sin cifra: no adivinamos
+  if (n.some(x => x === 2780 || x === 2940)) return true;
+  if (n.every(x => SPRAY_SIN.indexOf(x) !== -1)) return false;
+  return true;                               // mezcla o cifra desconocida: se muestra
+}
+function updateSprayVisibility(){
+  const row = document.getElementById('valSprayRow');
+  if (!row) return;
+  const aplica = sprayAplica(valState.wavelength);
+  row.classList.toggle('hidden', !aplica);
+  if (!aplica){
+    valState.water=''; valState.air='';
+    const w=document.getElementById('valSpray_water'), a=document.getElementById('valSpray_air');
+    if(w) w.value=''; if(a) a.value='';
+  }
+}
+
 function buildValidateMessage(){
   const parts=['VALIDATE SETTINGS REQUEST'];
   if(valState.procId){let p=valState.procId;if(valState.procSub)p+=` → ${valState.procSub}`;parts.push(`Procedure: ${p}`);}
@@ -3581,7 +3655,12 @@ function buildValidateMessage(){
   if(valState.power)params.push(`Power: ${valState.power} W`);
   if(valState.freq)params.push(`Frequency: ${valState.freq} Hz`);
   if(valState.pulse)params.push(`Pulse mode: ${valState.pulse}`);
-  if(valState.water)params.push(`Water/Air: ${valState.water}`);
+  // Dos campos, dos etiquetas. Antes habia uno solo rotulado `Water/Air`, que
+  // en la practica se leia como aire. La ESTRUCTURA del mensaje no cambia
+  // —sigue siendo la misma lista de `Etiqueta: valor` separada por comas— solo
+  // se corrige la etiqueta y se separa el dato.
+  if(valState.water)params.push(`Water: ${valState.water}%`);
+  if(valState.air)params.push(`Air: ${valState.air}%`);
   if(params.length)parts.push(params.join(', '));
   if(valState.notes)parts.push(`Clinical notes: ${valState.notes}`);
   if(valState.imageB64)parts.push('[Laser screen photo attached]');
@@ -3629,7 +3708,7 @@ const PROTO = {
   }
 };
 
-const proState={selections:{},subs:{},procId:null,procSub:null,notes:''};
+const proState={selections:{},subs:{},procId:null,procSub:null,procIdStable:null,procSubIdx:null,procEs:'',procSubEs:'',notes:''};
 
 function addProtocolSetup(){
   const msgs=msgEl('protocols');const ui=PROTO.ui[lang]||PROTO.ui.en;const procs=PROTO.procedures[lang]||PROTO.procedures.en;
@@ -3637,7 +3716,7 @@ function addProtocolSetup(){
   proState.selections={};proState.subs={};proState.procId=null;proState.procSub=null;proState.procOther='';proState.notes='';
   if(lastDeviceContext.active&&lastDeviceContext.label){const banner=document.createElement('div');banner.style.cssText='display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--light);border-radius:8px;padding:7px 10px;';const info=document.createElement('div');info.style.cssText='display:flex;flex-direction:column;gap:2px;';const lbl=document.createElement('span');lbl.style.cssText="font-size:9px;font-family:'Space Mono',monospace;color:var(--steel);text-transform:uppercase;letter-spacing:0.07em;";lbl.textContent=lang==='es'?'Desde Devices':lang==='pt'?'De Devices':'From Devices';const dev=document.createElement('span');dev.style.cssText="font-size:11px;font-family:'Space Mono',monospace;color:var(--navy);font-weight:700;";dev.textContent=lastDeviceContext.label;info.appendChild(lbl);info.appendChild(dev);const clr=document.createElement('span');clr.style.cssText="font-size:9px;font-family:'Space Mono',monospace;color:var(--steel);border:0.5px solid var(--steel);padding:2px 7px;border-radius:10px;cursor:pointer;";clr.textContent='✕';clr.onclick=()=>{lastDeviceContext.active=false;lastDeviceContext.label='';banner.remove();};banner.appendChild(info);banner.appendChild(clr);wrap.appendChild(banner);proState.notes=lastDeviceContext.label;}
   const procSec=document.createElement('div');procSec.className='setup-section';const procRow=document.createElement('div');procRow.className='chips';const procSubRow=document.createElement('div');procSubRow.className='sub-chips hidden';const diodeCmpContainer=document.createElement('div');diodeCmpContainer.className='hidden';diodeCmpContainer.style.marginTop='10px';
-  procs.forEach(proc=>{const c=document.createElement('div');c.className='chip';c.textContent=proc.label;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');proState.procId=null;proState.procSub=null;procSubRow.innerHTML='';procSubRow.classList.add('hidden');diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');delete proState.selections['diode_cmp'];}else{procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.procId=proc.label;proState.procSub=null;procSubRow.innerHTML='';proc.subs.forEach(sub=>{const s=document.createElement('div');s.className='chip chip-sub';s.textContent=sub;s.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.procSub=sub;subOtherFld.style.display='none';subOtherFld.value='';if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){ diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}delete proState.selections['diode_cmp'];};procSubRow.appendChild(s);});
+  procs.forEach(proc=>{const c=document.createElement('div');c.className='chip';c.textContent=proc.label;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');proState.procId=null;proState.procSub=null;proState.procIdStable=null;proState.procSubIdx=null;proState.procEs='';proState.procSubEs='';procSubRow.innerHTML='';procSubRow.classList.add('hidden');diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');delete proState.selections['diode_cmp'];}else{procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.procId=proc.label;proState.procSub=null;proState.procIdStable=proc.id;proState.procSubIdx=null;proState.procSubEs='';proState.procEs=canonEs(proc.id);procSubRow.innerHTML='';proc.subs.forEach((sub,si)=>{const s=document.createElement('div');s.className='chip chip-sub';s.textContent=sub;s.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.procSub=sub;proState.procSubIdx=si;proState.procSubEs=canonSubEs(proc.id,si);subOtherFld.style.display='none';subOtherFld.value='';if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){ diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}delete proState.selections['diode_cmp'];};procSubRow.appendChild(s);});
 // Always add "Other" chip to sub-chips
 const subOtherFld=document.createElement('input');subOtherFld.type='text';subOtherFld.className='chip-other-field';subOtherFld.placeholder=lang==='es'?'Describe el procedimiento (opcional)':lang==='pt'?'Descreva o procedimento (opcional)':lang==='ja'?'処置を説明してください（任意）':lang==='ko'?'시술을 설명해 주세요（선택）':'Describe the procedure (optional)';subOtherFld.style.cssText='display:none;margin-top:6px;width:100%;box-sizing:border-box;';subOtherFld.oninput=()=>{proState.procSub=subOtherFld.value.trim()||'other';};
 const sOther=document.createElement('div');sOther.className='chip chip-sub';sOther.textContent=lang==='es'?'Otro':lang==='pt'?'Outro':lang==='ja'?'その他':lang==='ko'?'기타':'Other';sOther.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));sOther.classList.add('sel');proState.procSub='';subOtherFld.style.display='block';subOtherFld.focus();if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){ diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}delete proState.selections['diode_cmp'];};procSubRow.appendChild(sOther);procSubRow.appendChild(subOtherFld);
@@ -4166,7 +4245,7 @@ function protoStream(msg, ctx){
 // que el preámbulo (burbuja de usuario, hist, typing, busy) ya corrió.
 // ═══════════════════════════════════════════════════════════════════════════
 function protoLegacy(msg, ctx){
-  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
+  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero,procedure_id:proState.procIdStable||'',procedure_sub_id:(proState.procSubIdx===null||proState.procSubIdx===undefined)?'':String(proState.procSubIdx),procedure_es:proState.procEs||'',procedure_sub_es:proState.procSubEs||''})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
 }
 
 function sendProtoSetup(){
