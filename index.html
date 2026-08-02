@@ -2435,7 +2435,7 @@ const L = {
       powerLbl:'Power (W)', freqLbl:'Frequency (Hz)',
       pulseLbl:'Pulse mode', waterLbl:'Water / Air (%)', waterOnlyLbl:'Water (%)', airOnlyLbl:'Air (%)',
       pulsePh:'e.g. CW, H Mode, 60µs', waterPh:'e.g. 70% / 30%',
-      imgLbl:'📷 Upload laser screen photo (optional)',
+      imgLbl:'Upload laser screen photo (optional)',
       imgPh:'Tap to upload a photo of your laser screen',
       imgHint:'This helps validate your exact settings',
       notesLbl:'Clinical notes (optional)',
@@ -2491,7 +2491,7 @@ const L = {
       powerLbl:'Potencia (W)', freqLbl:'Frecuencia (Hz)',
       pulseLbl:'Modo de pulso', waterLbl:'Agua / Aire (%)', waterOnlyLbl:'Agua (%)', airOnlyLbl:'Aire (%)',
       pulsePh:'Ej: CW, H Mode, 60µs', waterPh:'Ej: 70% / 30%',
-      imgLbl:'📷 Sube una foto de la pantalla del láser (opcional)',
+      imgLbl:'Sube una foto de la pantalla del láser (opcional)',
       imgPh:'Toca para subir foto de tu pantalla',
       imgHint:'Ayuda a validar tus ajustes exactos',
       notesLbl:'Nota clínica (opcional)',
@@ -2547,7 +2547,7 @@ const L = {
       powerLbl:'Potência (W)', freqLbl:'Frequência (Hz)',
       pulseLbl:'Modo de pulso', waterLbl:'Água / Ar (%)', waterOnlyLbl:'Água (%)', airOnlyLbl:'Ar (%)',
       pulsePh:'Ex: CW, H Mode, 60µs', waterPh:'Ex: 70% / 30%',
-      imgLbl:'📷 Envie foto da tela do laser (opcional)',
+      imgLbl:'Envie foto da tela do laser (opcional)',
       imgPh:'Toque para enviar foto da tela',
       imgHint:'Ajuda a validar suas configurações exatas',
       notesLbl:'Nota clínica (opcional)',
@@ -2603,7 +2603,7 @@ const L = {
       powerLbl:'出力 (W)', freqLbl:'周波数 (Hz)',
       pulseLbl:'パルスモード', waterLbl:'水 / 空気 (%)', waterOnlyLbl:'水 (%)', airOnlyLbl:'空気 (%)',
       pulsePh:'例: CW、H Mode、60µs', waterPh:'例: 70% / 30%',
-      imgLbl:'📷 レーザー画面の写真をアップロード（任意）',
+      imgLbl:'レーザー画面の写真をアップロード（任意）',
       imgPh:'タップして写真をアップロード',
       imgHint:'正確な設定の検証に役立ちます',
       notesLbl:'臨床メモ（任意）',
@@ -2659,7 +2659,7 @@ const L = {
       powerLbl:'출력 (W)', freqLbl:'주파수 (Hz)',
       pulseLbl:'펄스 모드', waterLbl:'물 / 공기 (%)', waterOnlyLbl:'물 (%)', airOnlyLbl:'공기 (%)',
       pulsePh:'예: CW, H Mode, 60µs', waterPh:'예: 70% / 30%',
-      imgLbl:'📷 레이저 화면 사진 업로드 (선택사항)',
+      imgLbl:'레이저 화면 사진 업로드 (선택사항)',
       imgPh:'탭하여 사진 업로드',
       imgHint:'정확한 설정 검증에 도움이 됩니다',
       notesLbl:'임상 메모 (선택사항)',
@@ -3458,7 +3458,7 @@ window.LRX_STREAM = {
 function addUser(mod,text){const msgs=msgEl(mod);const d=document.createElement('div');d.className='msg msg-user';d.textContent=text;msgs.appendChild(d);scrollBot();}
 
 // ── VALIDATE SETUP ──
-const valState={procId:null,procSub:null,procIdStable:null,procSubIdx:null,procEs:'',procSubEs:'',tip:'',wavelength:'',power:'',freq:'',pulse:'',water:'',air:'',notes:'',imageB64:''};
+const valState={procId:null,procSub:null,procIdStable:null,procSubIdx:null,procEs:'',procSubEs:'',procOther:'',tip:'',wavelength:'',power:'',freq:'',pulse:'',water:'',air:'',notes:'',imageB64:''};
 
 function addValidateSetup(){
   const msgs=msgEl('validate');
@@ -3481,7 +3481,7 @@ function addValidateSetup(){
   // ── WAVELENGTH ──
   const wlSec=document.createElement('div');wlSec.className='setup-section';
   const wlTitle=document.createElement('div');wlTitle.className='setup-section-title';
-  wlTitle.textContent='🔵 '+(L[lang].val.wlLbl||'Laser wavelength');wlSec.appendChild(wlTitle);
+  wlTitle.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M2 12c3-5 5.5-5 8.5 0s5.5 5 8.5 0"/><path d="M2 18c3-5 5.5-5 8.5 0s5.5 5 8.5 0"/></svg> <span></span>';wlTitle.querySelector('span').textContent=(L[lang].val.wlLbl||'Laser wavelength');wlSec.appendChild(wlTitle);
   // Auto-fill from My Devices if available
   // Pre-select wavelength from My Devices if available, but always show chips so user can change
   const devWl=savedDevices.length>0?savedDevices[0].wl||'':'';
@@ -3507,7 +3507,7 @@ function addValidateSetup(){
 
   // ── PROCEDURE ──
   const procSec=document.createElement('div');procSec.className='setup-section';
-  const procTitle=document.createElement('div');procTitle.className='setup-section-title';procTitle.textContent=`📋 ${ui.procTitle}`;procSec.appendChild(procTitle);
+  const procTitle=document.createElement('div');procTitle.className='setup-section-title';procTitle.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg> <span></span>';procTitle.querySelector('span').textContent=ui.procTitle;procSec.appendChild(procTitle);
   const procRow=document.createElement('div');procRow.className='chips';
   const procSubRow=document.createElement('div');procSubRow.className='sub-chips hidden';
   procs.forEach(proc=>{
@@ -3519,11 +3519,32 @@ function addValidateSetup(){
         procSubRow.classList.remove('hidden');}
     };procRow.appendChild(c);
   });
-  procSec.appendChild(procRow);procSec.appendChild(procSubRow);wrap.appendChild(procSec);
+  procSec.appendChild(procRow);procSec.appendChild(procSubRow);
+  // Chip "Otro" con campo de texto, mismo patron que wlOther. Al usarlo los
+  // cuatro identificadores van VACIOS: no se inventa un id que el servidor no
+  // pueda verificar. El texto libre viaja en last_message como cualquier otro.
+  if(ofrecerOtroProcedimiento()){
+    const OTRO={es:'Otro',en:'Other',pt:'Outro',ja:'その他',ko:'기타'}[lang]||'Other';
+    const PH={es:'Describe el procedimiento',en:'Describe the procedure',pt:'Descreva o procedimento',ja:'処置内容を入力',ko:'시술 내용을 입력'}[lang]||'Describe the procedure';
+    const otroChip=document.createElement('div');otroChip.className='chip';otroChip.textContent=OTRO;
+    const otroFld=document.createElement('input');otroFld.type='text';otroFld.className='chip-other-field hidden';otroFld.placeholder=PH;
+    otroFld.oninput=()=>{ valState.procOther=otroFld.value.trim(); };
+    otroChip.onclick=()=>{
+      const ya=otroChip.classList.contains('sel');
+      procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      procSubRow.innerHTML='';procSubRow.classList.add('hidden');
+      valState.procId=null;valState.procSub=null;
+      valState.procIdStable=null;valState.procSubIdx=null;valState.procEs='';valState.procSubEs='';
+      if(ya){ otroChip.classList.remove('sel'); otroFld.classList.add('hidden'); valState.procOther=''; otroFld.value=''; }
+      else  { otroChip.classList.add('sel'); otroFld.classList.remove('hidden'); otroFld.focus(); }
+    };
+    procRow.appendChild(otroChip);procSec.appendChild(otroFld);
+  }
+  wrap.appendChild(procSec);
 
   // ── PARAMETERS ──
   const paramSec=document.createElement('div');paramSec.className='setup-section';
-  const paramTitle=document.createElement('div');paramTitle.className='setup-section-title';paramTitle.textContent='⚡ '+{en:'Current parameters',es:'Parámetros actuales',pt:'Parâmetros atuais',ja:'現在のパラメータ',ko:'현재 파라미터'}[lang];paramSec.appendChild(paramTitle);
+  const paramTitle=document.createElement('div');paramTitle.className='setup-section-title';paramTitle.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M13 2 L4 14h7l-1 8 9-12h-7z"/></svg> <span></span>';paramTitle.querySelector('span').textContent={en:'Current parameters',es:'Parámetros actuales',pt:'Parâmetros atuais',ja:'現在のパラメータ',ko:'현재 파라미터'}[lang];paramSec.appendChild(paramTitle);
   const paramGrid=document.createElement('div');paramGrid.className='validate-params-grid';
   [{key:'power',lbl:ui.powerLbl,ph:'e.g. 1.5'},{key:'freq',lbl:ui.freqLbl,ph:'e.g. 30'},{key:'pulse',lbl:ui.pulseLbl,ph:ui.pulsePh}].forEach(({key,lbl,ph})=>{
     const div=document.createElement('div');div.className='validate-param-field';
@@ -3581,7 +3602,7 @@ function addValidateSetup(){
 
   // ── NOTES ──
   const notesSec=document.createElement('div');notesSec.className='setup-section';
-  const notesLbl=document.createElement('div');notesLbl.className='setup-section-title';notesLbl.textContent=`📋 ${ui.notesLbl}`;notesSec.appendChild(notesLbl);
+  const notesLbl=document.createElement('div');notesLbl.className='setup-section-title';notesLbl.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg> <span></span>';notesLbl.querySelector('span').textContent=ui.notesLbl;notesSec.appendChild(notesLbl);
   const notesFld=document.createElement('textarea');notesFld.className='chip-other-field notes-field';notesFld.placeholder=ui.notesPh;notesFld.rows=2;notesFld.oninput=()=>{valState.notes=notesFld.value.trim();};notesSec.appendChild(notesFld);wrap.appendChild(notesSec);
 
   const btn=document.createElement('button');btn.className='proto-send-btn';btn.textContent=ui.btn;btn.onclick=sendValidateSetup;wrap.appendChild(btn);
@@ -3594,6 +3615,19 @@ function addValidateSetup(){
 // ETIQUETA, y la etiqueta viaja traducida. Estos dos ayudantes devuelven la
 // etiqueta canónica EN ESPAÑOL a partir del id, para que n8n componga la
 // consulta del router desacoplada del idioma del usuario.
+// ── Campo libre de procedimiento ────────────────────────────────────────────
+// NO se ofrece a plan PBM: su alcance es justo la lista de chips, y sin
+// identificador el gate del servidor no puede verificar que el procedimiento
+// sea de PBM.
+//
+// Si el plan AUN NO se conoce —window.LRX_PLAN lo fija setPlanBar tras la
+// primera respuesta del servidor, asi que al pintar el formulario por primera
+// vez puede estar vacio— se OFRECE. Esconderlo por si acaso castigaria a todo
+// el mundo por un dato que aun no ha llegado, y el servidor ya hace de gate.
+function ofrecerOtroProcedimiento(){
+  return String(window.LRX_PLAN || '') !== 'PBM';
+}
+
 function canonEs(pid){
   const L=(PROTO.procedures&&PROTO.procedures.es)||[];
   const it=L.find(x=>x.id===pid);
@@ -3640,6 +3674,8 @@ function updateSprayVisibility(){
 function buildValidateMessage(){
   const parts=['VALIDATE SETTINGS REQUEST'];
   if(valState.procId){let p=valState.procId;if(valState.procSub)p+=` → ${valState.procSub}`;parts.push(`Procedure: ${p}`);}
+  else if(valState.procOther){parts.push(`Procedure: ${valState.procOther}`);}
+  else if(valState.procOther){parts.push(`Procedure: ${valState.procOther}`);}
   if(valState.tip)parts.push(`Tip/handpiece: ${valState.tip}`);
   if(valState.wavelength){
     parts.push(`Laser wavelength: ${valState.wavelength}`);
@@ -3682,13 +3718,13 @@ function sendValidateSetup(){
 // ── PROTOCOL SETUP DATA ──
 const PROTO = {
   groups: [
-    { id:'diodo', icon:'🔵', label:{en:'Diode laser',es:'Láser de diodo',pt:'Laser de diodo',ja:'ダイオードレーザー',ko:'다이오드 레이저'}, noLabel:{en:'No diode laser',es:'No tengo diodo',pt:'Não tenho diodo',ja:'ダイオードなし',ko:'다이오드 없음'},
+    { id:'diodo', icon:'', label:{en:'Diode laser',es:'Láser de diodo',pt:'Laser de diodo',ja:'ダイオードレーザー',ko:'다이오드 레이저'}, noLabel:{en:'No diode laser',es:'No tengo diodo',pt:'Não tenho diodo',ja:'ダイオードなし',ko:'다이오드 없음'},
       chips:[{id:'450',label:'450 nm',subs:['Soga','Pion','Other']},{id:'650pdt',label:{en:'650 nm (For PDT)',es:'650 nm (Para PDT)',pt:'650 nm (Para PDT)',ja:'650 nm (PDT)',ko:'650 nm (PDT)'},subs:['Soga','Pion','Other']},{id:'810',label:'810 nm',subs:['Biolase Epic','Dentsply','Other']},{id:'940',label:'940 nm',subs:['Biolase Epic Pro','Other']},{id:'980',label:'980 nm',subs:['Soga','Pion','Fotona','Other']},{id:'1064frp',label:'1064 nm free running pulse',subs:['Fotona','PerioLase MVP-7','Other']},{id:'1064d',label:'1064 nm (diodo)',subs:['Other']}]
     },
-    { id:'erbio', icon:'🔴', label:{en:'Erbium laser',es:'Láser de erbio',pt:'Laser de érbio',ja:'エルビウムレーザー',ko:'어븀 레이저'}, noLabel:{en:'No erbium laser',es:'No tengo erbio',pt:'Não tengo érbio',ja:'エルビウムなし',ko:'어븀 없음'},
+    { id:'erbio', icon:'', label:{en:'Erbium laser',es:'Láser de erbio',pt:'Laser de érbio',ja:'エルビウムレーザー',ko:'어븀 레이저'}, noLabel:{en:'No erbium laser',es:'No tengo erbio',pt:'Não tengo érbio',ja:'エルビウムなし',ko:'어븀 없음'},
       chips:[{id:'ercrysgg',label:'Er,Cr:YSGG 2780 nm',subs:['Biolase Waterlase','Other']},{id:'eryag',label:'Er:YAG 2940 nm',subs:['Fotona LightWalker','Other']}]
     },
-    { id:'otros', icon:'⚪', label:{en:'Other lasers',es:'Otros láseres',pt:'Outros lasers',ja:'その他のレーザー',ko:'기타 레이저'}, noLabel:{en:'No other laser',es:'No tengo otro',pt:'Não tenho outro',ja:'その他なし',ko:'기타 없음'},
+    { id:'otros', icon:'', label:{en:'Other lasers',es:'Otros láseres',pt:'Outros lasers',ja:'その他のレーザー',ko:'기타 레이저'}, noLabel:{en:'No other laser',es:'No tengo otro',pt:'Não tenho outro',ja:'その他なし',ko:'기타 없음'},
       chips:[{id:'co2',label:'CO₂ 10,600 nm',subs:['Other']},{id:'ndyag',label:'Nd:YAG 1064 nm',subs:['Other']}]
     }
   ],
@@ -3708,7 +3744,7 @@ const PROTO = {
   }
 };
 
-const proState={selections:{},subs:{},procId:null,procSub:null,procIdStable:null,procSubIdx:null,procEs:'',procSubEs:'',notes:''};
+const proState={selections:{},subs:{},procId:null,procSub:null,procIdStable:null,procSubIdx:null,procEs:'',procSubEs:'',procOther:'',notes:''};
 
 function addProtocolSetup(){
   const msgs=msgEl('protocols');const ui=PROTO.ui[lang]||PROTO.ui.en;const procs=PROTO.procedures[lang]||PROTO.procedures.en;
@@ -3719,11 +3755,29 @@ function addProtocolSetup(){
   procs.forEach(proc=>{const c=document.createElement('div');c.className='chip';c.textContent=proc.label;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');proState.procId=null;proState.procSub=null;proState.procIdStable=null;proState.procSubIdx=null;proState.procEs='';proState.procSubEs='';procSubRow.innerHTML='';procSubRow.classList.add('hidden');diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');delete proState.selections['diode_cmp'];}else{procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.procId=proc.label;proState.procSub=null;proState.procIdStable=proc.id;proState.procSubIdx=null;proState.procSubEs='';proState.procEs=canonEs(proc.id);procSubRow.innerHTML='';proc.subs.forEach((sub,si)=>{const s=document.createElement('div');s.className='chip chip-sub';s.textContent=sub;s.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.procSub=sub;proState.procSubIdx=si;proState.procSubEs=canonSubEs(proc.id,si);subOtherFld.style.display='none';subOtherFld.value='';if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){ diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}delete proState.selections['diode_cmp'];};procSubRow.appendChild(s);});
 // Always add "Other" chip to sub-chips
 const subOtherFld=document.createElement('input');subOtherFld.type='text';subOtherFld.className='chip-other-field';subOtherFld.placeholder=lang==='es'?'Describe el procedimiento (opcional)':lang==='pt'?'Descreva o procedimento (opcional)':lang==='ja'?'処置を説明してください（任意）':lang==='ko'?'시술을 설명해 주세요（선택）':'Describe the procedure (optional)';subOtherFld.style.cssText='display:none;margin-top:6px;width:100%;box-sizing:border-box;';subOtherFld.oninput=()=>{proState.procSub=subOtherFld.value.trim()||'other';};
-const sOther=document.createElement('div');sOther.className='chip chip-sub';sOther.textContent=lang==='es'?'Otro':lang==='pt'?'Outro':lang==='ja'?'その他':lang==='ko'?'기타':'Other';sOther.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));sOther.classList.add('sel');proState.procSub='';subOtherFld.style.display='block';subOtherFld.focus();if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){ diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}delete proState.selections['diode_cmp'];};procSubRow.appendChild(sOther);procSubRow.appendChild(subOtherFld);
+const sOther=document.createElement('div');sOther.className='chip chip-sub';sOther.textContent=lang==='es'?'Otro':lang==='pt'?'Outro':lang==='ja'?'その他':lang==='ko'?'기타':'Other';sOther.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));sOther.classList.add('sel');proState.procSub='';proState.procSubIdx=null;proState.procSubEs='';subOtherFld.style.display='block';subOtherFld.focus();if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){ diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}delete proState.selections['diode_cmp'];};procSubRow.appendChild(sOther);procSubRow.appendChild(subOtherFld);
 procSubRow.classList.remove('hidden');if(!proc.subs.length){if(devPreselect==='erbio'||(savedDevices.length>0&&savedDevices.some(function(d){return d.type&&(d.type.toLowerCase().includes('erbium')||d.type.toLowerCase().includes('erbio'));}))){diodeCmpContainer.innerHTML='';diodeCmpContainer.appendChild(buildDiodeComplement(ui));diodeCmpContainer.classList.remove('hidden');}else{diodeCmpContainer.innerHTML='';diodeCmpContainer.classList.add('hidden');}}}};procRow.appendChild(c);});
+  // Chip "Otro" de nivel superior, mismo patron y mismas reglas que en Validate.
+  if(ofrecerOtroProcedimiento()){
+    const OTRO={es:'Otro',en:'Other',pt:'Outro',ja:'その他',ko:'기타'}[lang]||'Other';
+    const PH={es:'Describe el procedimiento',en:'Describe the procedure',pt:'Descreva o procedimento',ja:'処置内容を入力',ko:'시술 내용을 입력'}[lang]||'Describe the procedure';
+    const oc=document.createElement('div');oc.className='chip';oc.textContent=OTRO;
+    const of=document.createElement('input');of.type='text';of.className='chip-other-field hidden';of.placeholder=PH;
+    of.oninput=()=>{ proState.procOther=of.value.trim(); };
+    oc.onclick=()=>{
+      const ya=oc.classList.contains('sel');
+      procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));
+      procSubRow.innerHTML='';procSubRow.classList.add('hidden');
+      proState.procId=null;proState.procSub=null;
+      proState.procIdStable=null;proState.procSubIdx=null;proState.procEs='';proState.procSubEs='';
+      if(ya){ of.classList.add('hidden'); proState.procOther=''; of.value=''; }
+      else  { oc.classList.add('sel'); of.classList.remove('hidden'); of.focus(); }
+    };
+    procRow.appendChild(oc);procSec.appendChild(of);
+  }
   procSec.appendChild(procRow);procSec.appendChild(procSubRow);procSec.appendChild(diodeCmpContainer);
   const procOtherFld=document.createElement('input');procOtherFld.type='text';procOtherFld.className='chip-other-field';procOtherFld.placeholder=ui.otherPh;procOtherFld.style.marginTop='6px';procOtherFld.oninput=()=>{proState.procOther=procOtherFld.value.trim();};procSec.appendChild(procOtherFld);wrap.appendChild(procSec);
-  const notesSec=document.createElement('div');notesSec.className='setup-section';const notesLbl=document.createElement('div');notesLbl.className='setup-section-title';notesLbl.textContent=`📋 ${ui.notesLbl}`;notesSec.appendChild(notesLbl);const notesFld=document.createElement('textarea');notesFld.className='chip-other-field notes-field';notesFld.placeholder=ui.notesPh;notesFld.rows=2;if(proState.notes){notesFld.value=proState.notes;notesFld.style.borderColor='var(--navy)';}notesFld.oninput=()=>{proState.notes=notesFld.value.trim();};notesSec.appendChild(notesFld);wrap.appendChild(notesSec);
+  const notesSec=document.createElement('div');notesSec.className='setup-section';const notesLbl=document.createElement('div');notesLbl.className='setup-section-title';notesLbl.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg> <span></span>';notesLbl.querySelector('span').textContent=ui.notesLbl;notesSec.appendChild(notesLbl);const notesFld=document.createElement('textarea');notesFld.className='chip-other-field notes-field';notesFld.placeholder=ui.notesPh;notesFld.rows=2;if(proState.notes){notesFld.value=proState.notes;notesFld.style.borderColor='var(--navy)';}notesFld.oninput=()=>{proState.notes=notesFld.value.trim();};notesSec.appendChild(notesFld);wrap.appendChild(notesSec);
   // Segunda ruta hacia el complemento de diodo. No lee savedDevices[].type
   // sino la etiqueta compuesta de lastDeviceContext, así que la normalización
   // de canonDeviceType no la alcanza. Se pliegan los diacríticos —eso cubre
@@ -3743,7 +3797,7 @@ procSubRow.classList.remove('hidden');if(!proc.subs.length){if(devPreselect==='e
     :(/diode|diodo|450|810|940|980/.test(devLabel)||/ダイオード|다이오드/.test(devLabelRaw))?'diodo'
     :null;
   const hideEquipment=devPreselect||savedDevices.length>0;
-  if(!hideEquipment){const sep=document.createElement('div');sep.className='setup-separator';sep.innerHTML=`<div class="setup-separator-line"></div><span class="setup-separator-label">${ui.sepLabel}</span><div class="setup-separator-line"></div>`;wrap.appendChild(sep);const equipWrap=document.createElement('div');equipWrap.className='setup-equipment';PROTO.groups.forEach(grp=>{const grpLabel=typeof grp.label==='string'?grp.label:grp.label[lang]||grp.label.en;const noLabel=typeof grp.noLabel==='string'?grp.noLabel:grp.noLabel[lang]||grp.noLabel.en;const grpDiv=document.createElement('div');grpDiv.className='setup-equip-group';const lbl=document.createElement('div');lbl.className='setup-equip-label';lbl.textContent=`${grp.icon} ${grpLabel}`;grpDiv.appendChild(lbl);const chipRow=document.createElement('div');chipRow.className='chips';const subRow=document.createElement('div');subRow.className='sub-chips hidden';grp.chips.forEach(chip=>{const chipLabel=typeof chip.label==='string'?chip.label:chip.label[lang]||chip.label.en;const c=document.createElement('div');c.className='chip';c.textContent=chipLabel;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');delete proState.selections[grp.id];delete proState.subs[grp.id];subRow.innerHTML='';subRow.classList.add('hidden');}else{chipRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.selections[grp.id]=chipLabel;delete proState.subs[grp.id];subRow.innerHTML='';if(chip.subs&&chip.subs.length){chip.subs.forEach(sub=>{const isOtherSub=['Other','Otro','Outro'].includes(sub);const s=document.createElement('div');s.className='chip chip-sub';s.textContent=isOtherSub?(lang==='es'?'Otro':lang==='pt'?'Outro':'Other'):sub;s.onclick=e=>{e.stopPropagation();subRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.subs[grp.id]=s.textContent;};subRow.appendChild(s);});subRow.classList.remove('hidden');}}};chipRow.appendChild(c);});const noChip=document.createElement('div');noChip.className='chip chip-none';noChip.textContent=noLabel;noChip.onclick=()=>{chipRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));noChip.classList.add('sel');proState.selections[grp.id]=noLabel;delete proState.subs[grp.id];subRow.innerHTML='';subRow.classList.add('hidden');};chipRow.appendChild(noChip);grpDiv.appendChild(chipRow);grpDiv.appendChild(subRow);const otherFld=document.createElement('input');otherFld.type='text';otherFld.className='chip-other-field';otherFld.placeholder=ui.otherPh;otherFld.style.marginTop='4px';otherFld.oninput=()=>{if(otherFld.value.trim())proState.selections[grp.id+'_note']=otherFld.value.trim();else delete proState.selections[grp.id+'_note'];};grpDiv.appendChild(otherFld);equipWrap.appendChild(grpDiv);});wrap.appendChild(equipWrap);}
+  if(!hideEquipment){const sep=document.createElement('div');sep.className='setup-separator';sep.innerHTML=`<div class="setup-separator-line"></div><span class="setup-separator-label">${ui.sepLabel}</span><div class="setup-separator-line"></div>`;wrap.appendChild(sep);const equipWrap=document.createElement('div');equipWrap.className='setup-equipment';PROTO.groups.forEach(grp=>{const grpLabel=typeof grp.label==='string'?grp.label:grp.label[lang]||grp.label.en;const noLabel=typeof grp.noLabel==='string'?grp.noLabel:grp.noLabel[lang]||grp.noLabel.en;const grpDiv=document.createElement('div');grpDiv.className='setup-equip-group';const lbl=document.createElement('div');lbl.className='setup-equip-label';lbl.textContent=[grp.icon,grpLabel].filter(Boolean).join(' ');grpDiv.appendChild(lbl);const chipRow=document.createElement('div');chipRow.className='chips';const subRow=document.createElement('div');subRow.className='sub-chips hidden';grp.chips.forEach(chip=>{const chipLabel=typeof chip.label==='string'?chip.label:chip.label[lang]||chip.label.en;const c=document.createElement('div');c.className='chip';c.textContent=chipLabel;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');delete proState.selections[grp.id];delete proState.subs[grp.id];subRow.innerHTML='';subRow.classList.add('hidden');}else{chipRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.selections[grp.id]=chipLabel;delete proState.subs[grp.id];subRow.innerHTML='';if(chip.subs&&chip.subs.length){chip.subs.forEach(sub=>{const isOtherSub=['Other','Otro','Outro'].includes(sub);const s=document.createElement('div');s.className='chip chip-sub';s.textContent=isOtherSub?(lang==='es'?'Otro':lang==='pt'?'Outro':'Other'):sub;s.onclick=e=>{e.stopPropagation();subRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.subs[grp.id]=s.textContent;};subRow.appendChild(s);});subRow.classList.remove('hidden');}}};chipRow.appendChild(c);});const noChip=document.createElement('div');noChip.className='chip chip-none';noChip.textContent=noLabel;noChip.onclick=()=>{chipRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));noChip.classList.add('sel');proState.selections[grp.id]=noLabel;delete proState.subs[grp.id];subRow.innerHTML='';subRow.classList.add('hidden');};chipRow.appendChild(noChip);grpDiv.appendChild(chipRow);grpDiv.appendChild(subRow);const otherFld=document.createElement('input');otherFld.type='text';otherFld.className='chip-other-field';otherFld.placeholder=ui.otherPh;otherFld.style.marginTop='4px';otherFld.oninput=()=>{if(otherFld.value.trim())proState.selections[grp.id+'_note']=otherFld.value.trim();else delete proState.selections[grp.id+'_note'];};grpDiv.appendChild(otherFld);equipWrap.appendChild(grpDiv);});wrap.appendChild(equipWrap);}
   const btn=document.createElement('button');btn.className='proto-send-btn';btn.textContent=ui.btn;btn.onclick=sendProtoSetup;wrap.appendChild(btn);msgs.appendChild(wrap);setTimeout(()=>{const c=$('content');c.scrollTop=0;},60);
 }
 
@@ -4124,7 +4178,16 @@ function protoStream(msg, ctx){
         headers:{ authorization:'Bearer ' + strToken, 'content-type':'application/json' },
         body: JSON.stringify({
           q: msg, lang: lang, history: ctx.previos,
-          is_first_message: ctx.primero, module: 'protocols'
+          is_first_message: ctx.primero, module: 'protocols',
+          // Mismo vocabulario que protoLegacy. OJO: el Worker extrae una lista
+          // blanca explicita (q, lang, history, is_first_message, module) y
+          // descarta lo demas, asi que estos cuatro NO llegan a n8n hasta que
+          // worker.js los reenvie. Van aqui para que el cliente hable igual por
+          // las dos rutas y el dia que el Worker los pase no haya que tocar esto.
+          procedure_id: proState.procIdStable || '',
+          procedure_sub_id: (proState.procSubIdx===null||proState.procSubIdx===undefined) ? '' : String(proState.procSubIdx),
+          procedure_es: proState.procEs || '',
+          procedure_sub_es: proState.procSubEs || ''
         })
       });
       marca(esReintento ? 'stream abierto (reintento)' : 'stream abierto');
