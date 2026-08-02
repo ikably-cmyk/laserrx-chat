@@ -3435,7 +3435,7 @@ window.LRX_STREAM = {
 function addUser(mod,text){const msgs=msgEl(mod);const d=document.createElement('div');d.className='msg msg-user';d.textContent=text;msgs.appendChild(d);scrollBot();}
 
 // ── VALIDATE SETUP ──
-const valState={procId:null,procSub:null,tip:'',wavelength:'',power:'',freq:'',pulse:'',water:'',notes:'',imageB64:''};
+const valState={procId:null,procSub:null,procIdStable:null,procSubIdx:null,procEs:'',procSubEs:'',tip:'',wavelength:'',power:'',freq:'',pulse:'',water:'',air:'',notes:'',imageB64:''};
 
 function addValidateSetup(){
   const msgs=msgEl('validate');
@@ -3490,9 +3490,9 @@ function addValidateSetup(){
   procs.forEach(proc=>{
     const c=document.createElement('div');c.className='chip';c.textContent=proc.label;
     c.onclick=()=>{
-      if(c.classList.contains('sel')){c.classList.remove('sel');valState.procId=null;valState.procSub=null;procSubRow.innerHTML='';procSubRow.classList.add('hidden');}
-      else{procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.procId=proc.label;valState.procSub=null;procSubRow.innerHTML='';
-        proc.subs.forEach(sub=>{const s=document.createElement('div');s.className='chip chip-sub';s.textContent=sub;s.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');valState.procSub=sub;};procSubRow.appendChild(s);});
+      if(c.classList.contains('sel')){c.classList.remove('sel');valState.procId=null;valState.procSub=null;valState.procIdStable=null;valState.procSubIdx=null;valState.procEs='';valState.procSubEs='';procSubRow.innerHTML='';procSubRow.classList.add('hidden');}
+      else{procRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.procId=proc.label;valState.procSub=null;valState.procIdStable=proc.id;valState.procSubIdx=null;valState.procSubEs='';valState.procEs=canonEs(proc.id);procSubRow.innerHTML='';
+        proc.subs.forEach((sub,si)=>{const s=document.createElement('div');s.className='chip chip-sub';s.textContent=sub;s.onclick=e=>{e.stopPropagation();procSubRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');valState.procSub=sub;valState.procSubIdx=si;valState.procSubEs=canonSubEs(proc.id,si);};procSubRow.appendChild(s);});
         procSubRow.classList.remove('hidden');}
     };procRow.appendChild(c);
   });
@@ -3545,6 +3545,24 @@ function addValidateSetup(){
   msgs.appendChild(wrap);scrollBot();
 }
 
+// ── Vocabulario canónico ────────────────────────────────────────────────────
+// PROTO.procedures trae un campo `id` ESTABLE (soft, perio, implant, endo,
+// restor, oralsurg, pbm) que hasta ahora no se usaba: procId guardaba la
+// ETIQUETA, y la etiqueta viaja traducida. Estos dos ayudantes devuelven la
+// etiqueta canónica EN ESPAÑOL a partir del id, para que n8n componga la
+// consulta del router desacoplada del idioma del usuario.
+function canonEs(pid){
+  const L=(PROTO.procedures&&PROTO.procedures.es)||[];
+  const it=L.find(x=>x.id===pid);
+  return it?it.label:'';
+}
+function canonSubEs(pid, idx){
+  if(idx===null||idx===undefined||idx<0) return '';
+  const L=(PROTO.procedures&&PROTO.procedures.es)||[];
+  const it=L.find(x=>x.id===pid);
+  return (it&&it.subs&&it.subs[idx]!==undefined)?it.subs[idx]:'';
+}
+
 function buildValidateMessage(){
   const parts=['VALIDATE SETTINGS REQUEST'];
   if(valState.procId){let p=valState.procId;if(valState.procSub)p+=` → ${valState.procSub}`;parts.push(`Procedure: ${p}`);}
@@ -3576,7 +3594,7 @@ function sendValidateSetup(){
   removeChips('validate');addUser('validate',msg);
   hist.validate.push(`User: ${msg}`);const history=hist.validate.slice(-12).join('\n');
   showTyping('validate');busy=true;$('sendBtn').disabled=true;
-  fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||''})})
+  fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||'',procedure_id:valState.procIdStable||'',procedure_sub_id:(valState.procSubIdx===null||valState.procSubIdx===undefined)?'':String(valState.procSubIdx),procedure_es:valState.procEs||'',procedure_sub_es:valState.procSubEs||'',wavelength:valState.wavelength||'',tip:valState.tip||'',power:valState.power||'',freq:valState.freq||'',pulse:valState.pulse||'',water:valState.water||'',air:valState.air||'',notes:valState.notes||''})})
   .then(res=>{if(res.status===401){hideTyping('validate');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('validate',d&&d.message);done();return null;});}if(res.status===402){hideTyping('validate');return res.json().then(d=>{addPbmGatingCard('validate',d);done();return null;});}if(res.status===403){hideTyping('validate');addUpgradeCard('validate');done();return null;}return res.json();})
   .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
   .catch(err=>{hideTyping('validate');addAI('validate',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
