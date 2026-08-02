@@ -30,6 +30,24 @@
       --accent: var(--navy);
       --mono: 'Space Mono', monospace;
       --sans: 'Instrument Sans', sans-serif;
+      /* ── Tarjetas de validación · CINCO estados ───────────────────────────
+         Los tres de siempre llevan EXACTAMENTE los hexadecimales que ya
+         estaban cableados en buildValidationCards: en modo día no cambia un
+         solo píxel. Pasan a variable por dos razones: para que MISSING y
+         NO_REF entren por la misma puerta, y porque cableados no había forma
+         de corregirlos en modo noche —el estilo va inline y ninguna regla CSS
+         los alcanza—, donde el verde #3B6D11 sobre --paper #16203A quedaba
+         ilegible.
+         MISSING y NO_REF van en GRIS NEUTRO a propósito: el color queda
+         reservado al juicio clínico. Con cinco colores el semáforo deja de
+         leerse de un vistazo en un teléfono. Se distinguen entre sí por icono
+         y por BORDE: punteado el que el usuario puede llenar, sólido tenue el
+         que no tiene arreglo. */
+      --vr-ok:        #3B6D11;  --vr-ok-bg:    #EFF6E5;
+      --vr-warn:      #B47410;  --vr-warn-bg:  #FAEEDA;
+      --vr-fail:      #A8261C;  --vr-fail-bg:  #FAEAEA;
+      --vr-miss:      #3F4E60;  --vr-miss-bg:  #E8EBEF;  --vr-miss-edge:  #7C8B9C;
+      --vr-noref:     #5E6B7A;  --vr-noref-bg: #F0F1EE;  --vr-noref-edge: #A9B3BE;
     }
 
     /* per-tab accent — JS toggles body[data-tab] */
@@ -796,6 +814,22 @@
       font-size: 9px; font-weight: 700; font-family: var(--mono);
       color: var(--steel); text-transform: uppercase; letter-spacing: 0.16em;
     }
+    /* Botón de derivación bajo las tarjetas de validación. Va en secundario
+       —contorno, no relleno— porque no es la acción principal del turno: la
+       principal es leer el veredicto. Todo por variables, así que el modo
+       noche sale gratis. */
+    .vr-proto-btn {
+      width: 100%; padding: 12px 14px; margin-top: 2px;
+      background: var(--paper); color: var(--navy);
+      border: 1px solid var(--navy); border-radius: 4px;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      text-align: center; line-height: 1.35;
+      transition: background .15s, color .15s;
+    }
+    .vr-proto-btn:hover { background: var(--navy); color: var(--paper); }
+
     .proto-send-btn {
       width: 100%; padding: 13px 16px;
       background: var(--navy); color: var(--cream); border: 1px solid var(--navy);
@@ -1078,6 +1112,14 @@
       --steelMute: #6B7990;
       --cream:     #1A2238;       /* card surfaces use cream-slot */
       --ink:       #000000;
+      /* Mismos cinco estados, invertidos: texto claro sobre fondo oscuro.
+         El estilo de las tarjetas es inline y gana a cualquier regla CSS, así
+         que la única vía para corregir el modo noche es la variable. */
+      --vr-ok:        #9BD14F;  --vr-ok-bg:    #1C2E16;
+      --vr-warn:      #E9A93C;  --vr-warn-bg:  #322512;
+      --vr-fail:      #F0736A;  --vr-fail-bg:  #351B19;
+      --vr-miss:      #B6C4D6;  --vr-miss-bg:  #202C42;  --vr-miss-edge:  #7C8B9C;
+      --vr-noref:     #8D9BAC;  --vr-noref-bg: #1B2434;  --vr-noref-edge: #4E6076;
     }
     body.night .header { background: #0A0F18; border-bottom-color: #2A3A52; }
     body.night .header-title { color: #E0E1DD; }
@@ -2908,53 +2950,403 @@ function postProcessTables(el) {
     const isParamSummary = headers.some(h=>/phase|fase|fases/.test(h)) && headers.some(h=>/power|potencia/.test(h));
     const isCalcResults = headers.some(h=>/parameter|parámetro|parâmetro/.test(h)) && headers.some(h=>/value|valor/.test(h));
     const isPhaseDetail = headers[0]==='parameter'||headers[0]==='parámetro'||headers[0]==='parâmetro';
-    const isValidation = headers.some(h=>/user setting|configuración|configuração|設定|설정/.test(h)) && headers.some(h=>/status|estado/.test(h));
-    if (isParamSummary) wrap.replaceWith(buildParamSummaryCards(headers,rows));
+    // El agente VIEJO titula la segunda columna "User setting" / "Configuración"
+    // y por ahí se reconoce hoy. Validate v4 NO fija ese texto: su bloque 13
+    // deja las tres primeras cabeceras traducidas libremente y solo obliga a que
+    // la cuarta sea literalmente "Status". Con la condición de siempre, una
+    // tabla de v4 no se reconocería y las tarjetas no se pintarían.
+    // La segunda vía es deliberadamente estrecha —cuatro columnas, la última
+    // "Status", y al menos una celda de esa columna con un estado reconocible—
+    // y ADITIVA: solo puede convertir en tarjetas una tabla que hoy se pinta
+    // cruda, nunca al revés.
+    const isValidation = (headers.some(h=>/user setting|configuración|configuração|設定|설정/.test(h)) && headers.some(h=>/status|estado/.test(h)))
+      || (headers.length===4 && /^(status|estado)$/.test(headers[3]) &&
+          rows.some(r=>{const c=r.querySelectorAll('td');return c.length===4 && parseValStatus(c[3].textContent)!==null;}));
+    // isValidation va PRIMERA. Medido: una tabla de Validate v4 con las
+    // cabeceras "Parámetro | Tu valor | Referencia | Status" cae en
+    // isCalcResults —"parámetro" + "valor"— y se pintaba como resultado de
+    // Calculator, sin estados y sin botón. Ninguna de las otras tres lleva
+    // columna Status, así que adelantarla no les quita ni una tabla.
+    if (isValidation) wrap.replaceWith(buildValidationCards(headers,rows));
+    else if (isParamSummary) wrap.replaceWith(buildParamSummaryCards(headers,rows));
     else if (isCalcResults) wrap.replaceWith(buildCalcResultCards(headers,rows));
-    else if (isValidation) wrap.replaceWith(buildValidationCards(headers,rows));
     else if (isPhaseDetail) wrap.replaceWith(buildPhaseDetailCard(headers,rows));
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TARJETAS DE VALIDACIÓN · CINCO ESTADOS Y DOS VOCABULARIOS
+// ───────────────────────────────────────────────────────────────────────────
+// Durante el solape conviven DOS agentes: el Validate VIEJO de MindStudio, que
+// marca el estado con emoji, y Validate v4, que lo escribe con los cinco tokens
+// en texto. El cliente se despliega para todos de golpe y el cutover es un
+// interruptor aparte (HOOKS.validate), así que el parser tiene que entender los
+// dos a la vez. Entender solo el nuevo apagaría el semáforo de TODOS los
+// usuarios hasta el cutover, y otra vez si hubiera que revertirlo.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Devuelve 'OK' | 'WARN' | 'FAIL' | 'MISSING' | 'NO_REF' o null.
+// null es el estado desconocido de siempre: se pinta gris con círculo, no entra
+// en el contador y se va al final. Ninguna celda que hoy se reconoce deja de
+// reconocerse.
+function parseValStatus(raw){
+  const s = String(raw == null ? '' : raw).trim();
+  if(!s) return null;
+  // ── VOCABULARIO VIEJO · MindStudio ──────────────────────────────────────
+  // SE RETIRA CUANDO SE APAGUE EL VALIDATE VIEJO, no antes. Mientras
+  // HOOKS.validate apunte a él, esto ES producción.
+  // Va PRIMERO justamente por eso: el emoji es una marca inequívoca, y si la
+  // celda vieja trajera además una frase, ninguna palabra suelta de esa frase
+  // puede robarle el veredicto al emoji. Al revés sí podía: una palomita seguida de
+  // "no reference needed" habría salido NO_REF. v4 no puede colisionar aquí
+  // porque tiene los emojis prohibidos en absoluto (bloque 5 de su prompt).
+  if(s.indexOf('✅') !== -1) return 'OK';
+  if(s.indexOf('⚠')  !== -1) return 'WARN';
+  if(s.indexOf('❌') !== -1) return 'FAIL';
+  // La raya de la celda Status cuando el usuario no dio el dato:
+  //   | Agua / Aire | No especificado | 0% / 0% | — |
+  // Solo cuenta si la celda es ENTERA de rayas —cualquier variante Unicode—,
+  // así que no colisiona con ningún guion dentro de un texto. Los guiones de
+  // rango ("30-50 Hz") viven en la columna Reference, que esto no mira nunca.
+  if(/^[-\u2010-\u2015\u2212\s]+$/.test(s)) return 'MISSING';
+  // ── FIN DEL VOCABULARIO VIEJO ───────────────────────────────────────────
+  // ── VOCABULARIO NUEVO · Validate v4 ─────────────────────────────────────
+  // Insensible a mayúsculas y tolerante a espacios. NO_REF se comprueba ANTES
+  // que OK, y todos con límite de palabra, para que ninguno case dentro de otro.
+  const up = s.toUpperCase();
+  if(/\bNO[\s_.\-]?REF\b/.test(up)) return 'NO_REF';
+  if(/\bMISSING\b/.test(up))        return 'MISSING';
+  if(/\bFAIL\b/.test(up))           return 'FAIL';
+  if(/\bWARN(ING)?\b/.test(up))     return 'WARN';
+  if(/\bOK\b/.test(up))             return 'OK';
+  return null;
+}
+
+// Peor primero. En un teléfono lo que cae bajo el pliegue es como si no
+// existiera, y lo primero que tiene que ver el clínico es el rojo. El bloque 13
+// del prompt de v4 ya ordena así, pero el orden no puede depender de que el
+// servidor colabore: el agente viejo no ordena nada.
+const VR_ORDER = { FAIL:0, WARN:1, MISSING:2, NO_REF:3, OK:4 };
+function vrRank(st){ const r = VR_ORDER[st]; return r === undefined ? 5 : r; }
+
+const VR_STYLE = {
+  OK:      { accent:'var(--vr-ok)',    bg:'var(--vr-ok-bg)',    edge:'solid', edgeColor:'var(--vr-ok)' },
+  WARN:    { accent:'var(--vr-warn)',  bg:'var(--vr-warn-bg)',  edge:'solid', edgeColor:'var(--vr-warn)' },
+  FAIL:    { accent:'var(--vr-fail)',  bg:'var(--vr-fail-bg)',  edge:'solid', edgeColor:'var(--vr-fail)' },
+  MISSING: { accent:'var(--vr-miss)',  bg:'var(--vr-miss-bg)',  edge:'dotted', edgeColor:'var(--vr-miss-edge)' },
+  NO_REF:  { accent:'var(--vr-noref)', bg:'var(--vr-noref-bg)', edge:'solid', edgeColor:'var(--vr-noref-edge)' }
+};
+const VR_STYLE_NULL = { accent:'var(--steel)', bg:'var(--paper)', edge:'solid', edgeColor:'var(--steel)' };
+
+const VR_ICON = {
+  OK:      '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 12l5 5L20 6"/></svg>',
+  WARN:    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 4 L22 20 L2 20 Z"/><path d="M12 10v5M12 17.5v.5"/></svg>',
+  FAIL:    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 5l14 14M19 5L5 19"/></svg>',
+  // Línea de puntos = hueco por llenar. Rima con el borde punteado de la
+  // tarjeta, que dice lo mismo por otra vía.
+  MISSING: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M3 18h4M10 18h4M17 18h4"/></svg>',
+  // Círculo con raya = no hay dato de referencia que comparar. No es una
+  // prohibición ni un error: es un hueco del protocolo, no del usuario.
+  NO_REF:  '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>'
+};
+const VR_ICON_NULL = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/></svg>';
+
+// Iconos SVG, no emoji: cada sistema operativo dibuja el emoji distinto y el de
+// aire se lee como una ráfaga o cosas peores según la fuente. Mismo estilo que
+// las tarjetas de resultado: viewBox 24, currentColor, trazo cuadrado.
+// Son los mismos dos que usa el formulario de Validate, declarados UNA vez para
+// que la fila de agua/aire del formulario y la tarjeta del veredicto no puedan
+// separarse nunca.
+const SVG_GOTA='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 3 L18 11.5 A6.5 6.5 0 1 1 6 11.5 Z"/></svg>';
+const SVG_AIRE='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 13h15a3 3 0 1 1-3 3"/><path d="M3 18h8"/></svg>';
+
+// La insignia es corta porque comparte fila con el valor en una pantalla de
+// 375 px. La frase que DISTINGUE los dos grises va debajo, en el cuerpo: uno se
+// arregla contestándole al agente y el otro no se arregla.
+// OK/WARN/FAIL siguen con su token inglés, como hoy.
+const VR_L10N = {
+  es:{ MISSING:{badge:'FALTA',    note:'No indicaste este dato.'},
+       NO_REF: {badge:'SIN REF',  note:'El protocolo validado no especifica este parámetro.'},
+       water:'Agua', air:'Aire' },
+  en:{ MISSING:{badge:'MISSING',  note:'You did not provide this value.'},
+       NO_REF: {badge:'NO REF',   note:'The validated protocol does not state this parameter.'},
+       water:'Water', air:'Air' },
+  pt:{ MISSING:{badge:'FALTA',    note:'Você não informou este dado.'},
+       NO_REF: {badge:'SEM REF',  note:'O protocolo validado não especifica este parâmetro.'},
+       water:'Água', air:'Ar' },
+  ja:{ MISSING:{badge:'未入力',    note:'この値は入力されていません。'},
+       NO_REF: {badge:'基準なし',  note:'検証済みプロトコルにこのパラメータの規定はありません。'},
+       water:'水', air:'空気' },
+  ko:{ MISSING:{badge:'미입력',    note:'이 값을 입력하지 않으셨습니다.'},
+       NO_REF: {badge:'기준 없음', note:'검증된 프로토콜에 이 파라미터가 명시되어 있지 않습니다.'},
+       water:'물', air:'공기' }
+};
+
+// Agua y aire, tan inequívocos como en el formulario ────────────────────────
+// En el formulario son dos campos con etiqueta e icono propios. Aquí es donde
+// se LEE el veredicto, así que no pueden volver a fundirse en un "0% / 0%" que
+// nadie sabe leer en qué orden. Si el agente manda las dos en una fila, se
+// reescribe la celda etiquetando cada mitad; si las manda por separado, la fila
+// se queda con su icono.
+function vrSprayKind(param){
+  const p = String(param || '');
+  const n = p.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const w = /\b(agua|water)\b/.test(n) || p.indexOf('水') !== -1 || p.indexOf('물') !== -1;
+  const a = /\b(aire|ar|air)\b/.test(n) || p.indexOf('空気') !== -1 || p.indexOf('공기') !== -1;
+  return (w && a) ? 'both' : w ? 'water' : a ? 'air' : null;
+}
+function vrSpraySplit(txt){
+  const parts = String(txt == null ? '' : txt).split('/');
+  if(parts.length !== 2) return null;
+  const a = parts[0].trim(), b = parts[1].trim();
+  return (a && b) ? [a, b] : null;
 }
 
 function buildValidationCards(headers, rows) {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin:12px 0;';
-  // Section header (mono eyebrow + dashed line)
+  const loc = VR_L10N[lang] || VR_L10N.en;
+
+  const items = rows.map(row => {
+    const cells = Array.from(row.querySelectorAll('td'));
+    return {
+      param:  cells[0] ? cells[0].textContent.trim() : '',
+      user:   cells[1] ? cells[1].textContent.trim() : '',
+      ref:    cells[2] ? cells[2].textContent.trim() : '',
+      status: parseValStatus(cells[3] ? cells[3].textContent : '')
+    };
+  });
+  items.sort((a,b) => vrRank(a.status) - vrRank(b.status));
+
+  // vrCount cuenta SOLO los parámetros juzgados. Sumar los grises diría
+  // "6 revisados" cuando revisó cuatro.
+  const judged = items.filter(it => it.status==='OK' || it.status==='WARN' || it.status==='FAIL').length;
+
   const eyebrow=document.createElement('div');
   eyebrow.style.cssText="font:9px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--steel);display:flex;align-items:center;gap:8px;margin-bottom:4px;";
-  eyebrow.innerHTML=`<span>Validation Report</span><span style="flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--hairline) 0 4px,transparent 4px 8px);"></span><span id="vrCount" style="color:var(--steel);">${rows.length} CHECKS</span>`;
+  eyebrow.innerHTML=`<span>Validation Report</span><span style="flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--hairline) 0 4px,transparent 4px 8px);"></span><span id="vrCount" style="color:var(--steel);">${judged} CHECKS</span>`;
   wrap.appendChild(eyebrow);
-  rows.forEach(row => {
-    const cells = Array.from(row.querySelectorAll('td'));
-    const param=cells[0]?.textContent.trim()||'', user=cells[1]?.textContent.trim()||'', ref=cells[2]?.textContent.trim()||'', status=cells[3]?.textContent.trim()||'';
-    const isOk=status.includes('✅'), isWarn=status.includes('⚠️'), isErr=status.includes('❌');
-    // Status color tokens (matching direction B palette)
-    const accent = isOk ? '#3B6D11' : isWarn ? '#B47410' : isErr ? '#A8261C' : 'var(--steel)';
-    const accentBg = isOk ? '#EFF6E5' : isWarn ? '#FAEEDA' : isErr ? '#FAEAEA' : 'var(--paper)';
-    const statusLabel = isOk ? 'OK' : isWarn ? 'WARN' : isErr ? 'FAIL' : '—';
-    // Inline SVG icon instead of emoji
-    const icon = isOk
-      ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 12l5 5L20 6"/></svg>`
-      : isWarn
-      ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 4 L22 20 L2 20 Z"/><path d="M12 10v5M12 17.5v.5"/></svg>`
-      : isErr
-      ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"><path d="M5 5l14 14M19 5L5 19"/></svg>`
-      : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/></svg>`;
-    const card = document.createElement('div');
-    card.style.cssText = `background:var(--paper);border:1px solid var(--hairline);border-left:3px solid ${accent};border-radius:4px;padding:10px 12px;display:flex;align-items:center;gap:10px;`;
-    card.innerHTML = `
-      <div style="flex:1;min-width:0;">
-        <div style="font:9px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-bottom:3px;">${param}</div>
-        <div style="font:13px/1.3 var(--mono);color:var(--navy);">
-          <span style="font-weight:700;color:${accent};">${user}</span>${ref?`<span style="color:var(--steel);font-size:11px;font-weight:400;"> &rarr; ${ref}</span>`:''}
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:5px;background:${accentBg};color:${accent};padding:4px 7px;border-radius:3px;font:9px/1 var(--mono);font-weight:700;letter-spacing:.1em;flex-shrink:0;">
-        ${icon}<span>${statusLabel}</span>
-      </div>`;
-    wrap.appendChild(card);
-  });
+
+  items.forEach(it => wrap.appendChild(buildValidationCard(it, loc)));
+
+  // Botón a Protocols: dos o más divergencias. Los grises NO cuentan — un dato
+  // que falta no es una divergencia. Sin tabla no hay tarjetas y por tanto
+  // tampoco botón, así que los turnos de pregunta quedan cubiertos solos.
+  const diverg = items.filter(it => it.status==='WARN' || it.status==='FAIL').length;
+  if(diverg >= 2) wrap.appendChild(buildProtocolsHandoffBtn());
+
   return wrap;
+}
+
+function buildValidationCard(it, loc){
+  const st  = it.status;
+  const sty = VR_STYLE[st] || VR_STYLE_NULL;
+  const icon = VR_ICON[st] || VR_ICON_NULL;
+  const badge = (st==='MISSING' || st==='NO_REF') ? loc[st].badge : (st || '—');
+  const note  = (st==='MISSING' || st==='NO_REF') ? loc[st].note  : '';
+
+  // El texto viene del agente: se pinta como TEXTO, nunca como markup.
+  const esc = s => String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const spray = vrSprayKind(it.param);
+  let paramHtml = esc(it.param);
+  let userHtml  = esc(it.user);
+  let refHtml   = esc(it.ref);
+  if(spray === 'water')      paramHtml = SVG_GOTA + ' ' + paramHtml;
+  else if(spray === 'air')   paramHtml = SVG_AIRE + ' ' + paramHtml;
+  else if(spray === 'both'){
+    const u = vrSpraySplit(it.user), r = vrSpraySplit(it.ref);
+    if(u) userHtml = `${SVG_GOTA} ${esc(loc.water)} ${esc(u[0])} <span style="opacity:.5;">·</span> ${SVG_AIRE} ${esc(loc.air)} ${esc(u[1])}`;
+    if(r) refHtml  = `${esc(loc.water)} ${esc(r[0])} · ${esc(loc.air)} ${esc(r[1])}`;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'vr-card';
+  card.dataset.vrStatus = st || 'UNKNOWN';
+  card.style.cssText = `background:var(--paper);border:1px solid var(--hairline);border-left:3px ${sty.edge} ${sty.edgeColor};border-radius:4px;padding:10px 12px;display:flex;align-items:center;gap:10px;`;
+  card.innerHTML = `
+      <div style="flex:1;min-width:0;">
+        <div class="vr-param" style="font:9px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin-bottom:3px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">${paramHtml}</div>
+        <div class="vr-value" style="font:13px/1.35 var(--mono);color:var(--navy);">
+          <span style="font-weight:700;color:${sty.accent};">${userHtml}</span>${refHtml?`<span style="color:var(--steel);font-size:11px;font-weight:400;"> &rarr; ${refHtml}</span>`:''}
+        </div>
+        ${note?`<div class="vr-note" style="font:10px/1.4 var(--sans);color:${sty.accent};margin-top:4px;">${esc(note)}</div>`:''}
+      </div>
+      <div class="vr-badge" style="display:flex;align-items:center;gap:5px;background:${sty.bg};color:${sty.accent};padding:4px 7px;border-radius:3px;font:9px/1 var(--mono);font-weight:700;letter-spacing:.1em;flex-shrink:0;">
+        ${icon}<span>${esc(badge)}</span>
+      </div>`;
+  return card;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DERIVACIÓN A PROTOCOLS
+// ───────────────────────────────────────────────────────────────────────────
+// Se decide y se pinta en el CLIENTE, contando tarjetas: ni campo nuevo del
+// servidor ni un solo nodo de n8n tocado. Parchear parámetros de uno en uno
+// construye el protocolo a trozos sin verlo entero nunca; a partir de dos
+// divergencias vale más ir al protocolo completo.
+// Rellena y SE DETIENE. No envía: enviar le gastaría un crédito al usuario sin
+// habérselo pedido, y lo que se rellena es una propuesta que tiene que revisar.
+// ═══════════════════════════════════════════════════════════════════════════
+const VR_PROTO_BTN = {
+  es:'Ver el protocolo completo',
+  en:'See the full protocol',
+  pt:'Ver o protocolo completo',
+  ja:'プロトコル全体を見る',
+  ko:'전체 프로토콜 보기'
+};
+
+function buildProtocolsHandoffBtn(){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'vr-proto-btn';
+  b.textContent = VR_PROTO_BTN[lang] || VR_PROTO_BTN.en;
+  b.onclick = goProtocolsFromValidation;
+  return b;
+}
+
+// Preselección pendiente que consume addProtocolSetup. Viaja por los
+// identificadores ESTABLES (`soft`, `perio`, … y el índice del sub), nunca por
+// la etiqueta: la etiqueta viaja traducida y no sobrevive un cambio de idioma.
+let pendingProtoPreset = null;
+
+function goProtocolsFromValidation(){
+  pendingProtoPreset = {
+    procIdStable: valState.procIdStable || null,
+    procSubIdx:   (valState.procSubIdx === null || valState.procSubIdx === undefined) ? null : valState.procSubIdx,
+    wavelength:   valState.wavelength || ''
+    // La PUNTA no se traspasa a propósito: Protocols no tiene ese campo y allá
+    // la punta la dicta el protocolo, no el usuario.
+  };
+  hist.protocols = [];
+  $('proMsgs').innerHTML = '';
+  goTab('protocols');
+}
+
+// La longitud de onda es un número suelto en Validate y un chip dentro de un
+// grupo en Protocols. 1064 queda FUERA a propósito: Protocols tiene TRES chips
+// de 1064 —free running pulse, diodo y Nd:YAG— y el chip de Validate no dice
+// cuál es. Preseleccionar el equivocado se leería como una afirmación del
+// sistema sobre el equipo del usuario, y eso pesa más que ahorrarle un toque.
+function vrWavelengthTarget(wl){
+  const m = String(wl == null ? '' : wl).replace(/[.,]/g,'').match(/\d{3,5}/);
+  if(!m) return null;
+  switch(parseInt(m[0],10)){
+    case 450:   return {group:'diodo', chip:'450'};
+    case 650:   return {group:'diodo', chip:'650pdt'};
+    case 810:   return {group:'diodo', chip:'810'};
+    case 940:   return {group:'diodo', chip:'940'};
+    case 980:   return {group:'diodo', chip:'980'};
+    case 2780:  return {group:'erbio', chip:'ercrysgg'};
+    case 2940:  return {group:'erbio', chip:'eryag'};
+    case 10600: return {group:'otros', chip:'co2'};
+    default:    return null;
+  }
+}
+
+// Se aplica pulsando los chips, no escribiendo en proState: así corre el mismo
+// código que si lo hubiera tocado el usuario —sub-chips, complemento de diodo,
+// canonEs/canonSubEs— y no queda un estado que la interfaz no refleje.
+function aplicarPresetProtocols(procRow, procSubRow, wrap){
+  const p = pendingProtoPreset;
+  if(!p) return;
+  const procs = PROTO.procedures[lang] || PROTO.procedures.en;
+  if(p.procIdStable){
+    const i = procs.findIndex(x => x.id === p.procIdStable);
+    const chip = i >= 0 ? procRow.querySelectorAll('.chip')[i] : null;
+    if(chip){
+      chip.click();
+      if(p.procSubIdx !== null){
+        const sub = procSubRow.querySelectorAll('.chip-sub')[p.procSubIdx];
+        if(sub) sub.click();
+      }
+    }
+  }
+  // Solo si el selector de equipo está VISIBLE. Protocols lo oculta cuando ya
+  // conoce el equipo —viene de Devices o hay equipos guardados—, y entonces no
+  // hay control que preseleccionar: meterlo a mano dejaría una selección que el
+  // usuario no puede ver ni corregir.
+  const equip = wrap.querySelector('.setup-equipment');
+  const dest  = equip ? vrWavelengthTarget(p.wavelength) : null;
+  if(dest){
+    const gi = PROTO.groups.findIndex(g => g.id === dest.group);
+    const grpDiv = gi >= 0 ? equip.querySelectorAll('.setup-equip-group')[gi] : null;
+    if(grpDiv){
+      const ci = PROTO.groups[gi].chips.findIndex(c => c.id === dest.chip);
+      const chip = ci >= 0 ? grpDiv.querySelectorAll('.chips .chip')[ci] : null;
+      if(chip) chip.click();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VISTA DE PRUEBA · los cinco estados y los dos vocabularios
+// ───────────────────────────────────────────────────────────────────────────
+//   https://ikably-cmyk.github.io/laserrx-chat/?vrdemo=1
+// Se abre en el teléfono y ya. No pinta tarjetas a mano: mete markdown por el
+// MISMO camino que una respuesta real —fmt() y postProcessTables()—, así que lo
+// que se ve es exactamente lo que verá un usuario, detección incluida.
+// Los emojis del vocabulario viejo van en escapes y no como carácter literal:
+// en esta app los emojis se COMPARAN, no se pintan, y un fixture con emoji
+// literal en el fuente rompería esa lectura para el que audite el fichero.
+const VR_DEMO_V4 = [
+  '**Demostración — vocabulario NUEVO (Validate v4)**',
+  '',
+  '| Parámetro | Tu valor | Referencia | Status |',
+  '|---|---|---|---|',
+  '| Potencia | 2.5 W | 1.0 W | FAIL |',
+  '| Frecuencia | 50 Hz | 10-20 Hz | WARN |',
+  '| Agua / Aire | 0% / 0% | 90% / 30% | MISSING |',
+  '| Modo de pulso | CW | \u2014 | NO_REF |',
+  '| Punta | 400 µm | 400 µm | OK |'
+].join('\n');
+
+const VR_DEMO_VIEJO = [
+  '**Demostración — vocabulario VIEJO (MindStudio), el que está en producción hoy**',
+  '',
+  '| Parámetro | Configuración del usuario | Referencia | Status |',
+  '|---|---|---|---|',
+  '| Potencia | 2.5 W | 1.0 W | \u274C |',
+  '| Frecuencia | 50 Hz | 10-20 Hz | \u26A0\uFE0F |',
+  '| Agua / Aire | No especificado | 0% / 0% | \u2014 |',
+  '| Punta | 400 µm | 400 µm | \u2705 |',
+  '| Modo de pulso | CW | CW | \u2705 |'
+].join('\n');
+
+// Va en una capa PROPIA por encima de todo, no dentro del chat de Validate.
+// Dos razones: la portada arranca con la captura de correo y el tour, y meter
+// la demo debajo obligaría a esconderlos —o sea, a abrir un agujero en la
+// puerta del producto desde un parámetro de URL—; y así la demo no toca ni el
+// historial ni el estado de ningún módulo. El pintado sí es el REAL: mismo
+// fmt() y mismo postProcessTables() que una respuesta del agente, dentro de una
+// burbuja .msg-ai igual que las de verdad.
+function mostrarDemoTarjetas(){
+  // ?vrdemo=1&lang=ja para revisar las etiquetas en otro idioma. Solo afecta al
+  // pintado de la capa: se restaura antes de salir y la app de debajo no se
+  // entera. Las cabeceras y los nombres de parámetro de la tabla se quedan en
+  // español a propósito: son el texto del AGENTE, que aquí es un decorado; lo
+  // que hay que revisar es lo que pinta el cliente —insignia, nota y botón—.
+  const idiomaPrevio = lang;
+  const pedido = (QS.get('lang')||'').trim();
+  if(['es','en','pt','ja','ko'].indexOf(pedido) !== -1) lang = pedido;
+  const capa = document.createElement('div');
+  capa.id = 'vrDemoOverlay';
+  capa.style.cssText = 'position:fixed;inset:0;z-index:10000;overflow:auto;background:var(--bg);padding:14px 12px 40px;';
+  const cab = document.createElement('div');
+  cab.style.cssText = 'font:9px/1.4 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--steel);margin-bottom:12px;';
+  cab.textContent = 'LaserRx · vista de prueba de las tarjetas · no es una consulta real';
+  capa.appendChild(cab);
+  [VR_DEMO_V4, VR_DEMO_VIEJO].forEach(md => {
+    const b = document.createElement('div');
+    b.className = 'msg msg-ai';
+    b.innerHTML = fmt(md);
+    postProcessTables(b);
+    postProcessCollapsible(b);
+    capa.appendChild(b);
+  });
+  document.body.appendChild(capa);
+  lang = idiomaPrevio;
 }
 
 function buildParamSummaryCards(headers, rows) {
@@ -3559,8 +3951,9 @@ function addValidateSetup(){
   // Iconos SVG, no emoji: cada sistema operativo dibuja el emoji distinto y el
   // de aire se lee como una rafaga o cosas peores segun la fuente. Mismo estilo
   // que las tarjetas de resultado: viewBox 24, currentColor, trazo cuadrado.
-  const SVG_GOTA='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 3 L18 11.5 A6.5 6.5 0 1 1 6 11.5 Z"/></svg>';
-  const SVG_AIRE='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 13h15a3 3 0 1 1-3 3"/><path d="M3 18h8"/></svg>';
+  // SVG_GOTA y SVG_AIRE viven ahora arriba, junto a las tarjetas de
+  // validación: son los MISMOS dos iconos en el formulario y en el veredicto,
+  // y tenerlos duplicados era la vía directa a que se separaran.
   [{key:'water',lbl:ui.waterOnlyLbl,cls:'spray-water',ph:'90',svg:SVG_GOTA},
    {key:'air',  lbl:ui.airOnlyLbl,  cls:'spray-air',  ph:'30',svg:SVG_AIRE}].forEach(({key,lbl,cls,ph,svg})=>{
     const d=document.createElement('div');d.className='validate-param-field '+cls;
@@ -3828,7 +4221,11 @@ procSubRow.classList.remove('hidden');if(!proc.subs.length){if(devPreselect==='e
     :null;
   const hideEquipment=devPreselect||savedDevices.length>0;
   if(!hideEquipment){const sep=document.createElement('div');sep.className='setup-separator';sep.innerHTML=`<div class="setup-separator-line"></div><span class="setup-separator-label">${ui.sepLabel}</span><div class="setup-separator-line"></div>`;wrap.appendChild(sep);const equipWrap=document.createElement('div');equipWrap.className='setup-equipment';PROTO.groups.forEach(grp=>{const grpLabel=typeof grp.label==='string'?grp.label:grp.label[lang]||grp.label.en;const noLabel=typeof grp.noLabel==='string'?grp.noLabel:grp.noLabel[lang]||grp.noLabel.en;const grpDiv=document.createElement('div');grpDiv.className='setup-equip-group';const lbl=document.createElement('div');lbl.className='setup-equip-label';lbl.textContent=[grp.icon,grpLabel].filter(Boolean).join(' ');grpDiv.appendChild(lbl);const chipRow=document.createElement('div');chipRow.className='chips';const subRow=document.createElement('div');subRow.className='sub-chips hidden';grp.chips.forEach(chip=>{const chipLabel=typeof chip.label==='string'?chip.label:chip.label[lang]||chip.label.en;const c=document.createElement('div');c.className='chip';c.textContent=chipLabel;c.onclick=()=>{if(c.classList.contains('sel')){c.classList.remove('sel');delete proState.selections[grp.id];delete proState.subs[grp.id];subRow.innerHTML='';subRow.classList.add('hidden');}else{chipRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.selections[grp.id]=chipLabel;delete proState.subs[grp.id];subRow.innerHTML='';if(chip.subs&&chip.subs.length){chip.subs.forEach(sub=>{const isOtherSub=['Other','Otro','Outro'].includes(sub);const s=document.createElement('div');s.className='chip chip-sub';s.textContent=isOtherSub?(lang==='es'?'Otro':lang==='pt'?'Outro':'Other'):sub;s.onclick=e=>{e.stopPropagation();subRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));s.classList.add('sel');proState.subs[grp.id]=s.textContent;};subRow.appendChild(s);});subRow.classList.remove('hidden');}}};chipRow.appendChild(c);});const noChip=document.createElement('div');noChip.className='chip chip-none';noChip.textContent=noLabel;noChip.onclick=()=>{chipRow.querySelectorAll('.chip').forEach(x=>x.classList.remove('sel'));noChip.classList.add('sel');proState.selections[grp.id]=noLabel;delete proState.subs[grp.id];subRow.innerHTML='';subRow.classList.add('hidden');};chipRow.appendChild(noChip);grpDiv.appendChild(chipRow);grpDiv.appendChild(subRow);const otherFld=document.createElement('input');otherFld.type='text';otherFld.className='chip-other-field';otherFld.placeholder=ui.otherPh;otherFld.style.marginTop='4px';otherFld.oninput=()=>{if(otherFld.value.trim())proState.selections[grp.id+'_note']=otherFld.value.trim();else delete proState.selections[grp.id+'_note'];};grpDiv.appendChild(otherFld);equipWrap.appendChild(grpDiv);});wrap.appendChild(equipWrap);}
-  const btn=document.createElement('button');btn.className='proto-send-btn';btn.textContent=ui.btn;btn.onclick=sendProtoSetup;wrap.appendChild(btn);msgs.appendChild(wrap);setTimeout(()=>{const c=$('content');c.scrollTop=0;},60);
+  const btn=document.createElement('button');btn.className='proto-send-btn';btn.textContent=ui.btn;btn.onclick=sendProtoSetup;wrap.appendChild(btn);msgs.appendChild(wrap);
+  // Preselección venida de Validate. Se consume UNA vez: si el usuario abre
+  // Protocols por su cuenta después, el formulario sale limpio.
+  if(pendingProtoPreset){ aplicarPresetProtocols(procRow, procSubRow, wrap); pendingProtoPreset=null; }
+  setTimeout(()=>{const c=$('content');c.scrollTop=0;},60);
 }
 
 function buildDiodeComplement(ui){const DIODE_WLS=['450 nm','650 nm (PDT)','810 nm','940 nm','980 nm','1064 nm frp','1064 nm (diodo)'];const wrap=document.createElement('div');wrap.style.cssText='background:var(--bg);border:1px solid var(--light);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;';const q=document.createElement('div');q.style.cssText="font-size:10px;font-family:'Space Mono',monospace;color:var(--navy);font-weight:700;line-height:1.4;";q.textContent=ui.diodeCmpQ;wrap.appendChild(q);const row=document.createElement('div');row.className='chips';DIODE_WLS.forEach(wl=>{const c=document.createElement('div');c.className='chip chip-sub';c.textContent=wl;c.onclick=e=>{e.stopPropagation();row.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');proState.selections['diode_cmp']=wl;};row.appendChild(c);});const noC=document.createElement('div');noC.className='chip chip-sub chip-none';noC.textContent=ui.noDiode;noC.onclick=e=>{e.stopPropagation();row.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));noC.classList.add('sel');proState.selections['diode_cmp']=ui.noDiode;};row.appendChild(noC);wrap.appendChild(row);return wrap;}
@@ -5629,6 +6026,10 @@ function addPbmUpsellCard(){
   scrollBot();
 }
 
+// El TÍTULO nombra el territorio, no la carencia. En un teléfono el título es
+// lo primero y a veces lo único que se lee, y "Módulo no incluido en PBM" era
+// la negación: describía al usuario por lo que le falta antes de decirle qué
+// hay al otro lado.
 function addPbmGatingCard(mod, data){
   const msgs = msgEl(mod);
   if(!msgs) return;
@@ -5636,34 +6037,34 @@ function addPbmGatingCard(mod, data){
   const opts = (data && data.upgrade_options) || {};
   const proLink   = isMX ? (opts.pro_mxn   || 'https://buy.stripe.com/6oU8wH9xl0Iyfaq5YXdIA0G')
                          : (opts.pro_usd   || 'https://buy.stripe.com/dRm3cngZNdvk6DU1IHdIA0D');
-  const eliteLink = isMX ? (opts.elite_mxn || 'https://buy.stripe.com/28E6oz38Xdvkgeu1IHdIA0H')
-                         : (opts.elite_usd || 'https://buy.stripe.com/bJe9ALbFt3UK2nEfzxdIA0E');
   const proPrice   = isMX ? '$149 MXN/mes' : '$9.99 USD/mo';
-  const elitePrice = isMX ? '$449 MXN/mes' : '$29.99 USD/mo';
   const t = {
-    en: { title:'Module not included in PBM', desc:'Your PBM standalone plan only covers the PBM module. Add Pro for the 4 clinical modules, or upgrade to Elite for unlimited access to all 5 modules including PBM.', proName:'Add Pro',   proDesc:'4 clinical modules · 100 queries/mo', eliteName:'Upgrade to Elite', eliteDesc:'All 5 modules · unlimited', cta:'Continue' },
-    es: { title:'Módulo no incluido en PBM', desc:'Tu plan PBM standalone solo cubre el módulo PBM. Agrega Pro para los 4 módulos clínicos, o actualiza a Elite para acceso ilimitado a los 5 módulos incluyendo PBM.', proName:'Agregar Pro', proDesc:'4 módulos clínicos · 100 consultas/mes', eliteName:'Actualizar a Elite', eliteDesc:'Los 5 módulos · ilimitado', cta:'Continuar' },
-    pt: { title:'Módulo não incluído no PBM', desc:'Seu plano PBM standalone cobre apenas o módulo PBM. Adicione Pro para os 4 módulos clínicos, ou atualize para Elite para acesso ilimitado aos 5 módulos incluindo PBM.', proName:'Adicionar Pro', proDesc:'4 módulos clínicos · 100 consultas/mês', eliteName:'Atualizar para Elite', eliteDesc:'Os 5 módulos · ilimitado', cta:'Continuar' },
-    ja: { title:'PBMに含まれないモジュール', desc:'PBM単独プランはPBMモジュールのみ対応です。4つの臨床モジュールを追加するにはProを、PBMを含む全5モジュールを無制限で使うにはEliteへアップグレード。', proName:'Proを追加', proDesc:'4つの臨床モジュール · 100クエリ/月', eliteName:'Eliteへアップグレード', eliteDesc:'全5モジュール · 無制限', cta:'続行' },
-    ko: { title:'PBM에 포함되지 않은 모듈', desc:'PBM 단독 플랜은 PBM 모듈만 포함합니다. 4개 임상 모듈을 추가하려면 Pro를, PBM 포함 5개 모듈 전체를 무제한 사용하려면 Elite로 업그레이드하세요.', proName:'Pro 추가', proDesc:'4개 임상 모듈 · 월 100건', eliteName:'Elite로 업그레이드', eliteDesc:'5개 모듈 전체 · 무제한', cta:'계속' }
+    en: { title:'Surgical laser protocols',    desc:'Your PBM standalone plan only covers the PBM module. Add Pro for the 4 clinical modules.', proName:'Add Pro',      proDesc:'4 clinical modules · 100 queries/mo',      cta:'Continue' },
+    es: { title:'Protocolos de láser quirúrgico', desc:'Tu plan PBM standalone solo cubre el módulo PBM. Agrega Pro para los 4 módulos clínicos.', proName:'Agregar Pro',  proDesc:'4 módulos clínicos · 100 consultas/mes',  cta:'Continuar' },
+    pt: { title:'Protocolos de laser cirúrgico', desc:'Seu plano PBM standalone cobre apenas o módulo PBM. Adicione Pro para os 4 módulos clínicos.', proName:'Adicionar Pro', proDesc:'4 módulos clínicos · 100 consultas/mês', cta:'Continuar' },
+    ja: { title:'外科用レーザーのプロトコル',      desc:'PBM単独プランはPBMモジュールのみ対応です。4つの臨床モジュールを追加するにはProをご利用ください。', proName:'Proを追加', proDesc:'4つの臨床モジュール · 100クエリ/月', cta:'続行' },
+    ko: { title:'외과용 레이저 프로토콜',          desc:'PBM 단독 플랜은 PBM 모듈만 포함합니다. 4개 임상 모듈을 추가하려면 Pro를 이용하세요.', proName:'Pro 추가', proDesc:'4개 임상 모듈 · 월 100건', cta:'계속' }
   }[lang] || null;
-  const tr = t || { title:'Module not included in PBM', desc:'Your PBM standalone plan only covers the PBM module. Add Pro for the 4 clinical modules, or upgrade to Elite for unlimited access to all 5 modules including PBM.', proName:'Add Pro', proDesc:'4 clinical modules · 100 queries/mo', eliteName:'Upgrade to Elite', eliteDesc:'All 5 modules · unlimited', cta:'Continue' };
+  const tr = t || { title:'Surgical laser protocols', desc:'Your PBM standalone plan only covers the PBM module. Add Pro for the 4 clinical modules.', proName:'Add Pro', proDesc:'4 clinical modules · 100 queries/mo', cta:'Continue' };
+  // El cuerpo lo escribe el servidor CUANDO lo escribe. El texto cableado sigue
+  // aquí para los otros tres módulos, que todavía no mandan `message`, y para
+  // cualquier 402 que llegue sin cuerpo.
+  const msg = (data && typeof data.message === 'string') ? data.message.trim() : '';
   const d = document.createElement('div');
   d.className = 'upgrade-card pbm-upsell';
-  d.innerHTML = `<div class="upg-title">${tr.title}</div>
-    <div class="upg-desc">${tr.desc}</div>
+  d.innerHTML = `<div class="upg-title"></div>
+    <div class="upg-desc"></div>
     <div class="upg-pbm-options">
       <div class="upg-pbm-opt">
         <div class="upg-pbm-opt-title">${tr.proName} · ${proPrice}</div>
         <div class="upg-pbm-opt-price">${tr.proDesc}</div>
         <a class="upg-pbm-opt-btn" href="${proLink}" target="_blank">${tr.cta} · ${tr.proName}</a>
       </div>
-      <div class="upg-pbm-opt">
-        <div class="upg-pbm-opt-title">${tr.eliteName} · ${elitePrice}</div>
-        <div class="upg-pbm-opt-price">${tr.eliteDesc}</div>
-        <a class="upg-pbm-opt-btn" href="${eliteLink}" target="_blank">${tr.cta} · ${tr.eliteName}</a>
-      </div>
     </div>`;
+  // textContent, no innerHTML: `message` viene del servidor y no se pinta como
+  // markup, igual que en addSessionExpiredCard.
+  d.querySelector('.upg-title').textContent = tr.title;
+  d.querySelector('.upg-desc').textContent  = msg || tr.desc;
   msgs.appendChild(d);
   scrollBot();
 }
@@ -6005,6 +6406,9 @@ applyLang();
 loadSavedDevices();
 if(MOD&&['devices','protocols','validate','calculator','pbm'].includes(MOD)){goTab(MOD);}
 else { updateBreadcrumb('home'); }
+// Vista de prueba de las tarjetas: ?vrdemo=1. Va DESPUÉS del arranque normal y
+// solo añade una capa encima, así que no cambia el arranque de nadie más.
+if(QS.get('vrdemo')==='1'){ mostrarDemoTarjetas(); }
 registerUser();
 
 // ─── TWEAKS SYSTEM ───
