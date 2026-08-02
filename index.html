@@ -2434,7 +2434,7 @@ const L = {
       tipChips:['200µm fiber','320µm fiber','400µm fiber','600µm fiber','800µm fiber','Radial tip','Other'],
       powerLbl:'Power (W)', freqLbl:'Frequency (Hz)',
       pulseLbl:'Pulse mode', waterLbl:'Water / Air (%)', waterOnlyLbl:'Water (%)', airOnlyLbl:'Air (%)',
-      pulsePh:'e.g. CW, H Mode, 60µs', waterPh:'e.g. 70% / 30%',
+      pulsePh:'e.g. CW, H Mode, 60µs', pulseLblEr:'Pulse width', pulsePhEr:'e.g. H Mode, VSP, 100 µs, 150 µs', pulseLblDi:'Pulse mode', pulsePhDi:'e.g. CW, pulsed', waterPh:'e.g. 70% / 30%',
       imgLbl:'Upload laser screen photo (optional)',
       imgPh:'Tap to upload a photo of your laser screen',
       imgHint:'This helps validate your exact settings',
@@ -2490,7 +2490,7 @@ const L = {
       tipChips:['Fibra 200µm','Fibra 320µm','Fibra 400µm','Fibra 600µm','Fibra 800µm','Punta radial','Otro'],
       powerLbl:'Potencia (W)', freqLbl:'Frecuencia (Hz)',
       pulseLbl:'Modo de pulso', waterLbl:'Agua / Aire (%)', waterOnlyLbl:'Agua (%)', airOnlyLbl:'Aire (%)',
-      pulsePh:'Ej: CW, H Mode, 60µs', waterPh:'Ej: 70% / 30%',
+      pulsePh:'Ej: CW, H Mode, 60µs', pulseLblEr:'Ancho de pulso', pulsePhEr:'Ej: H Mode, VSP, 100 µs, 150 µs', pulseLblDi:'Modo de pulso', pulsePhDi:'Ej: CW, pulsado', waterPh:'Ej: 70% / 30%',
       imgLbl:'Sube una foto de la pantalla del láser (opcional)',
       imgPh:'Toca para subir foto de tu pantalla',
       imgHint:'Ayuda a validar tus ajustes exactos',
@@ -2546,7 +2546,7 @@ const L = {
       tipChips:['Fibra 200µm','Fibra 320µm','Fibra 400µm','Fibra 600µm','Fibra 800µm','Ponta radial','Outro'],
       powerLbl:'Potência (W)', freqLbl:'Frequência (Hz)',
       pulseLbl:'Modo de pulso', waterLbl:'Água / Ar (%)', waterOnlyLbl:'Água (%)', airOnlyLbl:'Ar (%)',
-      pulsePh:'Ex: CW, H Mode, 60µs', waterPh:'Ex: 70% / 30%',
+      pulsePh:'Ex: CW, H Mode, 60µs', pulseLblEr:'Largura de pulso', pulsePhEr:'Ex: H Mode, VSP, 100 µs, 150 µs', pulseLblDi:'Modo de pulso', pulsePhDi:'Ex: CW, pulsado', waterPh:'Ex: 70% / 30%',
       imgLbl:'Envie foto da tela do laser (opcional)',
       imgPh:'Toque para enviar foto da tela',
       imgHint:'Ajuda a validar suas configurações exatas',
@@ -2602,7 +2602,7 @@ const L = {
       tipChips:['200µmファイバー','320µmファイバー','400µmファイバー','600µmファイバー','800µmファイバー','ラジアルチップ','その他'],
       powerLbl:'出力 (W)', freqLbl:'周波数 (Hz)',
       pulseLbl:'パルスモード', waterLbl:'水 / 空気 (%)', waterOnlyLbl:'水 (%)', airOnlyLbl:'空気 (%)',
-      pulsePh:'例: CW、H Mode、60µs', waterPh:'例: 70% / 30%',
+      pulsePh:'例: CW、H Mode、60µs', pulseLblEr:'パルス幅', pulsePhEr:'例: H Mode、VSP、100 µs、150 µs', pulseLblDi:'パルスモード', pulsePhDi:'例: CW、パルス', waterPh:'例: 70% / 30%',
       imgLbl:'レーザー画面の写真をアップロード（任意）',
       imgPh:'タップして写真をアップロード',
       imgHint:'正確な設定の検証に役立ちます',
@@ -2658,7 +2658,7 @@ const L = {
       tipChips:['200µm 파이버','320µm 파이버','400µm 파이버','600µm 파이버','800µm 파이버','방사형 팁','기타'],
       powerLbl:'출력 (W)', freqLbl:'주파수 (Hz)',
       pulseLbl:'펄스 모드', waterLbl:'물 / 공기 (%)', waterOnlyLbl:'물 (%)', airOnlyLbl:'공기 (%)',
-      pulsePh:'예: CW, H Mode, 60µs', waterPh:'예: 70% / 30%',
+      pulsePh:'예: CW, H Mode, 60µs', pulseLblEr:'펄스 폭', pulsePhEr:'예: H Mode, VSP, 100 µs, 150 µs', pulseLblDi:'펄스 모드', pulsePhDi:'예: CW, 펄스', waterPh:'예: 70% / 30%',
       imgLbl:'레이저 화면 사진 업로드 (선택사항)',
       imgPh:'탭하여 사진 업로드',
       imgHint:'정확한 설정 검증에 도움이 됩니다',
@@ -3492,7 +3492,7 @@ function addValidateSetup(){
     const c=document.createElement('div');c.className='chip chip-sub';c.textContent=wl;
     // Pre-select if matches My Devices wavelength
     if(devWl && (devWl.includes(wl.split(' ')[0]) || wl.includes(devWl.split(' ')[0]))) c.classList.add('sel');
-    c.onclick=e=>{e.stopPropagation();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.wavelength=wl;wlOther.value='';updateSprayVisibility();};
+    c.onclick=e=>{e.stopPropagation();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');valState.wavelength=wl;wlOther.value='';updateSprayVisibility();updatePulsoUI();};
     wlRow.appendChild(c);
   });
   wlSec.appendChild(wlRow);
@@ -3501,7 +3501,7 @@ function addValidateSetup(){
   wlOther.placeholder=lang2==='es'?'Ej: 980 nm, 2780 nm...':lang2==='pt'?'Ex: 980 nm, 2780 nm...':'e.g. 980 nm, 2780 nm...';
   wlOther.style.marginTop='6px';
   if(devWl && !wlChips.some(wl=>devWl.includes(wl.split(' ')[0])||wl.includes(devWl.split(' ')[0]))) wlOther.value=devWl;
-  wlOther.oninput=()=>{valState.wavelength=wlOther.value.trim();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));updateSprayVisibility();};
+  wlOther.oninput=()=>{valState.wavelength=wlOther.value.trim();wlRow.querySelectorAll('.chip-sub').forEach(x=>x.classList.remove('sel'));updateSprayVisibility();updatePulsoUI();};
   wlSec.appendChild(wlOther);
   wrap.appendChild(wlSec);
 
@@ -3548,8 +3548,8 @@ function addValidateSetup(){
   const paramGrid=document.createElement('div');paramGrid.className='validate-params-grid';
   [{key:'power',lbl:ui.powerLbl,ph:'e.g. 1.5'},{key:'freq',lbl:ui.freqLbl,ph:'e.g. 30'},{key:'pulse',lbl:ui.pulseLbl,ph:ui.pulsePh}].forEach(({key,lbl,ph})=>{
     const div=document.createElement('div');div.className='validate-param-field';
-    const l=document.createElement('div');l.className='validate-param-label';l.textContent=lbl;
-    const inp=document.createElement('input');inp.type='text';inp.className='validate-param-input';inp.placeholder=ph;inp.oninput=()=>{valState[key]=inp.value.trim();};
+    const l=document.createElement('div');l.className='validate-param-label';l.textContent=lbl;l.id='valLbl_'+key;
+    const inp=document.createElement('input');inp.type='text';inp.className='validate-param-input';inp.placeholder=ph;inp.id='valFld_'+key;inp.oninput=()=>{valState[key]=inp.value.trim();};
     div.appendChild(l);div.appendChild(inp);paramGrid.appendChild(div);
   });
   paramSec.appendChild(paramGrid);
@@ -3573,11 +3573,12 @@ function addValidateSetup(){
   paramSec.appendChild(sprayRow);
   wrap.appendChild(paramSec);
   updateSprayVisibility();
+  updatePulsoUI();
 
   // ── IMAGE UPLOAD ──
   const imgSec=document.createElement('div');imgSec.className='setup-section';
   const imgTitle=document.createElement('div');imgTitle.className='setup-section-title';imgTitle.textContent=ui.imgLbl;imgSec.appendChild(imgTitle);
-  const imgArea=document.createElement('div');imgArea.className='image-upload-area';imgArea.innerHTML=`<div class="image-upload-icon">📷</div><div class="image-upload-txt">${ui.imgPh}</div>`;
+  const imgArea=document.createElement('div');imgArea.className='image-upload-area';imgArea.innerHTML=`<div class="image-upload-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"><path d="M3 7h4l2-2h6l2 2h4v12H3z"/><circle cx="12" cy="13" r="3.5"/></svg></div><div class="image-upload-txt">${ui.imgPh}</div>`;
   const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='image/*';fileInput.capture='environment';fileInput.style.display='none';
   fileInput.onchange=async(e)=>{const file=e.target.files[0];if(!file)return;try{
     const b64=await new Promise((res,rej)=>{
@@ -3596,7 +3597,7 @@ function addValidateSetup(){
       img.onerror=()=>rej();
       img.src=url;
     });
-    valState.imageB64=b64;imgArea.classList.add('has-image');imgArea.querySelector('.image-upload-txt').textContent='✅ '+file.name;}catch{valState.imageB64='';}};
+    valState.imageB64=b64;imgArea.classList.add('has-image');imgArea.querySelector('.image-upload-txt').textContent=file.name;}catch{valState.imageB64='';}};
   imgArea.onclick=()=>fileInput.click();imgSec.appendChild(imgArea);imgSec.appendChild(fileInput);
   const imgHint=document.createElement('div');imgHint.style.cssText="font-size:10px;color:var(--steel);font-family:'Space Mono',monospace;font-style:italic;margin-top:3px;";imgHint.textContent=ui.imgHint;imgSec.appendChild(imgHint);wrap.appendChild(imgSec);
 
@@ -3659,6 +3660,35 @@ function sprayAplica(wl){
   if (n.every(x => SPRAY_SIN.indexOf(x) !== -1)) return false;
   return true;                               // mezcla o cifra desconocida: se muestra
 }
+// ── Etiqueta y ejemplo del campo de pulso, por familia ──────────────────────
+// "Modo de pulso" es cierto para diodo y falso para erbio. En erbio el usuario
+// declara un ANCHO, y lo nombra por su numero o por el nombre comercial: uno de
+// Fotona escribe VSP y uno de Biolase escribe H Mode, y las dos cosas nombran un
+// ancho concreto. Por eso el ejemplo mezcla las dos formas.
+// Los nombres comerciales NO se traducen.
+//
+// A DIFERENCIA de agua y aire, aqui NO se limpia el valor al cambiar de familia:
+// el campo sigue existiendo y borrar lo que el usuario escribio seria peor que
+// dejarlo. Solo cambian etiqueta y ejemplo.
+function familiaPulso(wl){
+  const t=String(wl==null?'':wl).trim();
+  if(!t) return 'gen';
+  const n=(t.match(/\d{3,4}/g)||[]).map(Number);
+  if(!n.length) return 'gen';                       // texto libre sin cifra
+  if(n.some(x=>x===2780||x===2940)) return 'er';
+  if(n.every(x=>[450,810,940,980].indexOf(x)!==-1)) return 'di';
+  return 'gen';                                     // 1064 y mezclas
+}
+function updatePulsoUI(){
+  const l=document.getElementById('valLbl_pulse'), f=document.getElementById('valFld_pulse');
+  if(!l||!f) return;
+  const ui=(L[lang]&&L[lang].val)||{};
+  const fam=familiaPulso(valState.wavelength);
+  if(fam==='er'){ l.textContent=ui.pulseLblEr||ui.pulseLbl; f.placeholder=ui.pulsePhEr||ui.pulsePh; }
+  else if(fam==='di'){ l.textContent=ui.pulseLblDi||ui.pulseLbl; f.placeholder=ui.pulsePhDi||ui.pulsePh; }
+  else { l.textContent=ui.pulseLbl; f.placeholder=ui.pulsePh; }
+}
+
 function updateSprayVisibility(){
   const row = document.getElementById('valSprayRow');
   if (!row) return;
