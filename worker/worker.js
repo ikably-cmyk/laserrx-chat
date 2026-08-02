@@ -385,6 +385,8 @@ async function pump(writer, {
     // La nota la compone hOq2KX1zxFjmFYak y SOLO ese workflow. Esto no compone
     // nada: pide y espera.
     let notaKB = null;
+    let kbPmids = '';
+    let kbHits = 0;
     const pedirNota = () => fetch(`${env.N8N_BASE}/internal-kbnote`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-internal-secret': env.N8N_INTERNAL_SECRET },
@@ -456,6 +458,12 @@ async function pump(writer, {
         // se pide ahora y se paga entera: es el caso raro, no el normal.
         if (!notaKB) notaKB = pedirNota();
         const n = await notaKB;
+        if (n) {
+          // Se guardan aunque no haya nota utilizable: un hueco registrado sin
+          // cita sigue siendo un dato útil.
+          kbPmids = String(n.pmids == null ? '' : n.pmids);
+          kbHits = Number(n.pubmed_hits) || 0;
+        }
         if (n && typeof n.nota === 'string' && n.nota.trim()) {
           suprimido = true;
           held = '';
@@ -517,6 +525,20 @@ async function pump(writer, {
             email: claims.sub, query: q, response: full.slice(0, 30000),
             lang: prep.lang || lang, kb_miss: kbMiss, router_empty: !!prep.router_empty,
             usage, request_id: prep.request_id || null,
+            // Instrumentación del hueco. Sin esto KB_Gaps solo se llenaba desde
+            // Validate y Protocols —el módulo con más tráfico— quedaba ciego.
+            // El gap_key se normaliza igual que en Validate (minúsculas,
+            // espacios colapsados, `procedimiento|longitud`) y la longitud de
+            // onda se reduce a su NÚMERO, para que las claves de los dos
+            // módulos se puedan comparar entre sí.
+            module: mod || 'protocols',
+            gap_key: kbMiss ? (
+              String(proc.procedure_es || proc.procedure_other || '').toLowerCase().replace(/\s+/g, ' ').trim()
+              + '|' +
+              ((String(proc.wavelength || '').replace(/[.,]/g, '').match(/\d{3,5}/) || [''])[0])
+            ) : '',
+            pmids: kbPmids,
+            pubmed_hits: kbHits,
           }),
         }).catch(() => {}),
       );
