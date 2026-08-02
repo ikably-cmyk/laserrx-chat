@@ -271,13 +271,25 @@ async function handleStream(request, env, ctx) {
     ? body.is_first_message
     : null;
   const mod = (body.module || '').toString().slice(0, 40) || null;
+  // Vocabulario canonico del cliente. `procedure_id` y `procedure_sub_id` son
+  // ESTABLES entre idiomas; `procedure_es` y `procedure_sub_es` son la etiqueta
+  // canonica en espaniol, para que n8n componga la consulta del router
+  // desacoplada del idioma del usuario. Ampliar esta lista blanca es lo unico
+  // que hace falta: sin esto el cliente los manda y aqui se pierden.
+  const S80 = (v) => (v === undefined || v === null) ? '' : String(v).slice(0, 80);
+  const proc = {
+    procedure_id: S80(body.procedure_id),
+    procedure_sub_id: S80(body.procedure_sub_id),
+    procedure_es: S80(body.procedure_es),
+    procedure_sub_es: S80(body.procedure_sub_es),
+  };
 
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
 
   // El SSE se abre YA. Todo lo que falle a partir de aquí viaja como frame.
   ctx.waitUntil(pump(writer, {
-    claims, q, lang, history, isFirstMessage, mod, env, ctx, key, st, now,
+    claims, q, lang, history, isFirstMessage, mod, proc, env, ctx, key, st, now,
   }));
 
   return new Response(readable, {
@@ -294,7 +306,7 @@ async function handleStream(request, env, ctx) {
 // ─────────────────────────────────────────── bucle de trabajo
 
 async function pump(writer, {
-  claims, q, lang, history, isFirstMessage, mod, env, ctx, key, st, now,
+  claims, q, lang, history, isFirstMessage, mod, proc, env, ctx, key, st, now,
 }) {
   const t0 = Date.now();
   const send = (ev, d) => writer.write(sse(ev, d));
@@ -316,6 +328,7 @@ async function pump(writer, {
       body: JSON.stringify({
         email: claims.sub, q, lang, cid: claims.cid,
         history, is_first_message: isFirstMessage, module: mod,
+        ...proc,
       }),
     });
     clearTimeout(tRoute); clearTimeout(tKb);
