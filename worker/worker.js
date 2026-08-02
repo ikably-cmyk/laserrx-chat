@@ -502,8 +502,25 @@ async function pump(writer, {
         } else if (ev.type === 'error') {
           await send('error', { code: 502, message: ev.error?.message || 'Error del modelo.' });
         }
+        if (suprimido) break;
       }
+      if (suprimido) break;
     }
+
+    // ── Se cortó el grifo: ya se emitió la nota y lo que el modelo siga
+    //    escribiendo no se va a pintar. Seguir leyendo para tirar dejaba la
+    //    burbuja en estado «escribiendo» ~38 s después de que el usuario ya
+    //    tuviera su texto, y encima pagando tokens de salida descartados.
+    //    Medido antes del cambio: nota a los 5,8 s, `done` a los 43,6 s.
+    //
+    //    El `done` de más abajo se envía igual, así que el cliente cierra
+    //    limpio y no ve un error. Y el finalize del `finally` tampoco se pierde:
+    //    va por ctx.waitUntil, que sobrevive al cierre de la respuesta.
+    //
+    //    CONSECUENCIA ACEPTADA: al cancelar no llega el `message_delta` final,
+    //    así que en estos turnos `output_tokens` queda incompleto. Es fiel a lo
+    //    que pasó —se canceló— y el turno no cobra crédito de todos modos.
+    if (suprimido) { try { await reader.cancel(); } catch {} }
     // Respuesta más corta que el marcador: decidir con lo que haya.
     if (!decided && held) { decided = true; full += held; await send('delta', { text: held }); }
 
