@@ -329,6 +329,7 @@ async function pump(writer, {
   // TODOS los turnos, tambien los normales.
   let kbPmids = '';
   let kbHits = 0;
+  let kbGapKey = '';
 
   try {
     // Etapas mapeadas al pre-stream real medido en producción (exec 4399, 8.89 s):
@@ -469,6 +470,14 @@ async function pump(writer, {
           // cita sigue siendo un dato útil.
           kbPmids = String(n.pmids == null ? '' : n.pmids);
           kbHits = Number(n.pubmed_hits) || 0;
+          // El gap_key llega YA compuesto desde el subworkflow, con la tabla
+          // inglesa de procedure_id. Aquí no se compone: si Protocols lo armara
+          // por su cuenta con procedure_es y Validate con el texto del marcador,
+          // el mismo hueco se contaría dos veces y el contador de demanda de la
+          // KB quedaría partido entre idiomas.
+          if (typeof n.gap_key === 'string' && n.gap_key.trim() && n.gap_key.trim() !== '|') {
+            kbGapKey = n.gap_key.trim();
+          }
         }
         if (n && typeof n.nota === 'string' && n.nota.trim()) {
           suprimido = true;
@@ -539,30 +548,40 @@ async function pump(writer, {
     // ── finalize SIEMPRE, incluso si el usuario cerró la pestaña. ctx.waitUntil
     //    mantiene viva la tarea tras cerrar la respuesta; sin esto se perderían
     //    consultas de Consultations y correos de KB miss en cada abandono.
+    // EL CUERPO SE COMPONE FUERA DEL waitUntil, con su propio try. Antes se
+    // componía dentro de la llamada, así que un error al componerlo se llevaba
+    // por delante la llamada entera: un `let` fuera de ámbito dejó 17 minutos
+    // sin una sola fila en Consultations, sin ruido de ninguna clase. Ahora un
+    // fallo al componer DEGRADA el registro en vez de borrarlo — se manda lo
+    // mínimo más el error, y queda a la vista en la propia fila.
     if (prep && !prep.error) {
+      let cuerpo;
+      try {
+        cuerpo = JSON.stringify({
+          email: claims.sub, query: q, response: full.slice(0, 30000),
+          lang: prep.lang || lang, kb_miss: kbMiss, router_empty: !!prep.router_empty,
+          usage, request_id: prep.request_id || null,
+          module: mod || 'protocols',
+          // Compuesto en el subworkflow, no aquí. Ver arriba.
+          gap_key: kbMiss ? kbGapKey : '',
+          pmids: kbPmids,
+          pubmed_hits: kbHits,
+        });
+      } catch (e) {
+        cuerpo = JSON.stringify({
+          email: (claims && claims.sub) || '',
+          query: String(q || '').slice(0, 4000),
+          response: '[finalize_error] ' + String(e).slice(0, 200),
+          lang: lang, kb_miss: false, router_empty: false,
+          usage: {}, request_id: null, module: mod || 'protocols',
+          gap_key: '', pmids: '', pubmed_hits: 0,
+        });
+      }
       ctx.waitUntil(
         fetch(`${env.N8N_BASE}/internal-finalize`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-internal-secret': env.N8N_INTERNAL_SECRET },
-          body: JSON.stringify({
-            email: claims.sub, query: q, response: full.slice(0, 30000),
-            lang: prep.lang || lang, kb_miss: kbMiss, router_empty: !!prep.router_empty,
-            usage, request_id: prep.request_id || null,
-            // Instrumentación del hueco. Sin esto KB_Gaps solo se llenaba desde
-            // Validate y Protocols —el módulo con más tráfico— quedaba ciego.
-            // El gap_key se normaliza igual que en Validate (minúsculas,
-            // espacios colapsados, `procedimiento|longitud`) y la longitud de
-            // onda se reduce a su NÚMERO, para que las claves de los dos
-            // módulos se puedan comparar entre sí.
-            module: mod || 'protocols',
-            gap_key: kbMiss ? (
-              String(proc.procedure_es || proc.procedure_other || '').toLowerCase().replace(/\s+/g, ' ').trim()
-              + '|' +
-              ((String(proc.wavelength || '').replace(/[.,]/g, '').match(/\d{3,5}/) || [''])[0])
-            ) : '',
-            pmids: kbPmids,
-            pubmed_hits: kbHits,
-          }),
+          body: cuerpo,
         }).catch(() => {}),
       );
     }
