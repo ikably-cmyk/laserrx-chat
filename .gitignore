@@ -1,0 +1,5 @@
+# Contexto de trabajo de Claude Code. LOCAL, nunca al repo: este repo es
+# publico y Pages sirve todo su contenido.
+CLAUDE.md
+CLAUDE.local.md
+.claude/
