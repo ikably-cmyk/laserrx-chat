@@ -4302,7 +4302,7 @@ function buildProtoMessage(){const ui=PROTO.ui[lang]||PROTO.ui.en;const parts=[]
 // ═══════════════════════════════════════════════════════════════════════════
 
 const STREAM_WORKER    = 'https://laserrx-stream.ikably.workers.dev';
-const STREAM_MODS      = ['protocols'];          // los otros tres NO se tocan
+const STREAM_MODS      = ['protocols','pbm'];    // los otros tres NO se tocan
 const STREAM_ALLOWLIST = ['ikably@gmail.com'];
 const STREAM_HIST_MAX  = 20;
 // Respaldo por temporizador cuando una etapa se queda quieta. `let` y no `const`
@@ -4543,8 +4543,44 @@ function addSessionExpiredCard(mod, message){
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Camino con streaming
+// ───────────────────────────────────────────────────────────────────────────
+// UNA maquinaria para los dos modulos que streamean. Lo que cambia entre ellos
+// esta AQUI y solo aqui: a donde cae el fallback, que campos extra lleva el
+// cuerpo, y como se cierra el turno. Duplicar los 300 de abajo por modulo
+// habria garantizado que se separaran a la primera correccion.
 // ═══════════════════════════════════════════════════════════════════════════
-function protoStream(msg, ctx){
+const STREAM_POR_MOD = {
+  protocols: {
+    legado: (msg, ctx) => protoLegacy(msg, ctx),
+    extras: () => ({
+      procedure_id: proState.procIdStable || '',
+      procedure_sub_id: (proState.procSubIdx===null||proState.procSubIdx===undefined) ? '' : String(proState.procSubIdx),
+      procedure_es: proState.procEs || '',
+      procedure_sub_es: proState.procSubEs || '',
+      procedure_other: proState.procOther || '',
+      wavelength: protoWavelength()
+    }),
+    cerrar: () => {
+      const diodoSel = proState.selections['diodo'] || '', erbioSel = proState.selections['erbio'] || '';
+      lastProtocol.laserType = erbioSel || diodoSel || '';
+      lastProtocol.procedure = proState.procId ? (proState.procSub ? `${proState.procId} → ${proState.procSub}` : proState.procId) : '';
+      lastProtocol.power = ''; lastProtocol.frequency = ''; lastProtocol.tipDiameter = '';
+      lastDeviceContext.active = false; lastDeviceContext.label = '';
+      addNextCard('protocols'); addChips('protocols');
+    }
+  },
+  pbm: {
+    legado: (msg, ctx) => pbmLegacy(msg, ctx),
+    // PBM no manda vocabulario de procedimiento: su consulta entera va en `q`.
+    extras: () => ({}),
+    // PBM cierra con SU tarjeta. addChips('pbm') caeria a los del Calculator
+    // por el `||` de esa funcion, y addNextCard no tiene entrada para pbm.
+    cerrar: () => { addPbmNewConsultationCard(); }
+  }
+};
+
+function modStream(mod, msg, ctx){
+  const CFG = STREAM_POR_MOD[mod] || STREAM_POR_MOD.protocols;
   let burbuja = null, acc = '', deltas = 0, eventos = 0, cerrado = false;
   let metaPlan = null, metaCredits, seguidor = null, etapaTimer = null;
 
@@ -4575,9 +4611,9 @@ function protoStream(msg, ctx){
   const marcarEtapa = (stage) => {
     marca('status:' + stage);
     const S = stageTxt();
-    if (S[stage]) setTypingStage('protocols', S[stage]);
+    if (S[stage]) setTypingStage(mod, S[stage]);
     pararEtapas();
-    etapaTimer = setTimeout(() => { setTypingStage('protocols', stageTxt().lento); }, STREAM_STAGE_SLOW_MS);
+    etapaTimer = setTimeout(() => { setTypingStage(mod, stageTxt().lento); }, STREAM_STAGE_SLOW_MS);
   };
 
   // ── Seguimiento de la cola. El texto crece sobre una burbuja que ya existe,
@@ -4612,8 +4648,8 @@ function protoStream(msg, ctx){
   // vista al fondo, que es de donde tiene que arrancar el seguimiento.
   const asegurarBurbuja = () => {
     if (!burbuja){
-      hideTyping('protocols');
-      burbuja = addAIBubble('protocols');
+      hideTyping(mod);
+      burbuja = addAIBubble(mod);
       seguidor = crearSeguidor();
     }
     return burbuja;
@@ -4625,27 +4661,27 @@ function protoStream(msg, ctx){
   const acabar = () => {
     pararEtapas();
     if (seguidor){ seguidor.soltar(); seguidor = null; }
-    if (burbuja) finishAI(burbuja, 'protocols');
+    if (burbuja) finishAI(burbuja, mod);
   };
 
   const errorGenerico = () => {
-    acabar(); hideTyping('protocols');
-    if (!burbuja) addAI('protocols', strTxt().conn);
+    acabar(); hideTyping(mod);
+    if (!burbuja) addAI(mod, strTxt().conn);
     done();
   };
 
   const sesionTerminada = () => {
-    acabar(); hideTyping('protocols');
+    acabar(); hideTyping(mod);
     const T = strTxt();
-    addStreamNoticeCard('protocols', T.endT, T.endM, T.endC, () => { try{ location.reload(); }catch(e){} });
+    addStreamNoticeCard(mod, T.endT, T.endM, T.endC, () => { try{ location.reload(); }catch(e){} });
     done();
   };
 
   const topeSesion = () => {
-    acabar(); hideTyping('protocols');
+    acabar(); hideTyping(mod);
     const T = strTxt();
-    addStreamNoticeCard('protocols', T.capT, T.capM, T.capC, () => {
-      showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
+    addStreamNoticeCard(mod, T.capT, T.capM, T.capC, () => {
+      showTyping(mod); busy = true; $('sendBtn').disabled = true;
       intentar(false);
     });
     done();
@@ -4658,7 +4694,7 @@ function protoStream(msg, ctx){
     pararEtapas();
     console.warn('[stream] fallback al camino no-streaming:', motivo);
     window.LRX_STREAM_FELL_BACK = motivo;
-    protoLegacy(msg, ctx);
+    CFG.legado(msg, ctx);
   };
 
   // REQUISITO 6 · lo que produccion ya hace tras responder y el beta no.
@@ -4668,18 +4704,14 @@ function protoStream(msg, ctx){
     // Si no llegó ni un delta, el informe no salió antes y es justo el caso que
     // más interesa medir: se fue todo el tiempo y no hubo texto.
     if (deltas === 0) informe('terminó sin texto');
-    acabar(); hideTyping('protocols');
+    acabar(); hideTyping(mod);
     const reply = (acc || '').trim();
-    if (!burbuja) addAI('protocols', reply || '—');
+    if (!burbuja) addAI(mod, reply || '—');
     if (truncado) console.warn('[stream] el flujo terminó sin evento done');
     if (metaPlan && metaCredits !== undefined) setPlanBar(metaPlan, metaCredits);
-    hist.protocols.push(`Assistant: ${reply || '—'}`);
-    const diodoSel = proState.selections['diodo'] || '', erbioSel = proState.selections['erbio'] || '';
-    lastProtocol.laserType = erbioSel || diodoSel || '';
-    lastProtocol.procedure = proState.procId ? (proState.procSub ? `${proState.procId} → ${proState.procSub}` : proState.procId) : '';
-    lastProtocol.power = ''; lastProtocol.frequency = ''; lastProtocol.tipDiameter = '';
-    lastDeviceContext.active = false; lastDeviceContext.label = '';
-    addNextCard('protocols'); addChips('protocols'); done();
+    hist[mod].push(`Assistant: ${reply || '—'}`);
+    CFG.cerrar();
+    done();
   };
 
   async function intentar(esReintento){
@@ -4690,8 +4722,8 @@ function protoStream(msg, ctx){
         const code = String((err && err.message) || '');
         // Estos dos NO caen al legado: son veredictos sobre la cuenta, y el
         // camino viejo devolvería lo mismo con otra cara.
-        if (code === 'not_a_member'){ hideTyping('protocols'); addAI('protocols', strTxt().conn); done(); return; }
-        if (code === 'plan_excluded'){ hideTyping('protocols'); addUpgradeCard('protocols'); done(); return; }
+        if (code === 'not_a_member'){ hideTyping(mod); addAI(mod, strTxt().conn); done(); return; }
+        if (code === 'plan_excluded'){ hideTyping(mod); addUpgradeCard(mod); done(); return; }
         return caerALegado('issue: ' + code);
       }
     }
@@ -4704,21 +4736,8 @@ function protoStream(msg, ctx){
         headers:{ authorization:'Bearer ' + strToken, 'content-type':'application/json' },
         body: JSON.stringify({
           q: msg, lang: lang, history: ctx.previos,
-          is_first_message: ctx.primero, module: 'protocols',
-          // Mismo vocabulario que protoLegacy. OJO: el Worker extrae una lista
-          // blanca explicita (q, lang, history, is_first_message, module) y
-          // descarta lo demas, asi que estos cuatro NO llegan a n8n hasta que
-          // worker.js los reenvie. Van aqui para que el cliente hable igual por
-          // las dos rutas y el dia que el Worker los pase no haya que tocar esto.
-          procedure_id: proState.procIdStable || '',
-          procedure_sub_id: (proState.procSubIdx===null||proState.procSubIdx===undefined) ? '' : String(proState.procSubIdx),
-          procedure_es: proState.procEs || '',
-          procedure_sub_es: proState.procSubEs || '',
-          // Chip "Otro": los cuatro identificadores van vacios a proposito y el
-          // procedimiento lo escribe el usuario. Sin este campo el servidor no
-          // tiene forma de saberlo salvo leyendo last_message.
-          procedure_other: proState.procOther || '',
-          wavelength: protoWavelength()
+          is_first_message: ctx.primero, module: mod,
+          ...CFG.extras(),
         })
       });
       marca(esReintento ? 'stream abierto (reintento)' : 'stream abierto');
@@ -4745,8 +4764,8 @@ function protoStream(msg, ctx){
     // El gating llega normalmente como evento SSE; por HTTP también se acepta.
     if (res.status === 402 || res.status === 403){
       const e = await res.json().catch(()=>({}));
-      acabar(); hideTyping('protocols');
-      if (res.status === 402) addPbmGatingCard('protocols', e); else addUpgradeCard('protocols');
+      acabar(); hideTyping(mod);
+      if (res.status === 402) addPbmGatingCard(mod, e); else addUpgradeCard(mod);
       done(); return;
     }
     if (!res.ok || !res.body){
@@ -4797,10 +4816,10 @@ function protoStream(msg, ctx){
           else if (ev === 'error'){
             // REQUISITO 4 · ruta 2
             try { await rd.cancel(); } catch(x){}
-            acabar(); hideTyping('protocols');
-            if (d.code === 402)      addPbmGatingCard('protocols', d);
-            else if (d.code === 403) addUpgradeCard('protocols');
-            else if (!burbuja)       addAI('protocols', d.message || strTxt().conn);
+            acabar(); hideTyping(mod);
+            if (d.code === 402)      addPbmGatingCard(mod, d);
+            else if (d.code === 403) addUpgradeCard(mod);
+            else if (!burbuja)       addAI(mod, d.message || strTxt().conn);
             done(); return;
           }
           else if (ev === 'done'){
@@ -4811,8 +4830,8 @@ function protoStream(msg, ctx){
       }
     } catch(e){
       // REQUISITO 4 · ruta 3 — el flujo se cortó a media respuesta.
-      acabar(); hideTyping('protocols');
-      if (!burbuja) addAI('protocols', strTxt().conn);
+      acabar(); hideTyping(mod);
+      if (!burbuja) addAI(mod, strTxt().conn);
       done(); console.error('[stream] lector', e); return;
     }
     // REQUISITO 4 · ruta 4 — el bucle terminó LIMPIAMENTE y sin evento 'done'.
@@ -4855,7 +4874,7 @@ function sendProtoSetup(){
   if (streamAllowed('protocols')){
     // sin el turno en curso: el contrato ya lo lleva aparte, en `q`
     ctx.previos = histToMessages(hist.protocols.slice(0,-1), STREAM_HIST_MAX);
-    protoStream(msg, ctx);
+    modStream('protocols', msg, ctx);
   } else {
     protoLegacy(msg, ctx);
   }
@@ -5054,7 +5073,7 @@ window.LRX_SSE_SIM = {
     const historyTxt = hist.protocols.slice(-12).join('\n');
     const previos    = histToMessages(hist.protocols.slice(0,-1), STREAM_HIST_MAX);
     showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
-    protoStream(msg, { previos: previos, historyTxt: historyTxt, primero: false });
+    modStream('protocols', msg, { previos: previos, historyTxt: historyTxt, primero: false });
     return 'corriendo ' + nombre + ' — mira LRX_STREAM_STATE()';
   },
 
@@ -6046,10 +6065,28 @@ function sendPbmSetup(){
   addUser('pbm', msg);
   hist.pbm.push(`User: ${msg}`);
 
-  const history = hist.pbm.slice(-12).join('\n');
+  const historyTxt = hist.pbm.slice(-12).join('\n');
   showTyping('pbm');
   busy = true; $('sendBtn').disabled = true;
 
+  // El tri-estado se resuelve UNA sola vez: isFirstMessage() muta
+  // sessionCreditUsed, asi que llamarlo dos veces convertiria el primer envio
+  // en follow-up y dejaria de cobrar.
+  const primero = isFirstMessage();
+  const ctx = { historyTxt: historyTxt, primero: primero };
+  if (streamAllowed('pbm')){
+    ctx.previos = histToMessages(hist.pbm.slice(0,-1), STREAM_HIST_MAX);
+    modStream('pbm', msg, ctx);
+  } else {
+    pbmLegacy(msg, ctx);
+  }
+}
+
+// Camino no-streaming de PBM. Sale del cuerpo de sendPbmSetup sin tocar una
+// coma para que el fallback del stream aterrice EXACTAMENTE donde aterrizaba
+// antes — y con el rescate de laserrx-recover detras, igual que hoy.
+function pbmLegacy(msg, ctx){
+  const history = ctx.historyTxt;
   fetch(HOOKS.pbm, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
@@ -6059,7 +6096,7 @@ function sendPbmSetup(){
       last_message: msg,
       history,
       language: lang,
-      is_first_message: isFirstMessage()
+      is_first_message: ctx.primero
     })
   })
   .then(res => {
@@ -6310,11 +6347,13 @@ function send(){
     clearDevPhoto();
   }const history=hist[mod].slice(-12).join('\n');
   showTyping(mod);busy=true;$('sendBtn').disabled=true;
-  // ── Follow-ups de Protocols por streaming. Mismo preámbulo que sendProtoSetup:
-  //    historyTxt CON el turno en curso (legado), previos SIN él (el contrato lo
-  //    lleva aparte en `q`). primero:false — el follow-up no cobra crédito.
-  if(mod==='protocols' && streamAllowed('protocols')){
-    protoStream(text,{previos:histToMessages(hist.protocols.slice(0,-1),STREAM_HIST_MAX),historyTxt:history,primero:false});
+  // ── Follow-ups por streaming, de CUALQUIER modulo que lo tenga permitido.
+  //    Mismo preámbulo que el primer envío: historyTxt CON el turno en curso
+  //    (legado), previos SIN él (el contrato lo lleva aparte en `q`).
+  //    primero:false — el follow-up NO cobra crédito, y de eso depende que PBM
+  //    no empiece a cobrar dos veces por conversación.
+  if(streamAllowed(mod)){
+    modStream(mod,text,{previos:histToMessages(hist[mod].slice(0,-1),STREAM_HIST_MAX),historyTxt:history,primero:false});
     return;
   }
   fetch(HOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:text,history,language:lang,is_first_message:false})})

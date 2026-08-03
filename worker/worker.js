@@ -341,7 +341,15 @@ async function pump(writer, {
     // PBM tiene su PROPIO preparador: su KB se carga entera desde Drive —no
     // hay router— y sus gates de plan son otros (Pro excluido, PBM y Elite
     // dentro). El resto de módulos sigue en el compartido.
-    const rutaPrepare = (mod === 'pbm') ? 'internal-prepare-pbm' : 'internal-prepare';
+    //
+    // Se normaliza ANTES de comparar. Con la comparación cruda, un 'PBM' o un
+    // 'pbm ' se iban al preparador de Protocols y devolvían la respuesta
+    // equivocada EN SILENCIO: hay payload, hay stream, hay respuesta — solo que
+    // construida con la KB que no era. Un fallo así no se ve, se sufre.
+    // Solo se normaliza para ELEGIR RUTA: a n8n sigue viajando `mod` tal cual,
+    // porque sus nodos ya tienen sus propios defaults sobre ese valor.
+    const modRuta = String(mod || '').trim().toLowerCase();
+    const rutaPrepare = (modRuta === 'pbm') ? 'internal-prepare-pbm' : 'internal-prepare';
     const r = await fetch(`${env.N8N_BASE}/${rutaPrepare}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-internal-secret': env.N8N_INTERNAL_SECRET },
