@@ -4151,7 +4151,7 @@ function sendValidateSetup(){
   fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||'',procedure_id:valState.procIdStable||'',procedure_sub_id:(valState.procSubIdx===null||valState.procSubIdx===undefined)?'':String(valState.procSubIdx),procedure_es:valState.procEs||'',procedure_sub_es:valState.procSubEs||'',procedure_other:valState.procOther||'',wavelength:valState.wavelength||'',tip:valState.tip||'',power:valState.power||'',freq:valState.freq||'',pulse:valState.pulse||'',water:valState.water||'',air:valState.air||'',notes:valState.notes||''})})
   .then(res=>{if(res.status===401){hideTyping('validate');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('validate',d&&d.message);done();return null;});}if(res.status===402){hideTyping('validate');return res.json().then(d=>{addPbmGatingCard('validate',d);done();return null;});}if(res.status===403){hideTyping('validate');addUpgradeCard('validate');done();return null;}return res.json();})
   .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
-  .catch(err=>{hideTyping('validate');addAI('validate',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
+  .catch(async err=>{console.error(err);if(await tryRecover('validate',msg))return;hideTyping('validate');addAI('validate',strTxt().conn);done();});
 }
 
 // ── PROTOCOL SETUP DATA ──
@@ -4391,6 +4391,57 @@ async function strRenew(){
   strToken = j.token;
   strScheduleRenew();
   return strToken;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RED DE SEGURIDAD DE RECUPERACIÓN
+// ───────────────────────────────────────────────────────────────────────────
+// Una respuesta tarda 20-50 s, la conexión móvil se cae y el fetch rechaza —
+// pero el servidor YA generó la respuesta y la guardó. Sin esto el usuario ve
+// "Error de conexión", pierde el turno y el crédito ya se cobró.
+//
+// El guardado ocurre DESPUÉS de responder al cliente, así que el primer intento
+// espera 2 s. Tres en total, 3 s entre ellos: cubre el caso normal sin castigar
+// con quince segundos de espera a quien de verdad no tiene nada que recuperar.
+//
+// El indicador de "escribiendo" NO se retira antes de intentarlo: mientras se
+// recupera, lo honesto es que siga pareciendo que la respuesta viene en camino.
+// Y `done()` tampoco se llama hasta el final, así que el botón sigue bloqueado
+// y el usuario no puede lanzar un segundo turno encima del que se está
+// rescatando.
+const RECOVER_URL = 'https://laserai.app.n8n.cloud/webhook/laserrx-recover';
+const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function tryRecover(mod, lastMessage){
+  // Sin k no hay identidad que el servidor pueda resolver: devolvería
+  // found:false igual, así que se ahorran tres viajes y ocho segundos.
+  if(!K) return false;
+  for(let intento = 0; intento < 3; intento++){
+    await esperar(intento === 0 ? 2000 : 3000);
+    let d = null;
+    try {
+      const res = await fetch(RECOVER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...K_FIELD, last_message: lastMessage }),
+      });
+      d = await res.json();
+    } catch(e) { d = null; }   // la red sigue caída: se reintenta, no se aborta
+    if(d && d.found === true){
+      const reply = d.response || '—';
+      hideTyping(mod);
+      if(d.plan && d.credits !== undefined) setPlanBar(d.plan, d.credits);
+      hist[mod].push(`Assistant: ${reply}`);
+      addAI(mod, reply);
+      // PBM cierra con su propia tarjeta y no usa ni la de "siguiente" ni los
+      // chips: addChips('pbm') caería a los del Calculator.
+      if(mod === 'pbm') addPbmNewConsultationCard();
+      else { addNextCard(mod); addChips(mod); }
+      done();
+      return true;
+    }
+  }
+  return false;
 }
 
 // ── Textos. `conn` es palabra por palabra el del catch de hoy, extendido a
@@ -5088,7 +5139,7 @@ function sendDeviceSetup(){
   const isProtocolsRedirect=clinicalProtocolNeeds.includes(devState.need);
   if(isProtocolsRedirect){let label=devState.type||'';if(devState.brand)label+=` — ${devState.brand}`;if(devState.model&&devState.model!=='Other')label+=` ${devState.model}`;if(devState.wl)label+=` (${devState.wl})`;lastDeviceContext.label=label;lastDeviceContext.active=true;hist.protocols=[];$('proMsgs').innerHTML='';goTab('protocols');return;}
   const msg=buildDeviceMessage();if(!msg.trim()&&!devImageB64)return;removeChips('devices');addUser('devices',devImageB64?msg+'\n[Device photo attached]':msg);if(devImageB64)setTimeout(clearDevPhoto,200);hist.devices.push(`User: ${msg}`);const history=hist.devices.slice(-12).join('\n');showTyping('devices');busy=true;$('sendBtn').disabled=true;
-  fetch(devImageB64?HOOKS.devices_photo:HOOKS.devices,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:devImageB64||''})}).then(res=>{if(res.status===401){hideTyping('devices');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('devices',d&&d.message);done();return null;});}if(res.status===402){hideTyping('devices');return res.json().then(d=>{addPbmGatingCard('devices',d);done();return null;});}if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('devices');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.devices.push(`Assistant: ${reply}`);addAI('devices',reply);addNextCard('devices');addChips('devices');done();}).catch(err=>{hideTyping('devices');addAI('devices',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});
+  fetch(devImageB64?HOOKS.devices_photo:HOOKS.devices,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:devImageB64||''})}).then(res=>{if(res.status===401){hideTyping('devices');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('devices',d&&d.message);done();return null;});}if(res.status===402){hideTyping('devices');return res.json().then(d=>{addPbmGatingCard('devices',d);done();return null;});}if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('devices');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.devices.push(`Assistant: ${reply}`);addAI('devices',reply);addNextCard('devices');addChips('devices');done();}).catch(async err=>{console.error(err);if(await tryRecover('devices',msg))return;hideTyping('devices');addAI('devices',strTxt().conn);done();});
 }
 
 const lastProtocol={laserType:'',power:'',frequency:'',tipDiameter:'',procedure:''};
@@ -5252,7 +5303,7 @@ function addCalculatorForm(){
 
 function buildCalcMessage(){const parts=[];if(calFields.laserType?.value)parts.push(`Laser type: ${calFields.laserType.value}`);if(calFields.power?.value)parts.push(`Power: ${calFields.power.value} W`);if(calFields.frequency?.value)parts.push(`Frequency: ${calFields.frequency.value} Hz`);if(calFields.tipDiameter?.value)parts.push(`Tip diameter: ${calFields.tipDiameter.value} µm`);if(calFields.pulseWidth?.value)parts.push(`Pulse width: ${calFields.pulseWidth.value} µs`);if(calFields.exposureTime?.value)parts.push(`Exposure time: ${calFields.exposureTime.value} s`);if(calFields.context?.value)parts.push(`Context: ${calFields.context.value}`);const devCtx=buildMyDevicesContext();if(devCtx)parts.push(devCtx);return parts.join('. ');}
 
-function sendCalculatorForm(){const msg=buildCalcMessage();if(!msg.trim())return;removeChips('calculator');addUser('calculator',msg);hist.calculator.push(`User: ${msg}`);const history=hist.calculator.slice(-12).join('\n');showTyping('calculator');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.calculator,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===401){hideTyping('calculator');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('calculator',d&&d.message);done();return null;});}if(res.status===402){hideTyping('calculator');return res.json().then(d=>{addPbmGatingCard('calculator',d);done();return null;});}if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('calculator');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.calculator.push(`Assistant: ${reply}`);addAI('calculator',reply);addNextCard('calculator');addChips('calculator');done();}).catch(err=>{hideTyping('calculator');addAI('calculator',lang==='es'?'Error de conexión. Intenta de nuevo.':'Connection error. Please try again.');done();console.error(err);});}
+function sendCalculatorForm(){const msg=buildCalcMessage();if(!msg.trim())return;removeChips('calculator');addUser('calculator',msg);hist.calculator.push(`User: ${msg}`);const history=hist.calculator.slice(-12).join('\n');showTyping('calculator');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.calculator,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===401){hideTyping('calculator');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('calculator',d&&d.message);done();return null;});}if(res.status===402){hideTyping('calculator');return res.json().then(d=>{addPbmGatingCard('calculator',d);done();return null;});}if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('calculator');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.calculator.push(`Assistant: ${reply}`);addAI('calculator',reply);addNextCard('calculator');addChips('calculator');done();}).catch(async err=>{console.error(err);if(await tryRecover('calculator',msg))return;hideTyping('calculator');addAI('calculator',strTxt().conn);done();});}
 
 // ─── PBM (Module 05) ────────────────────────────────────────────────────
 const PBM_TIPS = {
@@ -6031,12 +6082,11 @@ function sendPbmSetup(){
     addPbmNewConsultationCard();
     done();
   })
-  .catch(err => {
+  .catch(async err => {
+    console.error(err);
+    if(await tryRecover('pbm', msg)) return;
     hideTyping('pbm');
-    const errMsg = lang==='es' ? 'Error de conexión. Intenta de nuevo.' :
-                   lang==='pt' ? 'Erro de conexão. Tente novamente.' :
-                                 'Connection error. Please try again.';
-    addAI('pbm', errMsg); done(); console.error(err);
+    addAI('pbm', strTxt().conn); done();
   });
 }
 
@@ -6270,7 +6320,7 @@ function send(){
   fetch(HOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:text,history,language:lang,is_first_message:false})})
   .then(res=>{if(res.status===401){hideTyping(mod);return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard(mod,d&&d.message);done();return null;});}if(res.status===402){hideTyping(mod);return res.json().then(d=>{addPbmGatingCard(mod,d);done();return null;});}if(res.status===403){hideTyping(mod);addUpgradeCard(mod);done();return null;}return res.json();})
   .then(data=>{if(!data)return;hideTyping(mod);const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist[mod].push(`Assistant: ${reply}`);addAI(mod,reply);addNextCard(mod);addChips(mod);done();})
-  .catch(err=>{hideTyping(mod);const errMsg=lang==='es'?'Error de conexión. Intenta de nuevo.':lang==='pt'?'Erro de conexão. Tente novamente.':'Connection error. Please try again.';addAI(mod,errMsg);done();console.error(err);});
+  .catch(async err=>{console.error(err);if(await tryRecover(mod,text))return;hideTyping(mod);addAI(mod,strTxt().conn);done();});
 }
 function done(){busy=false;$('sendBtn').disabled=false;if($('chatCameraBtn'))$('chatCameraBtn').classList.remove('active');}
 function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
