@@ -338,7 +338,11 @@ async function pump(writer, {
     const tRoute = setTimeout(() => send('status', { stage: 'routing' }), 4000);
     const tKb = setTimeout(() => send('status', { stage: 'loading_kb' }), 7000);
 
-    const r = await fetch(`${env.N8N_BASE}/internal-prepare`, {
+    // PBM tiene su PROPIO preparador: su KB se carga entera desde Drive —no
+    // hay router— y sus gates de plan son otros (Pro excluido, PBM y Elite
+    // dentro). El resto de módulos sigue en el compartido.
+    const rutaPrepare = (mod === 'pbm') ? 'internal-prepare-pbm' : 'internal-prepare';
+    const r = await fetch(`${env.N8N_BASE}/${rutaPrepare}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-internal-secret': env.N8N_INTERNAL_SECRET },
       body: JSON.stringify({
@@ -353,7 +357,19 @@ async function pump(writer, {
       await send('error', { code: 502, message: 'Fallo preparando la consulta.' });
       return;
     }
-    prep = await r.json();
+
+    // n8n puede devolver 200 con el cuerpo VACÍO cuando un Code node lanza: la
+    // ejecución figura como error en el panel pero el HTTP sale 200 y sin bytes.
+    // Medido en el prepare de PBM (ejecuciones 5868 y 5869): sin la cabecera del
+    // secreto, 200 con 0 bytes. Un r.json() directo revienta ahí, la excepción
+    // cae al catch de abajo y el usuario recibe un mensaje genérico en vez del
+    // frame que le corresponde. Se lee como TEXTO y se decide después.
+    const crudoPrep = await r.text();
+    try { prep = JSON.parse(crudoPrep); } catch { prep = null; }
+    if (!prep || typeof prep !== 'object') {
+      await send('error', { code: 502, message: 'Fallo preparando la consulta.' });
+      return;
+    }
 
     // Errores de negocio: el SSE ya está abierto, así que van como frame.
     if (prep.error) {
