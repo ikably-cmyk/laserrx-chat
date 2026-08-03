@@ -2375,8 +2375,11 @@ let STREAM_URL_OVERRIDE = null;
   // pestana, o habria que volver a entrar con la URL cada vez. Es lo contrario que
   // k, que muere con la pestana a proposito porque es una identidad.
   try {
-    if (v === '1') localStorage.setItem('lrx_stream', '1');
-    else           localStorage.removeItem('lrx_stream');
+    // 3-ago-2026: el streaming pasa a estar ENCENDIDO por defecto. Por eso
+    // stream=0 ahora GUARDA un '0' en vez de borrar la clave: borrarla
+    // significaba "sin preferencia", y sin preferencia ahora se enciende,
+    // asi que quien intentara apagarlo lo tendria prendido otra vez.
+    localStorage.setItem('lrx_stream', v === '1' ? '1' : '0');
   } catch(e) {}
 
   // Respaldo en memoria: dentro de un iframe de terceros Safari puede negar el
@@ -4303,29 +4306,32 @@ function buildProtoMessage(){const ui=PROTO.ui[lang]||PROTO.ui.en;const parts=[]
 
 const STREAM_WORKER    = 'https://laserrx-stream.ikably.workers.dev';
 const STREAM_MODS      = ['protocols','pbm'];    // los otros tres NO se tocan
-const STREAM_ALLOWLIST = ['ikably@gmail.com'];
 const STREAM_HIST_MAX  = 20;
 // Respaldo por temporizador cuando una etapa se queda quieta. `let` y no `const`
 // a proposito: bajarlo desde consola es la unica forma de ver el texto de
 // respaldo sin esperar 12 s de reloj.
 let STREAM_STAGE_SLOW_MS = 12000;
 
-// ── Flag. Apagado por defecto. Tres condiciones, todas necesarias:
-//    módulo permitido · Row ID presente (/issue lo cambia por token) · flag on
-//    y correo en la lista. window.LRX_STREAM_FORCE lo fuerza desde consola.
+// ── Flag. ENCENDIDO por defecto desde el 3-ago-2026. Antes estaba apagado y
+//    ademas exigia que el correo estuviera en STREAM_ALLOWLIST, que tenia un
+//    solo elemento. Esa lista se elimina: el streaming no es un adorno, es lo
+//    que evita que la conexion pase 20-55 s callada y se caiga, que era la
+//    causa del "Error de conexion" del 2-ago. Dejarlo restringido dejaba a
+//    todos los demas expuestos a ese fallo.
+//    Dos condiciones necesarias: modulo permitido y Row ID presente.
+//    Se apaga con ?stream=0 (queda guardado en ESE dispositivo) o desde
+//    consola con window.LRX_STREAM_FORCE = false.
 function streamAllowed(mod){
   if (STREAM_MODS.indexOf(mod) === -1) return false;
   if (!K) return false;
   if (window.LRX_STREAM_FORCE === true)  return true;
   if (window.LRX_STREAM_FORCE === false) return false;
-  let on = false;
-  try { on = localStorage.getItem('lrx_stream') === '1'; } catch(e){}
+  let on = true;
+  try { on = localStorage.getItem('lrx_stream') !== '0'; } catch(e){}
   // Lo que dijo la URL de ESTA carga manda: es lo único que funciona cuando el
   // navegador niega el almacenamiento dentro del iframe.
   if (STREAM_URL_OVERRIDE !== null) on = STREAM_URL_OVERRIDE;
-  if (!on) return false;
-  const quien = String(DISPLAY_EMAIL || EMAIL || '').trim().toLowerCase();
-  return STREAM_ALLOWLIST.indexOf(quien) !== -1;
+  return on;
 }
 
 // ── hist.* guarda 'User: …' / 'Assistant: …' en un elemento por turno. El
