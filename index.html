@@ -4321,6 +4321,13 @@ let STREAM_STAGE_SLOW_MS = 12000;
 //    Dos condiciones necesarias: modulo permitido y Row ID presente.
 //    Se apaga con ?stream=0 (queda guardado en ESE dispositivo) o desde
 //    consola con window.LRX_STREAM_FORCE = false.
+//
+//    REVERSA, si hay que apagarlo para todos: se cambia la LECTURA, no el
+//    inicializador. Es decir `let on = false;` Y `getItem('lrx_stream') === '1'`.
+//    Tocar solo el inicializador NO apaga nada: la linea de abajo lo pisa salvo
+//    que localStorage lance, y sin clave `!== '0'` ya vale true. Medido sobre
+//    doce casos: cambiar solo el inicializador altera UNO, el del iframe con
+//    almacenamiento denegado, y deja encendido a todo el mundo real.
 function streamAllowed(mod){
   if (STREAM_MODS.indexOf(mod) === -1) return false;
   if (!K) return false;
