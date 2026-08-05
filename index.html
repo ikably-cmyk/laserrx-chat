@@ -5569,11 +5569,16 @@ function renderAcademyCatalog(){
 function openAcademyLesson(id){
   // Navigate to the lesson; free opens, paid-with-access opens, paid-without
   // hits the 402 lock inside lesson.html. plan/email are UX only.
+  // Identity travels as the Glide Row ID in the hash (#k=<rowid>). email is the
+  // legacy path (old ?email= entry) and still goes when present. If we have
+  // neither, don't navigate: sending someone who merely lost identity to the
+  // buy screen is worse than doing nothing.
+  if(!K && !EMAIL) return;
   var u = new URLSearchParams();
   u.set('lesson', id);
   if(EMAIL) u.set('email', EMAIL);
   u.set('plan', window.LRX_PLAN || 'Free');
-  window.location.href = ACADEMY_BASE + '?' + u.toString();
+  window.location.href = ACADEMY_BASE + '?' + u.toString() + (K ? '#k=' + encodeURIComponent(K) : '');
 }
 
 function applyPbmTileGating(plan){
