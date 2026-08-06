@@ -3637,6 +3637,38 @@ function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeig
 // significa "todavía no lo sé", y la barra lo pinta como raya, no como saldo.
 window.LRX_CREDITS = { main: undefined, pbm: undefined };
 
+// Glide manda los booleanos como true o como cadena vacía, no como false.
+function lrxTruthy(v){
+  if(v === true) return true;
+  const s = String(v==null?'':v).trim().toLowerCase();
+  return s==='true' || s==='1' || s==='yes' || s==='si' || s==='sí';
+}
+
+// Siembra la bolsa de PBM con lo que trae laserrx-register, para que la barra
+// no entre con raya a quien ya tiene saldo.
+//
+// La bolsa propia es la del ADD-ON, y `pbm_access` es quien dice si existe.
+// Elite e Institutional traen PBM por plan y entran con pbm_access vacío y
+// pbm_credits 0 — sembrar ese 0 le pintaría "0 créditos restantes" a quien
+// tiene acceso de sobra. Así que el 0 del plan no se siembra: se deja en
+// desconocido y lo fija la primera respuesta real de PBM, que sí sabe.
+//
+// Sin add-on y sin plan que lo traiga, no hay bolsa: LRX_HAS_PBM queda en
+// false y la barra sigue sin cifra en PBM. Esto NO es el candado — el candado
+// de verdad es el 402 del backend, igual que con LRX_ACADEMY.
+function seedPbmFromRegister(data){
+  const plan = String((data && data.plan) || '').toLowerCase();
+  const planTraePbm = (plan === 'elite' || plan === 'institutional');
+  const addon = lrxTruthy(data && data.pbm_access);
+  window.LRX_HAS_PBM = addon || planTraePbm;
+  if(!addon) return;
+  const raw = data && data.pbm_credits;
+  const n = Number(raw);
+  if(raw===null || raw===undefined || raw==='' || !isFinite(n)) return;
+  window.LRX_CREDITS.pbm = n;
+  renderCreditsTxt();
+}
+
 // A qué bolsa pertenece el saldo que acaba de llegar.
 // El backend la nombra en `credits_bucket` — pero SOLO el n8n de PBM, y solo
 // en su respuesta no-stream: el worker de streaming arma su evento `meta` con
@@ -6552,6 +6584,7 @@ function registerUser(){
       }
       if(data && data.plan && data.credits!==undefined){
         setPlanBar(data.plan, data.credits, 'main');
+        seedPbmFromRegister(data);
         if(data.country) window.LRX_COUNTRY = data.country;
         // Blindaje B: academy_access (true | "") drives ONLY the cosmetic Academy
         // catalog badge. The real paid-lesson gate is the 402 the content endpoint
