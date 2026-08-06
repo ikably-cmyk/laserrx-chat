@@ -3631,16 +3631,52 @@ function isFirstMessage(){if(sessionCreditUsed)return false;sessionCreditUsed=tr
 function scrollToMsg(el){setTimeout(()=>{el.scrollIntoView({block:'start',behavior:'auto'});},80);}
 function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,96)+'px';}
 
-function setPlanBar(plan,credits){
+// ─── DOS bolsas de créditos, independientes y sin mezcla ───────────────────
+// PBM dejó de ser plan y es add-on: un mismo usuario puede tener 94 en la
+// bolsa principal y 100 en la de PBM al mismo tiempo. `undefined` no es cero:
+// significa "todavía no lo sé", y la barra lo pinta como raya, no como saldo.
+window.LRX_CREDITS = { main: undefined, pbm: undefined };
+
+// A qué bolsa pertenece el saldo que acaba de llegar.
+// El backend la nombra en `credits_bucket` — pero SOLO el n8n de PBM, y solo
+// en su respuesta no-stream: el worker de streaming arma su evento `meta` con
+// plan y credits nada más (worker.js, send('meta', …)), y PBM streamea por
+// defecto. Sin el segundo criterio —el módulo desde el que se preguntó— el
+// saldo de PBM caería en la bolsa principal justo por el camino más usado,
+// que es el error que se viene a arreglar.
+function bucketOf(data, mod){
+  const b = data && data.credits_bucket;
+  if(b === 'pbm') return 'pbm';
+  if(b) return 'main';
+  return mod === 'pbm' ? 'pbm' : 'main';
+}
+
+// La barra enseña la bolsa del módulo en el que estás, no una suma ni la otra.
+function renderCreditsTxt(){
+  const bucket = (curTab === 'pbm') ? 'pbm' : 'main';
+  const v = window.LRX_CREDITS[bucket];
+  // null llega del worker cuando prep no trajo saldo (credits: prep.credits ?? null).
+  // Number(null) es 0 y pintarlo diría "0 créditos restantes" a quien tiene 97.
+  const known = (v !== undefined && v !== null && isFinite(Number(v)));
+  const ct=document.getElementById('creditsTxt');
+  if(ct) ct.textContent = known ? t('cred')(Number(v)) : '—';
+  // LCD readouts on home (legacy — removed from DOM but keep guard)
+  const lc=document.getElementById('lcdCredits');
+  if(lc) lc.textContent = known ? Number(v) : '—';
+}
+
+function setPlanBar(plan,credits,bucket){
   window.LRX_PLAN = plan || window.LRX_PLAN || 'Free';
   const planLabel=t('plans')[plan]||plan||'Free';
   $('planTxt').textContent=planLabel;
   const cn=Number(credits);
-  $('creditsTxt').textContent=isFinite(cn)?t('cred')(cn):t('cred')(0);
-  // LCD readouts on home (legacy — removed from DOM but keep guard)
-  const lc=document.getElementById('lcdCredits');
+  // Se escribe UNA bolsa por respuesta. Sin tercer argumento, la principal:
+  // así un sitio de llamada que se olvide se comporta como antes del add-on.
+  if(credits!==null && credits!==undefined && credits!=='' && isFinite(cn)){
+    window.LRX_CREDITS[bucket==='pbm'?'pbm':'main'] = cn;
+  }
+  renderCreditsTxt();
   const lp=document.getElementById('lcdPlan');
-  if(lc) lc.textContent=isFinite(Number(credits))?Number(credits):'—';
   if(lp) lp.textContent=planLabel;
   try{applyPbmTileGating(plan);}catch(e){}
 }
@@ -3702,6 +3738,7 @@ function applyLang(){
   $('inputField').placeholder=l.ph;
   renderMyDevices();
   updateNewConsultBtn();
+  renderCreditsTxt();   // t('cred') es por idioma: sin esto la cifra queda en el anterior
 }
 
 function goTab(tab){
@@ -3709,6 +3746,7 @@ function goTab(tab){
   ['home','devices','protocols','validate','calculator','pbm'].forEach(t=>{$(`tab-${t}`).classList.toggle('hidden',t!==tab);});
   if(tab==='pbm' && !$('pbmMsgs').children.length){ buildPbmSetup(); }
   curTab=tab;
+  renderCreditsTxt();   // entrar o salir de PBM cambia la bolsa que enseña la barra
   document.body.dataset.tab=tab;
   updateBreadcrumb(tab);
   updateNewConsultBtn();
@@ -4153,7 +4191,7 @@ function sendValidateSetup(){
   showTyping('validate');busy=true;$('sendBtn').disabled=true;
   fetch(HOOKS.validate,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:valState.imageB64||'',procedure_id:valState.procIdStable||'',procedure_sub_id:(valState.procSubIdx===null||valState.procSubIdx===undefined)?'':String(valState.procSubIdx),procedure_es:valState.procEs||'',procedure_sub_es:valState.procSubEs||'',procedure_other:valState.procOther||'',wavelength:valState.wavelength||'',tip:valState.tip||'',power:valState.power||'',freq:valState.freq||'',pulse:valState.pulse||'',water:valState.water||'',air:valState.air||'',notes:valState.notes||''})})
   .then(res=>{if(res.status===401){hideTyping('validate');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('validate',d&&d.message);done();return null;});}if(res.status===402){hideTyping('validate');return res.json().then(d=>{addPbmGatingCard('validate',d);done();return null;});}if(res.status===403){hideTyping('validate');addUpgradeCard('validate');done();return null;}return res.json();})
-  .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
+  .then(data=>{if(!data)return;hideTyping('validate');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits,bucketOf(data,'validate'));if(data.country)window.LRX_COUNTRY=data.country;hist.validate.push(`Assistant: ${reply}`);addAI('validate',reply);addNextCard('validate');addChips('validate');done();})
   .catch(async err=>{console.error(err);if(await tryRecover('validate',msg))return;hideTyping('validate');addAI('validate',strTxt().conn);done();});
 }
 
@@ -4443,7 +4481,7 @@ async function tryRecover(mod, lastMessage){
     if(d && d.found === true){
       const reply = d.response || '—';
       hideTyping(mod);
-      if(d.plan && d.credits !== undefined) setPlanBar(d.plan, d.credits);
+      if(d.plan && d.credits !== undefined) setPlanBar(d.plan, d.credits, bucketOf(d, mod));
       hist[mod].push(`Assistant: ${reply}`);
       addAI(mod, reply);
       // PBM cierra con su propia tarjeta y no usa ni la de "siguiente" ni los
@@ -4595,7 +4633,7 @@ const STREAM_POR_MOD = {
 function modStream(mod, msg, ctx){
   const CFG = STREAM_POR_MOD[mod] || STREAM_POR_MOD.protocols;
   let burbuja = null, acc = '', deltas = 0, eventos = 0, cerrado = false;
-  let metaPlan = null, metaCredits, seguidor = null, etapaTimer = null;
+  let metaPlan = null, metaCredits, metaBucket, seguidor = null, etapaTimer = null;
 
   // ── Cronómetro. Mide dónde se va el tiempo hasta el primer carácter de texto:
   //    cuánto en /issue, cuánto en abrir /stream, y cuánto en cada etapa del
@@ -4721,7 +4759,7 @@ function modStream(mod, msg, ctx){
     const reply = (acc || '').trim();
     if (!burbuja) addAI(mod, reply || '—');
     if (truncado) console.warn('[stream] el flujo terminó sin evento done');
-    if (metaPlan && metaCredits !== undefined) setPlanBar(metaPlan, metaCredits);
+    if (metaPlan && metaCredits !== undefined) setPlanBar(metaPlan, metaCredits, bucketOf({credits_bucket:metaBucket}, mod));
     hist[mod].push(`Assistant: ${reply || '—'}`);
     CFG.cerrar();
     done();
@@ -4806,6 +4844,7 @@ function modStream(mod, msg, ctx){
           else if (ev === 'meta'){
             if (d.plan) metaPlan = d.plan;
             if (d.credits !== undefined) metaCredits = d.credits;
+            if (d.credits_bucket) metaBucket = d.credits_bucket;
             if (d.country) window.LRX_COUNTRY = d.country;
             window.LRX_LAST_META = d;
           }
@@ -4871,7 +4910,7 @@ function modStream(mod, msg, ctx){
 // que el preámbulo (burbuja de usuario, hist, typing, busy) ya corrió.
 // ═══════════════════════════════════════════════════════════════════════════
 function protoLegacy(msg, ctx){
-  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero,procedure_id:proState.procIdStable||'',procedure_sub_id:(proState.procSubIdx===null||proState.procSubIdx===undefined)?'':String(proState.procSubIdx),procedure_es:proState.procEs||'',procedure_sub_es:proState.procSubEs||'',procedure_other:proState.procOther||'',wavelength:protoWavelength()})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
+  fetch(HOOKS.protocols,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history:ctx.historyTxt,language:lang,is_first_message:ctx.primero,procedure_id:proState.procIdStable||'',procedure_sub_id:(proState.procSubIdx===null||proState.procSubIdx===undefined)?'':String(proState.procSubIdx),procedure_es:proState.procEs||'',procedure_sub_es:proState.procSubEs||'',procedure_other:proState.procOther||'',wavelength:protoWavelength()})}).then(res=>{if(res.status===401){hideTyping('protocols');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('protocols',d&&d.message);done();return null;});}if(res.status===402){hideTyping('protocols');return res.json().then(d=>{addPbmGatingCard('protocols',d);done();return null;});}if(res.status===403){hideTyping('protocols');addUpgradeCard('protocols');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('protocols');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits,bucketOf(data,'protocols'));if(data.country)window.LRX_COUNTRY=data.country;hist.protocols.push(`Assistant: ${reply}`);const diodoSel=proState.selections['diodo']||'',erbioSel=proState.selections['erbio']||'';lastProtocol.laserType=erbioSel||diodoSel||'';lastProtocol.procedure=proState.procId?(proState.procSub?`${proState.procId} → ${proState.procSub}`:proState.procId):'';lastProtocol.power='';lastProtocol.frequency='';lastProtocol.tipDiameter='';lastDeviceContext.active=false;lastDeviceContext.label='';addAI('protocols',reply);addNextCard('protocols');addChips('protocols');done();}).catch(err=>{hideTyping('protocols');addAI('protocols',strTxt().conn);done();console.error(err);});
 }
 
 function sendProtoSetup(){
@@ -5171,7 +5210,7 @@ function sendDeviceSetup(){
   const isProtocolsRedirect=clinicalProtocolNeeds.includes(devState.need);
   if(isProtocolsRedirect){let label=devState.type||'';if(devState.brand)label+=` — ${devState.brand}`;if(devState.model&&devState.model!=='Other')label+=` ${devState.model}`;if(devState.wl)label+=` (${devState.wl})`;lastDeviceContext.label=label;lastDeviceContext.active=true;hist.protocols=[];$('proMsgs').innerHTML='';goTab('protocols');return;}
   const msg=buildDeviceMessage();if(!msg.trim()&&!devImageB64)return;removeChips('devices');addUser('devices',devImageB64?msg+'\n[Device photo attached]':msg);if(devImageB64)setTimeout(clearDevPhoto,200);hist.devices.push(`User: ${msg}`);const history=hist.devices.slice(-12).join('\n');showTyping('devices');busy=true;$('sendBtn').disabled=true;
-  fetch(devImageB64?HOOKS.devices_photo:HOOKS.devices,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:devImageB64||''})}).then(res=>{if(res.status===401){hideTyping('devices');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('devices',d&&d.message);done();return null;});}if(res.status===402){hideTyping('devices');return res.json().then(d=>{addPbmGatingCard('devices',d);done();return null;});}if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('devices');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.devices.push(`Assistant: ${reply}`);addAI('devices',reply);addNextCard('devices');addChips('devices');done();}).catch(async err=>{console.error(err);if(await tryRecover('devices',msg))return;hideTyping('devices');addAI('devices',strTxt().conn);done();});
+  fetch(devImageB64?HOOKS.devices_photo:HOOKS.devices,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage(),image_base64:devImageB64||''})}).then(res=>{if(res.status===401){hideTyping('devices');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('devices',d&&d.message);done();return null;});}if(res.status===402){hideTyping('devices');return res.json().then(d=>{addPbmGatingCard('devices',d);done();return null;});}if(res.status===403){hideTyping('devices');addUpgradeCard('devices');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('devices');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits,bucketOf(data,'devices'));if(data.country)window.LRX_COUNTRY=data.country;hist.devices.push(`Assistant: ${reply}`);addAI('devices',reply);addNextCard('devices');addChips('devices');done();}).catch(async err=>{console.error(err);if(await tryRecover('devices',msg))return;hideTyping('devices');addAI('devices',strTxt().conn);done();});
 }
 
 const lastProtocol={laserType:'',power:'',frequency:'',tipDiameter:'',procedure:''};
@@ -5335,7 +5374,7 @@ function addCalculatorForm(){
 
 function buildCalcMessage(){const parts=[];if(calFields.laserType?.value)parts.push(`Laser type: ${calFields.laserType.value}`);if(calFields.power?.value)parts.push(`Power: ${calFields.power.value} W`);if(calFields.frequency?.value)parts.push(`Frequency: ${calFields.frequency.value} Hz`);if(calFields.tipDiameter?.value)parts.push(`Tip diameter: ${calFields.tipDiameter.value} µm`);if(calFields.pulseWidth?.value)parts.push(`Pulse width: ${calFields.pulseWidth.value} µs`);if(calFields.exposureTime?.value)parts.push(`Exposure time: ${calFields.exposureTime.value} s`);if(calFields.context?.value)parts.push(`Context: ${calFields.context.value}`);const devCtx=buildMyDevicesContext();if(devCtx)parts.push(devCtx);return parts.join('. ');}
 
-function sendCalculatorForm(){const msg=buildCalcMessage();if(!msg.trim())return;removeChips('calculator');addUser('calculator',msg);hist.calculator.push(`User: ${msg}`);const history=hist.calculator.slice(-12).join('\n');showTyping('calculator');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.calculator,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===401){hideTyping('calculator');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('calculator',d&&d.message);done();return null;});}if(res.status===402){hideTyping('calculator');return res.json().then(d=>{addPbmGatingCard('calculator',d);done();return null;});}if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('calculator');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist.calculator.push(`Assistant: ${reply}`);addAI('calculator',reply);addNextCard('calculator');addChips('calculator');done();}).catch(async err=>{console.error(err);if(await tryRecover('calculator',msg))return;hideTyping('calculator');addAI('calculator',strTxt().conn);done();});}
+function sendCalculatorForm(){const msg=buildCalcMessage();if(!msg.trim())return;removeChips('calculator');addUser('calculator',msg);hist.calculator.push(`User: ${msg}`);const history=hist.calculator.slice(-12).join('\n');showTyping('calculator');busy=true;$('sendBtn').disabled=true;fetch(HOOKS.calculator,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:msg,history,language:lang,is_first_message:isFirstMessage()})}).then(res=>{if(res.status===401){hideTyping('calculator');return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard('calculator',d&&d.message);done();return null;});}if(res.status===402){hideTyping('calculator');return res.json().then(d=>{addPbmGatingCard('calculator',d);done();return null;});}if(res.status===403){hideTyping('calculator');addUpgradeCard('calculator');done();return null;}return res.json();}).then(data=>{if(!data)return;hideTyping('calculator');const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits,bucketOf(data,'calculator'));if(data.country)window.LRX_COUNTRY=data.country;hist.calculator.push(`Assistant: ${reply}`);addAI('calculator',reply);addNextCard('calculator');addChips('calculator');done();}).catch(async err=>{console.error(err);if(await tryRecover('calculator',msg))return;hideTyping('calculator');addAI('calculator',strTxt().conn);done();});}
 
 // ─── PBM (Module 05) ────────────────────────────────────────────────────
 const PBM_TIPS = {
@@ -6128,7 +6167,7 @@ function pbmLegacy(msg, ctx){
     hideTyping('pbm');
     const reply = data.response || data.message || '—';
     if(data.plan && data.credits !== undefined){
-      setPlanBar(data.plan, data.credits);
+      setPlanBar(data.plan, data.credits, bucketOf(data, 'pbm'));
       applyPbmTileGating(data.plan);
     }
     if(data.country) window.LRX_COUNTRY = data.country;
@@ -6376,7 +6415,7 @@ function send(){
   }
   fetch(HOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:text,history,language:lang,is_first_message:false})})
   .then(res=>{if(res.status===401){hideTyping(mod);return res.json().catch(()=>({})).then(d=>{addSessionExpiredCard(mod,d&&d.message);done();return null;});}if(res.status===402){hideTyping(mod);return res.json().then(d=>{addPbmGatingCard(mod,d);done();return null;});}if(res.status===403){hideTyping(mod);addUpgradeCard(mod);done();return null;}return res.json();})
-  .then(data=>{if(!data)return;hideTyping(mod);const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits);if(data.country)window.LRX_COUNTRY=data.country;hist[mod].push(`Assistant: ${reply}`);addAI(mod,reply);addNextCard(mod);addChips(mod);done();})
+  .then(data=>{if(!data)return;hideTyping(mod);const reply=data.response||data.message||'—';if(data.plan&&data.credits!==undefined)setPlanBar(data.plan,data.credits,bucketOf(data,mod));if(data.country)window.LRX_COUNTRY=data.country;hist[mod].push(`Assistant: ${reply}`);addAI(mod,reply);addNextCard(mod);addChips(mod);done();})
   .catch(async err=>{console.error(err);if(await tryRecover(mod,text))return;hideTyping(mod);addAI(mod,strTxt().conn);done();});
 }
 function done(){busy=false;$('sendBtn').disabled=false;if($('chatCameraBtn'))$('chatCameraBtn').classList.remove('active');}
@@ -6512,7 +6551,7 @@ function registerUser(){
         if(emailBar){ emailBar.textContent = DISPLAY_EMAIL; emailBar.style.display = 'block'; }
       }
       if(data && data.plan && data.credits!==undefined){
-        setPlanBar(data.plan, data.credits);
+        setPlanBar(data.plan, data.credits, 'main');
         if(data.country) window.LRX_COUNTRY = data.country;
         // Blindaje B: academy_access (true | "") drives ONLY the cosmetic Academy
         // catalog badge. The real paid-lesson gate is the 402 the content endpoint
