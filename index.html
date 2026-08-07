@@ -2327,7 +2327,8 @@ body.night .home-tile.t-academy{background:linear-gradient(135deg,#C67E36 0%,#9A
 <script>
 const QS    = new URLSearchParams(location.search);
 
-// -- Identidad. Orden de resolucion: #k -> sessionStorage -> ?email= -> localStorage.
+// -- Identidad. Orden de resolucion: #k -> localStorage laserrx_k -> ?email= ->
+//    localStorage laserrx_email.
 //    El Row ID (k) NO es una identidad declarada por el cliente: solo se transporta,
 //    y el servidor la resuelve contra Members. Mientras Glide siga emitiendo ?email=,
 //    K queda vacio y todo lo de abajo se comporta byte a byte como antes.
@@ -2339,16 +2340,28 @@ try {
   K = SANE((HS.get('k') || '').trim());
 } catch(e) { K = ''; }
 
-// sessionStorage y no localStorage a proposito: muere con la pestana y no deja una
-// identidad persistente en una maquina compartida. Todo en try/catch porque esto
+// 7-ago-2026: k pasa de sessionStorage a localStorage. El registro por el overlay
+// ya no recarga con ?email= sino con #k=, y esa k es la UNICA identidad que le queda
+// al visitante que llega de la landing: si muere con la pestana, vuelve al muro de
+// captura. laserrx_email ya vivia en localStorage desde siempre, asi que esto no
+// persiste en la maquina nada que no estuviera ya. Todo en try/catch porque esto
 // corre dentro de un iframe de terceros y Safari puede negar el almacenamiento.
-let SS_OK = false;
-try { sessionStorage.setItem('lrx_probe','1'); sessionStorage.removeItem('lrx_probe'); SS_OK = true; } catch(e) { SS_OK = false; }
+let STORE_OK = false;
+try { localStorage.setItem('lrx_probe','1'); localStorage.removeItem('lrx_probe'); STORE_OK = true; } catch(e) { STORE_OK = false; }
 
 if (K) {
-  if (SS_OK) { try { sessionStorage.setItem('laserrx_k', K); } catch(e) {} }
-} else if (SS_OK) {
-  try { K = SANE((sessionStorage.getItem('laserrx_k') || '').trim()); } catch(e) { K = ''; }
+  if (STORE_OK) { try { localStorage.setItem('laserrx_k', K); } catch(e) {} }
+} else if (STORE_OK) {
+  try { K = SANE((localStorage.getItem('laserrx_k') || '').trim()); } catch(e) { K = ''; }
+  // Puente de una sola vez para las pestanas que ya estaban abiertas cuando k vivia
+  // en sessionStorage y el hash ya se habia borrado: sin esto se quedan sin identidad
+  // en cuanto recarguen. Se lee, se migra y se sigue. No se escribe nada nuevo ahi.
+  if (!K) {
+    try {
+      K = SANE((sessionStorage.getItem('laserrx_k') || '').trim());
+      if (K) localStorage.setItem('laserrx_k', K);
+    } catch(e) { K = ''; }
+  }
 }
 
 // -- Interruptor del streaming por URL. Un flag que solo se enciende desde la
@@ -2396,9 +2409,9 @@ let STREAM_URL_OVERRIDE = null;
   } catch(e) {}
 })();
 
-// Borrar el hash SOLO si sessionStorage funciona. Perder k es peor que dejarlo en la
-// URL de un iframe que el usuario no ve en la barra de direcciones.
-if (K && SS_OK && location.hash) {
+// Borrar el hash SOLO si el almacenamiento funciona. Perder k es peor que dejarlo en
+// la URL de un iframe que el usuario no ve en la barra de direcciones.
+if (K && STORE_OK && location.hash) {
   try { history.replaceState(null, '', location.pathname + location.search); } catch(e) {}
 }
 
@@ -6542,6 +6555,30 @@ function submitEmailCapture(){
         }
         return;   // NI localStorage, NI recarga, NI acceso al chat
       }
+      // 7-ago-2026: el registro acuna el Row ID el mismo y lo devuelve en `k`, en las
+      // dos ramas (alta nueva y usuario existente). Es lo que los backends de chat
+      // exigen: sin el, la PRIMERA consulta del visitante moria en el 401 de
+      // SESSION_EXPIRED y el embudo gratuito no llegaba a ninguna parte. Se guarda y
+      // se recarga con #k=, nunca con ?email=: la identidad no viaja en la query.
+      const kNew = (data && typeof data.k === 'string') ? data.k.trim() : '';
+      if(kNew && !kNew.includes('{{') && !kNew.includes('}}')){
+        try { localStorage.setItem('laserrx_k', kNew); } catch(e){}
+        const u = new URL(window.location.href);
+        u.searchParams.delete('email');
+        // Fundir con lo que ya hubiera en el hash en vez de pisarlo: un #stream= que
+        // el arranque aun no ha leido se perderia.
+        const hp = new URLSearchParams((u.hash || '').replace(/^#/, ''));
+        hp.set('k', kNew);
+        u.hash = hp.toString();
+        // Anadir SOLO un hash no recarga: es una navegacion en el mismo documento y el
+        // overlay se quedaria puesto. Se reescribe la URL sin navegar y se fuerza la
+        // recarga, que ya arranca leyendo la #k.
+        try { history.replaceState(null, '', u.toString()); } catch(e) { window.location.href = u.toString(); }
+        window.location.reload();
+        return;
+      }
+      // Sin k en la respuesta -> el camino de siempre, por correo. No deberia ocurrir
+      // desde el 7-ago-2026, pero un blanco es peor que una URL fea.
       try { localStorage.setItem('laserrx_email', email); } catch(e){}
       // Reload with email in URL so the rest of the app picks it up cleanly
       const newUrl = new URL(window.location.href);
