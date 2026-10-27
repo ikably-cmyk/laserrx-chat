@@ -5559,7 +5559,7 @@ const pbmState = {
 
 function openPbmTab(ev){
   if(ev) ev.stopPropagation();
-  // Pro plan is locked out — show upsell instead of opening
+  // Locked for any user without the PBM add-on (Free or Pro) — show upsell instead of opening
   const tile = $('cPbmTile');
   if(tile && tile.classList.contains('locked')){
     // For Pro users: redirect them to view plans rather than entering a non-functional tab
@@ -5687,7 +5687,7 @@ function showPbmUpsellModal(){
   const msgs = $('pbmMsgs');
   if(!msgs) return;
   msgs.innerHTML = '';
-  addPbmUpsellCard();
+  addPbmUpsellCard('no_addon');
 }
 
 function buildPbmSetup(){
@@ -6203,8 +6203,8 @@ function pbmLegacy(msg, ctx){
   })
   .then(res => {
     if(res.status === 401){ hideTyping('pbm'); return res.json().catch(()=>({})).then(d=>{ addSessionExpiredCard('pbm', d && d.message); done(); return null; }); }
-    if(res.status === 402){ hideTyping('pbm'); addPbmUpsellCard(); done(); return null; }
-    if(res.status === 403){ hideTyping('pbm'); addUpgradeCard('pbm'); done(); return null; }
+    if(res.status === 402){ hideTyping('pbm'); addPbmUpsellCard('no_credits'); done(); return null; }
+    if(res.status === 403){ hideTyping('pbm'); addPbmUpsellCard('no_addon'); done(); return null; }
     return res.json();
   })
   .then(data => {
@@ -6229,35 +6229,51 @@ function pbmLegacy(msg, ctx){
   });
 }
 
-function addPbmUpsellCard(){
+// PBM es un add-on: se SUMA al plan, no lo reemplaza, y trae su propia bolsa
+// (100 consultas PBM/mes). Nunca "ilimitado": eso solo lo da Elite.
+//   'no_addon'   -> 403 del módulo PBM o tile bloqueado: no tiene el add-on.
+//   'no_credits' -> 402 del módulo PBM: tiene el add-on pero agotó la bolsa.
+function addPbmUpsellCard(reason = 'no_addon'){
   const msgs = $('pbmMsgs');
   if(!msgs) return;
   const isMX = (window.LRX_COUNTRY||'US') === 'MX';
   const pbmPrice   = isMX ? '$149 MXN/mes' : '$9.99 USD/mo';
   const elitePrice = isMX ? '$449 MXN/mes' : '$29.99 USD/mo';
-  // Stripe links — PBM standalone links will need to be filled in by Isaac
-  // (placeholder env var: window.LRX_PBM_LINKS may be injected later)
-  const pbmLink   = isMX ? (window.LRX_PBM_LINKS?.pbm_mxn   || '#pbm-standalone-mxn')
-                         : (window.LRX_PBM_LINKS?.pbm_usd   || '#pbm-standalone-usd');
+  const pbmLink   = (isMX ? window.LRX_PBM_LINKS?.pbm_mxn : window.LRX_PBM_LINKS?.pbm_usd)
+                    || 'https://laserapp.ai/#pricing';
   const eliteLink = isMX ? 'https://buy.stripe.com/28E6oz38Xdvkgeu1IHdIA0H'
                          : 'https://buy.stripe.com/bJecMX24T0IybYe9b9dIA0I';
-  const t = {
-    en: { title:'PBM Module — Pro plan upgrade', desc:'PBM Dental is a specialized module. Add it standalone or upgrade to Elite for unlimited access to all modules.', pbmName:'PBM standalone', pbmDesc:'PBM module only · unlimited', eliteName:'Elite', eliteDesc:'All modules · unlimited', cta:'Continue' },
-    es: { title:'Módulo PBM — actualización desde Pro', desc:'PBM Dental es un módulo especializado. Agrégalo de forma independiente o actualiza a Elite para acceso ilimitado a todos los módulos.', pbmName:'PBM independiente', pbmDesc:'Solo módulo PBM · ilimitado', eliteName:'Elite', eliteDesc:'Todos los módulos · ilimitado', cta:'Continuar' },
-    pt: { title:'Módulo PBM — atualização do plano Pro', desc:'PBM Dental é um módulo especializado. Adicione-o independente ou atualize para Elite para acesso ilimitado a todos os módulos.', pbmName:'PBM independente', pbmDesc:'Apenas módulo PBM · ilimitado', eliteName:'Elite', eliteDesc:'Todos os módulos · ilimitado', cta:'Continuar' },
-    ja: { title:'PBMモジュール — Proプランからアップグレード', desc:'PBM Dentalは専門モジュールです。単独追加またはEliteへアップグレードで全モジュール無制限アクセス。', pbmName:'PBM単独', pbmDesc:'PBMモジュールのみ · 無制限', eliteName:'Elite', eliteDesc:'全モジュール · 無制限', cta:'続行' },
-    ko: { title:'PBM 모듈 — Pro 플랜 업그레이드', desc:'PBM 치과는 전문 모듈입니다. 단독으로 추가하거나 Elite로 업그레이드하여 모든 모듈을 무제한 사용하세요.', pbmName:'PBM 단독', pbmDesc:'PBM 모듈만 · 무제한', eliteName:'Elite', eliteDesc:'모든 모듈 · 무제한', cta:'계속' }
-  }[lang] || t.en;
-  const d = document.createElement('div');
-  d.className = 'upgrade-card pbm-upsell';
-  d.innerHTML = `<div class="upg-title">${t.title}</div>
-    <div class="upg-desc">${t.desc}</div>
-    <div class="upg-pbm-options">
+  const T = {
+    en: { no_addon:   { title:'PBM Module — adds to your plan', desc:'PBM is an add-on module: it adds to your current plan without replacing it, with its own pool of queries. You keep your plan and your credits.' },
+          no_credits: { title:'You used your PBM queries for this period', desc:'Your PBM pool renews with your next payment. If you need more, Elite includes unlimited PBM.' },
+          pbmName:'Add PBM', pbmDesc:'100 PBM queries/mo', eliteName:'Elite', eliteDesc:'Unlimited · all modules, PBM included', cta:'Continue' },
+    es: { no_addon:   { title:'Módulo PBM — se suma a tu plan', desc:'PBM es un módulo adicional: se suma a tu plan actual sin reemplazarlo, con su propia bolsa de consultas. Conservas tu plan y tus créditos.' },
+          no_credits: { title:'Usaste tus consultas PBM de este periodo', desc:'Tu bolsa de PBM se renueva con tu siguiente pago. Si necesitas más, Elite incluye PBM ilimitado.' },
+          pbmName:'Agregar PBM', pbmDesc:'100 consultas PBM/mes', eliteName:'Elite', eliteDesc:'Ilimitado · todos los módulos, PBM incluido', cta:'Continuar' },
+    pt: { no_addon:   { title:'Módulo PBM — soma-se ao seu plano', desc:'O PBM é um módulo adicional: soma-se ao seu plano atual sem substituí-lo, com seu próprio pacote de consultas. Você mantém seu plano e seus créditos.' },
+          no_credits: { title:'Você usou suas consultas PBM deste período', desc:'Seu pacote de PBM é renovado com seu próximo pagamento. Se precisar de mais, o Elite inclui PBM ilimitado.' },
+          pbmName:'Adicionar PBM', pbmDesc:'100 consultas PBM/mês', eliteName:'Elite', eliteDesc:'Ilimitado · todos os módulos, PBM incluído', cta:'Continuar' },
+    ja: { no_addon:   { title:'PBMモジュール — 現在のプランに追加', desc:'PBMは追加モジュールです。現在のプランを置き換えずに追加され、専用のクエリ枠があります。プランとクレジットはそのまま維持されます。' },
+          no_credits: { title:'今期のPBMクエリを使い切りました', desc:'PBMの枠は次回のお支払いで更新されます。さらに必要な場合、EliteならPBMが無制限です。' },
+          pbmName:'PBMを追加', pbmDesc:'PBMクエリ 100件/月', eliteName:'Elite', eliteDesc:'無制限 · 全モジュール（PBMを含む）', cta:'続行' },
+    ko: { no_addon:   { title:'PBM 모듈 — 현재 플랜에 추가', desc:'PBM은 추가 모듈입니다. 현재 플랜을 대체하지 않고 추가되며, 별도의 쿼리 한도가 있습니다. 플랜과 크레딧은 그대로 유지됩니다.' },
+          no_credits: { title:'이번 기간의 PBM 쿼리를 모두 사용했습니다', desc:'PBM 한도는 다음 결제 시 갱신됩니다. 더 필요하시면 Elite에 PBM 무제한이 포함되어 있습니다.' },
+          pbmName:'PBM 추가', pbmDesc:'월 100건 PBM 쿼리', eliteName:'Elite', eliteDesc:'무제한 · 모든 모듈, PBM 포함', cta:'계속' }
+  };
+  const t = T[lang] || T.en;
+  const v = t[reason] || t.no_addon;
+  const pbmOpt = reason === 'no_credits' ? '' : `
       <div class="upg-pbm-opt">
         <div class="upg-pbm-opt-title">${t.pbmName} · ${pbmPrice}</div>
         <div class="upg-pbm-opt-price">${t.pbmDesc}</div>
         <a class="upg-pbm-opt-btn" href="${pbmLink}" target="_blank">${t.cta} · ${t.pbmName}</a>
-      </div>
+      </div>`;
+  const d = document.createElement('div');
+  d.className = 'upgrade-card pbm-upsell';
+  d.dataset.reason = reason;
+  d.innerHTML = `<div class="upg-title">${v.title}</div>
+    <div class="upg-desc">${v.desc}</div>
+    <div class="upg-pbm-options">${pbmOpt}
       <div class="upg-pbm-opt">
         <div class="upg-pbm-opt-title">${t.eliteName} · ${elitePrice}</div>
         <div class="upg-pbm-opt-price">${t.eliteDesc}</div>
@@ -6273,6 +6289,8 @@ function addPbmUpsellCard(){
 // la negación: describía al usuario por lo que le falta antes de decirle qué
 // hay al otro lado.
 function addPbmGatingCard(mod, data){
+  // Dentro de PBM el texto de abajo ("plan PBM standalone") no aplica.
+  if(mod === 'pbm'){ addPbmUpsellCard('no_credits'); return; }
   const msgs = msgEl(mod);
   if(!msgs) return;
   const isMX = (window.LRX_COUNTRY||'US') === 'MX';
@@ -6349,6 +6367,8 @@ function addNextCard(mod){
 }
 
 function addUpgradeCard(mod){
+  // A PBM no le falta Pro/Elite sino el add-on: tarjeta propia.
+  if(mod === 'pbm'){ addPbmUpsellCard('no_addon'); return; }
   const u=t('upg');const msgs=msgEl(mod);const d=document.createElement('div');d.className='upgrade-card';
   const isMX=(window.LRX_COUNTRY||'US')==='MX';
   const proDaily   = isMX ? '$5'   : '33¢';
