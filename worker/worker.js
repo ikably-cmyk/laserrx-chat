@@ -266,7 +266,7 @@ async function handleStream(request, env, ctx) {
   //    is_first_message: se conserva el TRI-ESTADO. n8n distingue false de ausente
   //    para decidir si cobra crédito, así que un `|| false` aquí cambiaría la
   //    facturación. Si el cliente no lo manda, va null y n8n aplica su default.
-  const history = Array.isArray(body.history) ? body.history.slice(-20) : [];
+  const history = Array.isArray(body.history) ? body.history.slice(-60) : [];   // 30-oct-2026: 60 para que el servidor vea equipo y preguntas; el modelo sigue viendo 10
   const isFirstMessage = typeof body.is_first_message === 'boolean'
     ? body.is_first_message
     : null;

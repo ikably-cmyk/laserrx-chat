@@ -4970,7 +4970,7 @@ function sendProtoSetup(){
   const ctx = { historyTxt: historyTxt, primero: primero };
   if (streamAllowed('protocols')){
     // sin el turno en curso: el contrato ya lo lleva aparte, en `q`
-    ctx.previos = histToMessages(hist.protocols.slice(0,-1), STREAM_HIST_MAX);
+    ctx.previos = histToMessages(hist.protocols.slice(0,-1), 60);
     modStream('protocols', msg, ctx);
   } else {
     protoLegacy(msg, ctx);
@@ -5168,7 +5168,7 @@ window.LRX_SSE_SIM = {
     removeChips('protocols'); addUser('protocols', msg);
     hist.protocols.push(`User: ${msg}`);
     const historyTxt = hist.protocols.slice(-60).join('\n');
-    const previos    = histToMessages(hist.protocols.slice(0,-1), STREAM_HIST_MAX);
+    const previos    = histToMessages(hist.protocols.slice(0,-1), 60);
     showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
     modStream('protocols', msg, { previos: previos, historyTxt: historyTxt, primero: false });
     return 'corriendo ' + nombre + ' — mira LRX_STREAM_STATE()';
@@ -6475,7 +6475,7 @@ function send(){
   //    primero:false — el follow-up NO cobra crédito, y de eso depende que PBM
   //    no empiece a cobrar dos veces por conversación.
   if(streamAllowed(mod)){
-    modStream(mod,text,{previos:histToMessages(hist[mod].slice(0,-1),STREAM_HIST_MAX),historyTxt:history,primero:false});
+    modStream(mod,text,{previos:histToMessages(hist[mod].slice(0,-1),mod==='protocols'?60:STREAM_HIST_MAX),historyTxt:history,primero:false});
     return;
   }
   fetch(HOOKS[mod],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...K_FIELD,user_email:USER_EMAIL_FIELD,last_message:text,history,language:lang,is_first_message:false})})
