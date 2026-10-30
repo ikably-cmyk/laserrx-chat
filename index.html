@@ -4964,7 +4964,7 @@ function sendProtoSetup(){
   removeChips('protocols');
   addUser('protocols', msg);
   hist.protocols.push(`User: ${msg}`);
-  const historyTxt = hist.protocols.slice(-12).join('\n');   // formato legado, intacto
+  const historyTxt = hist.protocols.slice(-60).join('\n');   // formato legado. 30-oct-2026: 60 (antes 12) para que el servidor vea el equipo y las preguntas de longitud de onda; el modelo sigue viendo solo 10
   showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
   const primero = isFirstMessage();      // UNA sola vez: muta sessionCreditUsed
   const ctx = { historyTxt: historyTxt, primero: primero };
@@ -5167,7 +5167,7 @@ window.LRX_SSE_SIM = {
     const msg = 'SIMULACIÓN · ' + nombre;
     removeChips('protocols'); addUser('protocols', msg);
     hist.protocols.push(`User: ${msg}`);
-    const historyTxt = hist.protocols.slice(-12).join('\n');
+    const historyTxt = hist.protocols.slice(-60).join('\n');
     const previos    = histToMessages(hist.protocols.slice(0,-1), STREAM_HIST_MAX);
     showTyping('protocols'); busy = true; $('sendBtn').disabled = true;
     modStream('protocols', msg, { previos: previos, historyTxt: historyTxt, primero: false });
@@ -6467,7 +6467,7 @@ function send(){
   hist[mod].push(`User: ${text}`);
   if(mod==='devices' && devImageB64){
     clearDevPhoto();
-  }const history=hist[mod].slice(-12).join('\n');
+  }const history=hist[mod].slice(mod==='protocols'?-60:-12).join('\n');
   showTyping(mod);busy=true;$('sendBtn').disabled=true;
   // ── Follow-ups por streaming, de CUALQUIER modulo que lo tenga permitido.
   //    Mismo preámbulo que el primer envío: historyTxt CON el turno en curso
